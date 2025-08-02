@@ -1,0 +1,5 @@
+export const tab1 = require("./tab1.png")
+export const tab2 = require("./tab2.png")
+export const tab3 = require("./tab3.png")
+export const tab4 = require("./tab4.png")
+export const tab5 = require("./tab5.png")

@@ -1,0 +1,636 @@
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, StatusBar, Image, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, ScrollView, RefreshControl } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import ReorderInactive from './tabassets/ReorderInactive';
+import HeaderPick2 from './tabassets/HeaderPick2';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useDispatch, useSelector } from 'react-redux';
+import { getOrderDetails, getOrders, addToCart, removeFromCart, setCartRestaurant } from '../../redux/reducers/daddy';
+import { useFocusEffect } from '@react-navigation/native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { globalSearch } from '../../redux/reducers/addressSlice';
+import commonStyles from '../../commonstyles/CommonStyles';
+
+const ReorderScreen = ({navigation}) => {
+  const [expandedRestaurants, setExpandedRestaurants] = useState({});
+  const [orderItems, setOrderItems] = useState({});
+  const [loading, setLoading] = useState({});
+  const {orders, cartItems, cartRestaurant} = useSelector((state) => state.Dashboard);
+  const dispatch = useDispatch();
+  const [showReplaceModal, setShowReplaceModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  
+  // New state for search query
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false); 
+  const timeoutRef = useRef();
+  const { globalSearchResults } = useSelector(state => state.address);
+  const [isLoading, setIsLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const getOrdersData = async () => {
+    try {
+      setInitialLoading(true);
+      const response = await dispatch(getOrders({orderId:0}));
+      console.log(response,"++++++++++++++++++++++++RRESPONSE")
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    } finally {
+      setInitialLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    getOrdersData();
+  }, []);
+
+  const fetchOrderItems = async (orderId) => {
+    try {
+      setLoading(prev => ({ ...prev, [orderId]: true }));
+      const response = await dispatch(getOrderDetails({orderId}));
+      
+      if (response.payload && response.payload.data) {
+        setOrderItems(prev => ({
+          ...prev,
+          [orderId]: response.payload.data
+        }));
+        
+        setExpandedRestaurants(prev => ({
+          ...prev,
+          [orderId]: true
+        }));
+      } else {
+        console.error('Invalid response format:', response);
+      }
+    } catch (error) {
+      console.error('Error fetching order items:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  const toggleExpand = useCallback((restaurantId) => {
+    setExpandedRestaurants(prev => ({
+      ...prev,
+      [restaurantId]: !prev[restaurantId]
+    }));
+  }, []);
+
+  const handleAddToCart = (item) => {
+    if (cartItems.length === 0 || cartRestaurant === item.shop_id) {
+      addItem(item);
+    } else {
+      setSelectedItem(item);
+      setShowReplaceModal(true);
+    }
+  };
+
+  const handleReplaceCart = () => {
+    dispatch(setCartRestaurant(selectedItem.shop_id));
+    dispatch(addToCart(selectedItem));
+    setShowReplaceModal(false);
+    setSelectedItem(null);
+  };
+
+  const handleCancelReplace = () => {
+    setShowReplaceModal(false);
+    setSelectedItem(null);
+  };
+
+  const addItem = (item) => {
+    dispatch(addToCart(item));
+  };
+
+  const decreaseItem = (item) => {
+    dispatch(removeFromCart(item));
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    clearTimeout(timeoutRef.current);
+    
+    if (query.trim()) {
+      timeoutRef.current = setTimeout(() => {
+        dispatch(globalSearch({ searchText: query }));
+      }, 500);
+    }
+  };
+
+  
+  const filteredOrders = orders?.filter(order => 
+    globalSearchResults?.some(result => result.shop_name === order.shop_name) ||
+    order.shop_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(getOrders({orderId:0})); // Fetch orders again
+    setRefreshing(false);
+  };
+
+  const renderMenuItem = useCallback(({ item }) => {
+    const indexValue = cartItems.findIndex(value => value.id === item.id);
+    const eachPrice = Number(item.item_price) * Number(cartItems[indexValue]?.quantity);
+
+    return (
+      <View>
+        <View style={styles.cartItem}>
+          <View style={styles.itemDetails}>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+              <HeaderPick2 />
+              <Text style={styles.foodName}>{item.item_name}</Text>
+            </View>
+            <Text style={styles.foodPrice}>₹ {item.item_price}</Text>
+            <Text style={styles.itemDescription}>{item.item_description}</Text>
+          </View>
+          {/* <View>
+            {indexValue !== -1 ? (
+              <View style={styles.counterContainer}>
+                <TouchableOpacity onPress={() => decreaseItem(item)}>
+                  <AntDesign name="minus" size={18} color="#065E2C" />
+                </TouchableOpacity>
+                <Text style={styles.counterText}>{cartItems[indexValue]?.quantity}</Text>
+                <TouchableOpacity onPress={() => handleAddToCart(item)}>
+                  <AntDesign name="plus" size={18} color="#065E2C" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => handleAddToCart(item)}
+              >
+                <Text style={styles.addButtonText}>ADD</Text>
+              </TouchableOpacity>
+            )}
+            {indexValue !== -1 && <Text style={styles.itemTotalPrice}>₹ {eachPrice}</Text>}
+          </View> */}
+        </View>
+        <View style={styles.dottedLineContainer}>
+          {Array(20).fill(0).map((_, index) => (
+            <View key={index} style={styles.dot} />
+          ))}
+        </View>
+      </View>
+    );
+  }, [cartItems, cartRestaurant]);
+
+  // Add this constant near the top of the file
+  const STATUS_MAP = {
+    0: 'Order Placed',
+    1: 'Order Accepted',
+    2: 'Order On The Way',
+    3: 'Order Completed',
+    4: 'Order Cancelled by You',
+    5: 'Order Rejected by Restaurant',
+    6: 'Order Not Received',
+    7: 'Waiting for Payment',
+    8: 'Delivery Partner Assigned',
+  };
+  
+  // Add this function to get status color
+  const getStatusColor = (status) => {
+    const colorMap = {
+      0: '#C3A710', // Order Placed - Yellow
+      1: '#065E2C', // Order Accepted - Green
+      2: '#065E2C', // Preparing - Green
+      3: '#065E2C', // Completed - Green
+      4: '#FF4B4B', // Cancelled - Red
+      5: '#FF4B4B', // Rejected - Red
+      6: '#FF4B4B', // Not Received - Red
+      7: '#C3A710', // Waiting Payment - Yellow
+      8: '#065E2C', // Delivery Assigned - Green
+    };
+    return colorMap[status] || '#666'; // Default gray
+  };
+  
+  // Update the renderRestaurantCard function to include status
+  const renderRestaurantCard = useCallback(({ item }) => {
+    const isLoading = loading[item.id];
+  
+    return (
+      <View style={styles.card}>
+        <View style={{flexDirection:"row",justifyContent:"space-between",alignItems:"center"}}>
+        <Text style={styles.date}>{item.order_date}</Text>
+         <Text style={[styles.statusText, {color: getStatusColor(item.order_status)}]}>
+                {STATUS_MAP[item.order_status]}
+        </Text>
+        </View>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 7}}>
+          <Image source={{uri: item.shop_image}} style={{width: 72, height: 72, borderRadius: 8}} />
+          <View style={styles.restaurantInfo}>
+            <Text style={styles.restaurantName}>{item.shop_name}</Text>
+            <Text style={[styles.details,{fontSize:10}]}>{item?.order_id} / {item?.id}</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 5}}>
+              <Text style={styles.details}>₹ {item.grand_total}</Text>
+            </View>
+            <Text style={styles.details}>{item.location_name}</Text>
+          </View>
+        </View>
+
+      {/* ( */}
+          <TouchableOpacity 
+            style={styles.viewDetailsButton}
+            onPress={() => {
+              // fetchOrderItems(item.id);
+              navigation.navigate('OrderDetails', { orderDetails: item });
+            }}
+            disabled={isLoading}
+          >
+              <Text style={styles.viewDetailsButtonText}>View Order Details</Text>
+          </TouchableOpacity>
+        {/* )  */}
+      </View>
+    );
+  }, [expandedRestaurants, orderItems, loading, renderMenuItem, toggleExpand, fetchOrderItems, navigation]);
+
+  const keyExtractor = useCallback((item) => item.id, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setExpandedRestaurants({});
+      setOrderItems({});
+      getOrdersData();
+    }, [])
+  );
+
+  return (
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      {/* <LinearGradient colors={['#FD0', '#F7F2F2']} style={styles.gradientContainer}> */}
+      {/* <LinearGradient colors={['#FE4A31', '#FFD6CD']} style={styles.gradientContainer}> */}
+      <LinearGradient colors={['#E7432D', '#E7432D']} style={styles.gradientContainer}>
+        <View style={styles.headerContainer}>
+          <ReorderInactive color='#fff' />
+          <Text style={styles.headerTitle}>Orders</Text>
+        </View>
+        <View style={styles.searchContainer}>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              placeholderTextColor={'#666666'}
+              placeholder="Search for your favorites"
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={handleSearch}
+            />
+            <Icon name="search" size={24} color="gray" style={styles.searchIcon} />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity 
+                style={styles.clearButton}
+                onPress={() => setSearchQuery('')}
+              >
+                <MaterialIcons name="close" size={20} color="#666" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </LinearGradient>
+      {initialLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={commonStyles.btn2Color} />
+        </View>
+      ) : filteredOrders?.length > 0 ? (
+        <FlatList
+          data={filteredOrders}
+          renderItem={renderRestaurantCard}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.listContainer}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={3}
+          windowSize={5}
+          initialNumToRender={5}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        />
+      ) : (
+        <View style={styles.emptyListContainer}>
+          <Text style={styles.emptyListText}>No orders found.</Text>
+        </View>
+      )}
+      
+      <Modal
+        visible={showReplaceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelReplace}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Replace Cart Items?</Text>
+            <Text style={styles.modalText}>
+              Your cart contains items from a different restaurant. Would you like to replace them with items from {selectedItem?.shop_name}?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={handleCancelReplace}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]} 
+                onPress={handleReplaceCart}
+              >
+                <Text style={styles.confirmButtonText}>Replace</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff',
+    // paddingBottom: 60
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: responsiveHeight(5),
+    marginLeft: responsiveWidth(5)
+  },
+  headerTitle: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "700"
+  },
+  searchContainer: {
+    marginHorizontal: responsiveWidth(5),
+    marginTop: responsiveHeight(2),
+    marginBottom: responsiveHeight(1),
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 5,
+    height: 48,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+    flex: 1,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingLeft: 45,
+    paddingRight: 40,
+    fontSize: 16,
+    color: '#000',
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: 15,
+    zIndex: 1,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 15,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    padding: 5,
+    zIndex: 1,
+  },
+  listContainer: {
+    paddingBottom: responsiveHeight(20)
+  },
+  emptyListContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyListText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  card: { 
+    backgroundColor: '#fff', 
+    margin: 10, 
+    padding: 15, 
+    borderRadius: 8, 
+    borderWidth: 1,
+    borderColor: '#A3A3A3',
+    // elevation: 3 
+  },
+  date: { 
+    fontSize: 12, 
+    color: '#888',
+    textAlign:"left" 
+  },
+  restaurantInfo: { 
+    marginVertical: 10 ,
+    gap:3
+  },
+  restaurantName: { 
+    fontSize: 16, 
+    fontWeight: '500',
+    color: '#000'
+  },
+  details: { 
+    fontSize: 12, 
+    color: '#050505',
+    fontWeight: '500'
+  },
+  moreItems: { 
+    color: '#C3A710', 
+    marginTop: 10,
+    fontSize:14,
+    fontWeight:"600"
+  },
+  gradientContainer: {
+    paddingTop: 10,
+  },
+  cartItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15
+  },
+  foodImage: {
+    width: 82,
+    height: 82,
+    borderRadius: 12
+  },
+  itemDetails: {
+    flex: 1,
+    // marginLeft: 16,
+    gap: 3,
+    justifyContent: 'center'
+  },
+  foodName: {
+    fontSize: 16,
+    color: '#000',
+    fontWeight: '500',
+    width: '60%'
+  },
+  foodPrice: {
+    fontSize: 16,
+    color: '#065E2C',
+    fontWeight: '700'
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#065E2C',
+    borderRadius: 6
+  },
+  quantityButton: {
+    padding: 5
+  },
+  quantityText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginHorizontal: 5,
+    color: '#065E2C'
+  },
+  itemTotalPrice: {
+    color: "#3D3D3D",
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "right",
+    marginTop: 3
+  },
+  dottedLineContainer: {
+    flexDirection: 'row',
+    marginTop: 5,
+    alignSelf: 'center',
+  },
+  dot: {
+    width: 7,
+    height: 2,
+    backgroundColor: '#D8D8D8',
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  viewDetailsButton: {
+    // backgroundColor: "green",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 15,
+    borderWidth: 1, 
+    borderColor: "green",
+    color: "#000"
+  },
+  viewDetailsButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  hideDetailsButton: {
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  hideDetailsButtonText: {
+    color: '#065E2C',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  counterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "#065E2C",
+  },
+  counterText: { 
+    color: '#065E2C', 
+    fontSize: 16, 
+    fontWeight: '700', 
+    marginHorizontal: 10 
+  },
+  addButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#065E2C',
+  },
+  addButtonText: { 
+    color: '#065E2C', 
+    fontWeight: '700', 
+    fontSize: 14 
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  confirmButton: {
+    backgroundColor:commonStyles.btn2Color,
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+});
+
+export default ReorderScreen;

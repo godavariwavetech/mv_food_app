@@ -1,0 +1,241 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  Dimensions,
+  BackHandler,
+  RefreshControl,
+  SafeAreaView,
+  StatusBar,
+} from 'react-native';
+import { useSelector, useDispatch } from 'react-redux';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { checkServiceAvailability, getServices } from '../../redux/reducers/daddy';
+import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import { setLocation, setLocationId, setLocationName } from '../../redux/reducers/auth';
+import commonStyles from '../../commonstyles/CommonStyles';
+import { colors } from '../../config/theme';
+
+const { width } = Dimensions.get('window');
+
+const ServicesAvailableScreen = ({ navigation, route }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredAreas, setFilteredAreas] = useState([]);
+  const { availableAreas, loading } = useSelector(state => state.Dashboard);
+  const dispatch = useDispatch();
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    dispatch(getServices());
+  }, []);
+
+  useEffect(() => {
+    if (availableAreas) {
+      setFilteredAreas(availableAreas?.filter(area =>
+        area.location_name.toLowerCase().includes(searchQuery.toLowerCase())
+      ));
+    }
+  }, [searchQuery, availableAreas]);
+
+  const handleAreaSelect = (area) => {
+    dispatch(setLocation({ latitude: area.location_latitude, longitude: area.location_longitude }))
+    dispatch(setLocationName(area.location_name))
+    dispatch(setLocationId(area.id))
+    navigation.navigate("BottomNavigation")
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(getServices());
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* <StatusBar backgroundColor={"transparent"} translucent barStyle={"light-content"} /> */}
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            {!route?.params?.permissionDenied && <FontAwesome6 name="arrow-left-long" size={20} color={colors.black} />}
+          </TouchableOpacity>
+          <Text style={styles.title}>Available Service Areas</Text>
+        </View>
+
+        <View style={styles.searchContainer}>
+          <TextInput
+            placeholder="Search service areas..."
+            placeholderTextColor={colors.gray}
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          <MaterialIcons name="search" size={24} color={colors.green} />
+        </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.green} style={styles.loader} />
+        ) : (
+          <FlatList
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[colors.green]}
+                tintColor={colors.green}
+              />
+            }
+            data={filteredAreas}
+            keyExtractor={item => item.id.toString()}
+            contentContainerStyle={styles.listContainer}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.areaCard}
+                onPress={() => handleAreaSelect(item)}
+              >
+                <View style={styles.areaInfo}>
+                  <Text style={styles.areaName}>{item.location_name}</Text>
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailText}>
+                      <MaterialIcons name="location-pin" size={16} color={colors.green} />
+                      {item.maximum_delivery_service_km} km radius
+                    </Text>
+                    {/* <Text style={styles.detailText}>
+                    <MaterialIcons name="delivery-dining" size={16} color={colors.green} />
+                    Free Delivery
+                  </Text> */}
+                  </View>
+                </View>
+                <MaterialIcons name="chevron-right" size={24} color={colors.green} />
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+
+                <Text style={styles.emptyText}>No service available in this area</Text>
+              </View>
+            }
+          />
+        )}
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.white, // centralized color
+    // paddingTop: responsiveHeight(2),
+  },
+  header: {
+    backgroundColor: "#FE4A31",
+    height: responsiveHeight(15),
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingBottom: responsiveHeight(3),
+    paddingLeft: responsiveWidth(5)
+  },
+  backButton: {
+    width: responsiveWidth(7)
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
+    textAlign: "left"
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white, // centralized color
+    borderRadius: 10,
+    marginHorizontal: responsiveWidth(5),
+    paddingHorizontal: 15,
+    height: 50,
+    borderWidth: 1,
+    borderColor: colors.borderGray, // centralized color
+    marginVertical: 10,
+  },
+  listContainer: {
+    paddingBottom: responsiveHeight(10),
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.darkGray, // centralized color
+    paddingVertical: 8,
+  },
+  areaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.white, // centralized color
+    padding: 15,
+    marginHorizontal: responsiveWidth(5),
+    marginVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.borderGray2, // centralized color
+  },
+  areaInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  areaName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.darkGray, // centralized color
+    marginBottom: 4,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+    marginTop: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: colors.gray,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: responsiveHeight(15),
+  },
+  emptyImage: {
+    width: width * 0.6,
+    height: width * 0.6,
+    resizeMode: 'contain',
+    marginBottom: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.gray,
+    textAlign: 'center',
+    lineHeight: 24,
+    textAlign: 'center',
+    marginHorizontal: responsiveWidth(10),
+  },
+  loader: {
+    marginTop: responsiveHeight(30),
+  },
+});
+
+export default ServicesAvailableScreen;
