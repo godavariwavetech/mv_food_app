@@ -16,6 +16,7 @@ const SupportScreen = ({ navigation }) => {
   const getContact = async () => {
     try {
       const res = await dispatch(getChargesList());
+      console.log(res.payload.data[0]);
       if(res.payload.data[0]){
         setContactInfo(res.payload.data[0]);
       }
@@ -37,7 +38,7 @@ const SupportScreen = ({ navigation }) => {
   };
 
   const handleWhatsApp = () => {
-    Linking.openURL(`https://wa.me/${contactInfo?.contact_number}`);
+    Linking.openURL(`https://wa.me/+91${contactInfo?.contact_number}`);
   };
 
   return (

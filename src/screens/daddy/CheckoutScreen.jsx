@@ -28,6 +28,7 @@ import {
   placeOrder,
   generateOrderId,
   updateOrderStatus,
+  clearCart,
 } from '../../redux/reducers/daddy';
 import Entypo from 'react-native-vector-icons/Entypo';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -37,6 +38,7 @@ import { removeCoupon } from '../../redux/reducers/coupons';
 import RestaurantScreen from './RestaurantScreen';
 import commonStyles from '../../commonstyles/CommonStyles';
 import StatusBarManager from '../../components/StatusBarManager';
+
 
 const CheckoutScreen = ({ navigation, route }) => {
   const { cartItems, totalPrice } = useSelector(state => state.Dashboard);
@@ -52,7 +54,8 @@ const CheckoutScreen = ({ navigation, route }) => {
     locationName,
   } = useSelector(state => state.Auth);
   const dispatch = useDispatch();
-
+  console.log(reaturantDetails,"--------------------------------------------------------------")
+  const [clearCartConfirmVisible, setClearCartConfirmVisible] = useState(false);
   const [paymentMenuVisible, setPaymentMenuVisible] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState('Pay Online');
@@ -91,51 +94,112 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   }, [cartItems.length]);
 
+  // const caliculateTotalPrice = () => {
+  //   const totals = cartItems.reduce(
+  //     (acc, item) => {
+  //       const actualTotal = parseFloat(item.actual_price) * item.quantity;
+  //       const sellingTotal = parseFloat(item.selling_price) * item.quantity;
+
+  //       acc.totalSellingPrice += sellingTotal;
+  //       acc.totalActualPrice += actualTotal;
+  //       acc.totalSavings += actualTotal - sellingTotal;
+
+  //       return acc;
+  //     },
+  //     { totalSellingPrice: 0, totalActualPrice: 0, totalSavings: 0 },
+  //   );
+
+  //   setTotalSellingPrice(totals.totalSellingPrice);
+  //   setTotalSavings(totals.totalSavings);
+
+  //   // Check coupon validity when prices change
+  //   if (appliedCoupon) {
+  //     // Remove coupon if current total is below coupon's minimum requirement 
+  //     console.log(`totalsselling Price typeof ${typeof(totals.totalSellingPrice)}`, totals.totalSellingPrice)
+  //     console.log(`appliedCoupon.coupon_upto_price typeof ${typeof(appliedCoupon.coupon_upto_price)}`, appliedCoupon.coupon_upto_price)
+  //     if (totals.totalSellingPrice < appliedCoupon.coupon_upto_price) {
+  //       console.log("baboiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
+  //       dispatch(removeCoupon());
+  //       setCouponDiscount(0);
+  //       // dispatch(removeCoupon())
+
+  //       setItemsTotalPrice(totals.totalSellingPrice);
+  //       return;
+  //     }
+
+  //     let discountAmount = (totals.totalSellingPrice * appliedCoupon.coupon_percentage) / 100;
+  //     discountAmount = Math.min(discountAmount, parseFloat(appliedCoupon.coupon_max_price_limit));
+
+
+  //     setCouponDiscount(discountAmount);
+  //     setItemsTotalPrice(totals.totalSellingPrice - discountAmount);
+  //   } else {
+  //     setItemsTotalPrice(totals.totalSellingPrice);
+  //   }
+  // };
+
   const caliculateTotalPrice = () => {
+    console.log('---- Start Calculating Total Price ----');
+
     const totals = cartItems.reduce(
-      (acc, item) => {
+      (acc, item, index) => {
         const actualTotal = parseFloat(item.actual_price) * item.quantity;
         const sellingTotal = parseFloat(item.selling_price) * item.quantity;
+
+        console.log(`Item [${index}] -> actual_price: ${item.actual_price}, selling_price: ${item.selling_price}, quantity: ${item.quantity}`);
+        console.log(`Item [${index}] -> actualTotal: ${actualTotal}, sellingTotal: ${sellingTotal}`);
 
         acc.totalSellingPrice += sellingTotal;
         acc.totalActualPrice += actualTotal;
         acc.totalSavings += actualTotal - sellingTotal;
+
+        console.log(`Running Totals after Item [${index}] -> totalSellingPrice: ${acc.totalSellingPrice}, totalActualPrice: ${acc.totalActualPrice}, totalSavings: ${acc.totalSavings}`);
 
         return acc;
       },
       { totalSellingPrice: 0, totalActualPrice: 0, totalSavings: 0 },
     );
 
+    console.log('Final Totals =>', totals);
+
     setTotalSellingPrice(totals.totalSellingPrice);
     setTotalSavings(totals.totalSavings);
 
-    // Check coupon validity when prices change
+    // Coupon Handling
     if (appliedCoupon) {
-      // Remove coupon if current total is below coupon's minimum requirement
-      if (totals.totalSellingPrice < appliedCoupon.coupon_upto_price) {
+      console.log('Applied Coupon =>', appliedCoupon);
+
+      const totalSellingPriceNum = parseFloat(totals.totalSellingPrice);
+      const couponMinOrderValue = parseFloat(appliedCoupon.coupon_upto_price);
+      const couponMaxDiscountLimit = parseFloat(appliedCoupon.coupon_max_price_limit);
+
+      console.log(`Checking Coupon Validity: totalSellingPrice (${totalSellingPriceNum}) >= coupon_upto_price (${couponMinOrderValue}) ?`);
+
+      if (totalSellingPriceNum < couponMinOrderValue) {
+        console.log('❌ Coupon INVALID - Cart Total below Minimum Requirement');
         dispatch(removeCoupon());
         setCouponDiscount(0);
-        // dispatch(removeCoupon())
-
-        setItemsTotalPrice(totals.totalSellingPrice);
+        setItemsTotalPrice(totalSellingPriceNum);
         return;
       }
 
-      let discountAmount = 0;
-      if (totals.totalSellingPrice >= appliedCoupon.coupon_max_price_limit) {
-        discountAmount =
-          (totals.totalSellingPrice * appliedCoupon.coupon_max_price_limit) / 100;
-        discountAmount = Math.min(
-          discountAmount,
-          appliedCoupon.coupon_upto_price,
-        );
-      }
+      console.log('✅ Coupon VALID - Calculating Discount...');
+      let discountAmount = (totalSellingPriceNum * appliedCoupon.coupon_percentage) / 100;
+      console.log(`Initial Discount (${appliedCoupon.coupon_percentage}%): ${discountAmount}`);
+
+      discountAmount = Math.min(discountAmount, couponMaxDiscountLimit);
+      console.log(`Final Discount after Max Cap (${couponMaxDiscountLimit}): ${discountAmount}`);
 
       setCouponDiscount(discountAmount);
-      setItemsTotalPrice(totals.totalSellingPrice - discountAmount);
+      setItemsTotalPrice(totalSellingPriceNum - discountAmount);
+      console.log(`Total Payable after Discount: ${totalSellingPriceNum - discountAmount}`);
+
     } else {
+      console.log('No Coupon Applied.');
       setItemsTotalPrice(totals.totalSellingPrice);
     }
+
+    console.log('---- Calculation Completed ----');
   };
 
 
@@ -375,7 +439,16 @@ const CheckoutScreen = ({ navigation, route }) => {
             )}
           </View>
           {/* Cart Items */}
-          <Text style={styles.sectionTitle}>Cart Items</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", margin: 10, paddingTop: 10 }}>
+            <Text style={styles.checkoutSectionTitle}>Cart Items</Text>
+            <TouchableOpacity
+              style={styles.checkoutClearCartButton}
+              onPress={() => setClearCartConfirmVisible(true)}
+            >
+              <Text style={styles.checkoutClearCartButtonText}>Clear Cart</Text>
+            </TouchableOpacity>
+          </View>
+
           <FlatList
             data={cartItems}
             renderItem={renderCartItem}
@@ -478,12 +551,24 @@ const CheckoutScreen = ({ navigation, route }) => {
               <Text style={styles.billLabel}>Savings</Text>
               <Text style={styles.savingsValue}>₹ {totalSavings}</Text>
             </View>
-            <View style={styles.billRow}>
+            {appliedCoupon && <View style={styles.billRow}>
               <Text style={styles.billLabel}>Coupon Discount</Text>
               <Text style={styles.savingsValue}>₹ {couponDiscount}</Text>
-            </View>
-            {appliedCoupon && (
+            </View>}
+            {/* {appliedCoupon && (
               <Text style={styles.couponCode}>{appliedCoupon?.coupon_name}</Text>
+            )} */}
+            {appliedCoupon && (
+              <View style={styles.couponRow}>
+                <Text style={styles.couponCode}>{appliedCoupon?.coupon_name}</Text>
+                <TouchableOpacity onPress={() => {
+                  dispatch(removeCoupon());
+                  setCouponDiscount(0);
+                  setItemsTotalPrice(totalSellingPrice);  // Reset the item price
+                }}>
+                  <Text style={styles.removeCouponText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
             )}
             <View style={styles.billRow}>
               <Text style={styles.billLabel}>Total</Text>
@@ -629,6 +714,40 @@ const CheckoutScreen = ({ navigation, route }) => {
             </View>
           </View>
         </Modal>
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={clearCartConfirmVisible}
+          onRequestClose={() => setClearCartConfirmVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Clear Cart?</Text>
+              <Text style={styles.modalMessage}>
+                Are you sure you want to clear all items from your cart?
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: '#FF4D4F' }]}
+                  onPress={() => {
+                    dispatch(clearCart());
+                    setClearCartConfirmVisible(false);
+                    console.log('Cart Cleared Successfully');
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: '#ccc' }]}
+                  onPress={() => setClearCartConfirmVisible(false)}
+                >
+                  <Text style={[styles.modalButtonText, { color: '#333' }]}>No</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
       </View>
     </SafeAreaView>
   );
@@ -874,7 +993,6 @@ const styles = StyleSheet.create({
     color: commonStyles.btn2Color,
     fontWeight: '500',
     marginLeft: 10,
-    marginBottom: 10,
   },
   gstNote: {
     fontSize: 12,
@@ -1119,6 +1237,83 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: "left"
   },
+
+  couponRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+
+  },
+
+  removeCouponText: {
+    color: '#FF4D4F',
+    fontSize: 14,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  checkoutSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+
+  checkoutClearCartButton: {
+    backgroundColor: '#FF4D4F',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+
+  checkoutClearCartButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  
+  modalMessage: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
+  },
+  
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    marginHorizontal: 10,
+  },
+  
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  
+
+
 });
 
 export default CheckoutScreen;

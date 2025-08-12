@@ -11,9 +11,9 @@ import {
   Keyboard,
   ActivityIndicator,
   Alert,
-  Linking,Image
+  Linking, Image
 } from 'react-native';
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import AuthBackground from './tabassets/AuthBackground';
 import {
   responsiveHeight,
@@ -22,13 +22,13 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 // import GoogleIcon from '../user/svgs/GoogleIcon';
-import {useDispatch} from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { actionLogin, addCustomer, verifyCustomerMobile, verifyCustomerOTP } from '../../redux/reducers/auth';
 import Geolocation from '@react-native-community/geolocation';
-import { checkAddressExistence} from '../../redux/reducers/daddy';
+import { checkAddressExistence } from '../../redux/reducers/daddy';
 import commonStyles from '../../commonstyles/CommonStyles';
 
-export default function OTPVerification({navigation,route}) {
+export default function OTPVerification({ navigation, route }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const dispatch = useDispatch();
   const [otp, setOtp] = useState(['', '', '', '']);
@@ -38,7 +38,7 @@ export default function OTPVerification({navigation,route}) {
   const [loader, setLoader] = useState(false);
   const [location, setLocation] = useState(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [paramOtp,setParamOtp] = useState(route.params?.otp || "")
+  const [paramOtp, setParamOtp] = useState(route.params?.otp || "")
 
   useEffect(() => {
     const countdown = setInterval(() => {
@@ -58,7 +58,7 @@ export default function OTPVerification({navigation,route}) {
   const getCurrentLocation = () => {
     setIsLoadingLocation(true);
     setError('');
-    
+
     Geolocation.setRNConfiguration({
       enableHighAccuracy: false,
       timeout: 2000,
@@ -105,7 +105,7 @@ export default function OTPVerification({navigation,route}) {
   };
 
 
-  console.log(route.params,"location")
+  console.log(route.params, "location")
 
   const handleVerifyOtp = async () => {
     if (otp.includes('')) {
@@ -116,7 +116,7 @@ export default function OTPVerification({navigation,route}) {
     try {
       const enteredOtp = otp.join('');
       setLoader(true);
-      
+
       // if(route.params?.phoneNumber == "9876543210"){
       //   dispatch(addCustomer({mobileNumber:route.params?.phoneNumber,otp:enteredOtp}))
       //   if(enteredOtp=="1234"){
@@ -172,10 +172,10 @@ export default function OTPVerification({navigation,route}) {
       //   return;
       // }
 
-      if(paramOtp==enteredOtp){
+      if (paramOtp == enteredOtp) {
         // First verify OTP, then check location
-        
-        const response = await dispatch(addCustomer({mobileNumber:route.params?.phoneNumber,otp:enteredOtp}))
+
+        const response = await dispatch(addCustomer({ mobileNumber: route.params?.phoneNumber, otp: enteredOtp }))
         console.log("verify login response", response)
         route.params?.isFromCart ? navigation.replace("CartScreen") : dispatch(actionLogin())
 
@@ -230,18 +230,30 @@ export default function OTPVerification({navigation,route}) {
     }
   };
 
+
   const handleOTPChange = (value, index) => {
     let newOtp = [...otp];
+
+    // Only allow paste in first box
+    if (index === 0 && value.length === otp.length) {
+      newOtp = value.split('');
+      setOtp(newOtp);
+      inputRefs.current[otp.length - 1]?.focus(); // focus last input
+      setError('');
+      return;
+    }
+
+    // Normal single character entry
     newOtp[index] = value;
     setOtp(newOtp);
     setError('');
 
-    // Move to the next input field
+    // Move forward
     if (value && index < otp.length - 1) {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // If the input is empty, move back to the previous field
+    // Move backward if cleared
     if (!value && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
@@ -252,18 +264,18 @@ export default function OTPVerification({navigation,route}) {
     return number.replace(/(\d{1})\d{7}(\d{2})/, '$1*****$2');
   };
 
-  const resendOtpHandler = async() => {
+  const resendOtpHandler = async () => {
     setError("")
     setTimer(60);
     setOtp(['', '', '', '']);
-    const response = await dispatch(verifyCustomerMobile({customer_mobile_number: route.params?.phoneNumber}));
+    const response = await dispatch(verifyCustomerMobile({ customer_mobile_number: route.params?.phoneNumber }));
     console.log("hie", response.payload)
     setParamOtp(response.payload.loginotp)
   };
 
   return (
-    <Pressable onPress={()=>Keyboard.dismiss()} style={{flex:1, backgroundColor:'#E7432D'}}>
-     
+    <Pressable onPress={() => Keyboard.dismiss()} style={{ flex: 1, backgroundColor: '#E7432D' }}>
+
       {/* Top Red Section */}
       <View style={styles.topSection} />
       {/* Absolutely positioned logo */}
@@ -285,22 +297,22 @@ export default function OTPVerification({navigation,route}) {
               ref={el => (inputRefs.current[index] = el)}
               style={styles.otpBox}
               keyboardType="numeric"
-              maxLength={1}
+              maxLength={index === 0 ? otp.length : 1}
               value={digit}
               onChangeText={value => handleOTPChange(value, index)}
-              onKeyPress={({nativeEvent}) => {
+              onKeyPress={({ nativeEvent }) => {
                 if (nativeEvent.key === 'Backspace' && !digit && index > 0) {
-                  inputRefs.current[index - 1]?.focus(); 
+                  inputRefs.current[index - 1]?.focus();
                 }
               }}
             />
           ))}
         </View>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <View style={{marginTop:responsiveHeight(5)}}>
-          {timer!==0 && <Text style={{color:"#3D3D3D",fontSize:18,fontWeight:"700",textAlign:"center"}}>Resend OTP in {timer}s </Text>}
-          <TouchableOpacity disabled={timer!=0} onPress={resendOtpHandler}>
-            <Text style={{fontSize:14,color:timer==0? '#FE4A31':"#8F8F8F",fontWeight:"700",textAlign:"center",marginTop:responsiveHeight(1)}}>Resend OTP</Text>
+        <View style={{ marginTop: responsiveHeight(5) }}>
+          {timer !== 0 && <Text style={{ color: "#3D3D3D", fontSize: 18, fontWeight: "700", textAlign: "center" }}>Resend OTP in {timer}s </Text>}
+          <TouchableOpacity disabled={timer != 0} onPress={resendOtpHandler}>
+            <Text style={{ fontSize: 14, color: timer == 0 ? '#FE4A31' : "#8F8F8F", fontWeight: "700", textAlign: "center", marginTop: responsiveHeight(1) }}>Resend OTP</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={handleVerifyOtp} style={styles.loginButton}>

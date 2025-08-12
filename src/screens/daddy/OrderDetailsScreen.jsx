@@ -56,7 +56,8 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       setOrderDetails(response.payload.data[0]);
     }
   };
-
+  console.log("orderDetails", orderDetails)
+  console.log("subOrderData", subOrderData)
   const fetchOrderItems = async () => {
     if (!orderDetails?.id) return;
     const response = await dispatch(
@@ -74,7 +75,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (
       orderDetails?.order_status === 3 &&
-      orderDetails?.order_rating_status !== '0'
+      orderDetails?.order_rating_status !== null
     ) {
       setShowReviewDetails(true);
       setRating(parseInt(orderDetails?.order_rating_status));
@@ -369,11 +370,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 {orderData.restaurant.orderTime}
               </Text>
             </View>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={handleCallRestaurant}
               style={styles.callButton}>
               <MaterialIcons name="call" size={23} color='#fff' style={styles.callIcon} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {/* Order Status */}
@@ -385,12 +386,28 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             ]}>
             <View style={styles.statusHeader}>
               <Text style={styles.statusText}>{orderData.status}</Text>
-              <View style={styles.estimatedTime}>
+              {/* <View style={styles.estimatedTime}>
                 <Text style={styles.estimatedTimeValue}>
                   {orderDetails?.customer_otp}
                 </Text>
-                {/* <Text style={styles.estimatedTimeLabel}>ESTIMATED{'\n'}DELIVERY TIME</Text> */}
-              </View>
+                <Text style={styles.estimatedTimeLabel}>ESTIMATED{'\n'}DELIVERY TIME</Text>
+              </View> */}
+              <TouchableOpacity
+                onPress={() => {
+                  if (orderDetails?.order_status !== undefined && orderDetails?.order_status !== null) {
+                    navigation.navigate('OrderTracking', { orderDetails: orderDetails });
+                  } else {
+                    // Optional: Handle if order_status is not available
+                    console.warn('Order status not available');
+                  }
+                }}
+                style={styles.callButton}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}> 
+                  <Text style={{ color: "#000", fontSize: 16, fontWeight: "600" }}>Track Order</Text>
+                  <MaterialIcons name="delivery-dining" size={23} color="#fff" style={styles.callIcon} />
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -527,7 +544,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           </View>
 
           {/* Cancel button - only show for cancelable statuses */}
-          {(orderDetails?.order_status === 0) && (
+          {/* {(orderDetails?.order_status === 0) && (
             <View style={styles.actionButtonContainer}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -535,7 +552,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 <Text style={styles.cancelButtonText}>Cancel Order</Text>
               </TouchableOpacity>
             </View>
-          )}
+          )} */}
 
           {orderDetails?.order_status === 3 && (
             <View style={styles.reviewSection}>
@@ -707,10 +724,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   callButton: {
-    padding: responsiveWidth(2),
+    padding: responsiveWidth(1),
   },
   statusContainer: {
-    padding: responsiveWidth(5),
+    padding: responsiveWidth(3),
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
