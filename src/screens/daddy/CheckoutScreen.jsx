@@ -11,6 +11,7 @@ import {
   Modal,
   ActivityIndicator,
   SafeAreaView,
+  Alert 
 } from 'react-native';
 import {
   responsiveHeight,
@@ -38,6 +39,7 @@ import { removeCoupon } from '../../redux/reducers/coupons';
 import RestaurantScreen from './RestaurantScreen';
 import commonStyles from '../../commonstyles/CommonStyles';
 import StatusBarManager from '../../components/StatusBarManager';
+import RazorpayCheckout from 'react-native-razorpay';
 
 
 const CheckoutScreen = ({ navigation, route }) => {
@@ -54,7 +56,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     locationName,
   } = useSelector(state => state.Auth);
   const dispatch = useDispatch();
-  console.log(reaturantDetails,"--------------------------------------------------------------")
+
   const [clearCartConfirmVisible, setClearCartConfirmVisible] = useState(false);
   const [paymentMenuVisible, setPaymentMenuVisible] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
@@ -115,10 +117,9 @@ const CheckoutScreen = ({ navigation, route }) => {
   //   // Check coupon validity when prices change
   //   if (appliedCoupon) {
   //     // Remove coupon if current total is below coupon's minimum requirement 
-  //     console.log(`totalsselling Price typeof ${typeof(totals.totalSellingPrice)}`, totals.totalSellingPrice)
-  //     console.log(`appliedCoupon.coupon_upto_price typeof ${typeof(appliedCoupon.coupon_upto_price)}`, appliedCoupon.coupon_upto_price)
+  //    
   //     if (totals.totalSellingPrice < appliedCoupon.coupon_upto_price) {
-  //       console.log("baboiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
+  //      
   //       dispatch(removeCoupon());
   //       setCouponDiscount(0);
   //       // dispatch(removeCoupon())
@@ -139,67 +140,66 @@ const CheckoutScreen = ({ navigation, route }) => {
   // };
 
   const caliculateTotalPrice = () => {
-    console.log('---- Start Calculating Total Price ----');
+
 
     const totals = cartItems.reduce(
       (acc, item, index) => {
         const actualTotal = parseFloat(item.actual_price) * item.quantity;
         const sellingTotal = parseFloat(item.selling_price) * item.quantity;
 
-        console.log(`Item [${index}] -> actual_price: ${item.actual_price}, selling_price: ${item.selling_price}, quantity: ${item.quantity}`);
-        console.log(`Item [${index}] -> actualTotal: ${actualTotal}, sellingTotal: ${sellingTotal}`);
+
 
         acc.totalSellingPrice += sellingTotal;
         acc.totalActualPrice += actualTotal;
         acc.totalSavings += actualTotal - sellingTotal;
 
-        console.log(`Running Totals after Item [${index}] -> totalSellingPrice: ${acc.totalSellingPrice}, totalActualPrice: ${acc.totalActualPrice}, totalSavings: ${acc.totalSavings}`);
+
 
         return acc;
       },
       { totalSellingPrice: 0, totalActualPrice: 0, totalSavings: 0 },
     );
 
-    console.log('Final Totals =>', totals);
+
 
     setTotalSellingPrice(totals.totalSellingPrice);
     setTotalSavings(totals.totalSavings);
 
     // Coupon Handling
     if (appliedCoupon) {
-      console.log('Applied Coupon =>', appliedCoupon);
+
 
       const totalSellingPriceNum = parseFloat(totals.totalSellingPrice);
       const couponMinOrderValue = parseFloat(appliedCoupon.coupon_upto_price);
       const couponMaxDiscountLimit = parseFloat(appliedCoupon.coupon_max_price_limit);
 
-      console.log(`Checking Coupon Validity: totalSellingPrice (${totalSellingPriceNum}) >= coupon_upto_price (${couponMinOrderValue}) ?`);
+
 
       if (totalSellingPriceNum < couponMinOrderValue) {
-        console.log('❌ Coupon INVALID - Cart Total below Minimum Requirement');
+
         dispatch(removeCoupon());
         setCouponDiscount(0);
         setItemsTotalPrice(totalSellingPriceNum);
         return;
       }
 
-      console.log('✅ Coupon VALID - Calculating Discount...');
+
       let discountAmount = (totalSellingPriceNum * appliedCoupon.coupon_percentage) / 100;
-      console.log(`Initial Discount (${appliedCoupon.coupon_percentage}%): ${discountAmount}`);
+
 
       discountAmount = Math.min(discountAmount, couponMaxDiscountLimit);
-      console.log(`Final Discount after Max Cap (${couponMaxDiscountLimit}): ${discountAmount}`);
+
 
       setCouponDiscount(discountAmount);
       setItemsTotalPrice(totalSellingPriceNum - discountAmount);
-      console.log(`Total Payable after Discount: ${totalSellingPriceNum - discountAmount}`);
+
 
     } else {
-      console.log('No Coupon Applied.');
+
       setItemsTotalPrice(totals.totalSellingPrice);
     }
 
-    console.log('---- Calculation Completed ----');
+
   };
 
 
@@ -281,86 +281,163 @@ const CheckoutScreen = ({ navigation, route }) => {
   }
 
 
-  const handlePlaceOrder = async () => {
-    try {
-      setIsProcessingPayment(true);
-      let payload = {
-        order_status: 0,
-        actual_total_amount: itemsTotalPrice,
-        customer_id: customerId,
-        customer_name: selectedAddress?.customer_name,
-        customer_mobile_number: selectedAddress?.customer_mobile_number,
-        category_id: cartItems[0]?.category_id,
-        sub_category_id: cartItems[0]?.sub_category_id,
-        admin_percentage: 10,
-        item_count: cartItems?.reduce((sum, item) => sum + Number(item.quantity), 0),
-        total_amount: totalSellingPrice,
-        total_saving_amount: totalSavings,
-        coupon_amount: couponDiscount,
-        delivery_charges: delivery.totalCharge,
-        grand_total: grandTotal,
-        location_id: locationId,
-        location_name: locationName,
-        payment_type: selectedPaymentMethod,
-        payment_id: selectedPaymentMethod,
-        razorpay_order_id: null,
-        order_instructions: 'test are',
-        coupon_type: appliedCoupon?.coupon_type || "0",
-        coupon_id: appliedCoupon?.id || "0",
-        delivery_address: selectedAddress
-          ? selectedAddress.full_address
-          : 'No address selected',
-        order_latitude: selectedAddress
-          ? selectedAddress.customer_latitude
-          : '0',
-        order_longitude: selectedAddress
-          ? selectedAddress.customer_longitude
-          : '0',
-        slot_timings: 'Fast Delivery',
-        order_distance: distance,
-        ext_del_charge: '0',
-        shop_id: cartItems[0]?.shop_id,
-        user_player_id: null,
-        order_type: 0,
-        delivery_charges_gst: delivery.gstAmount,
-        handling_charges: chargesList[0].handling_charges,
-        packing_charges: 0,
-        packing_charges_gst: 0,
-        donation_charges: chargesList[0].donation_charges,
-        sub_order_array: cartItems.map(item => ({
-          item_name: item.item_name,
-          item_image: item.item_image,
-          item_id: item.id,
-          category_id: item.category_id,
-          sub_category_id: item.sub_category_id,
-          category_name: item.category_name,
-          sub_category_name: item.sub_category_name,
-          actualitem_price: item.actual_price,
-          item_price: item.selling_price,
-          sub_item_count: item.quantity,
-          item_total_amount: item.selling_price * item.quantity,
-          filter_name: item.filter_one,
-          item_description: item.item_description,
-          saving_price: item.discount_amount,
-          shop_id: item.shop_id,
-          filter_one: item.filter_one,
-        })),
-      };
+ const handlePlaceOrder = async () => {
+  try {
+    setIsProcessingPayment(true);
 
+    // 🔹 Common payload (COD or Razorpay)
+    let payload = {
+      order_status: 0,
+      actual_total_amount: itemsTotalPrice,
+      customer_id: customerId,
+      customer_name: selectedAddress?.customer_name,
+      customer_mobile_number: selectedAddress?.customer_mobile_number,
+      category_id: cartItems[0]?.category_id,
+      sub_category_id: cartItems[0]?.sub_category_id,
+      admin_percentage: 10,
+      item_count: cartItems?.reduce((sum, item) => sum + Number(item.quantity), 0),
+      total_amount: totalSellingPrice,
+      total_saving_amount: totalSavings,
+      coupon_amount: couponDiscount,
+      delivery_charges: delivery.totalCharge,
+      grand_total: grandTotal,
+      location_id: locationId,
+      location_name: locationName,
+      payment_type: selectedPaymentMethod,
+      payment_id: selectedPaymentMethod,
+      razorpay_order_id: null,
+      order_instructions: 'test order',
+      coupon_type: appliedCoupon?.coupon_type || "0",
+      coupon_id: appliedCoupon?.id || "0",
+      delivery_address: selectedAddress
+        ? selectedAddress.full_address
+        : 'No address selected',
+      order_latitude: selectedAddress?.customer_latitude || '0',
+      order_longitude: selectedAddress?.customer_longitude || '0',
+      slot_timings: 'Fast Delivery',
+      order_distance: distance,
+      ext_del_charge: '0',
+      shop_id: cartItems[0]?.shop_id,
+      user_player_id: null,
+      order_type: 0,
+      delivery_charges_gst: delivery.gstAmount,
+      handling_charges: chargesList[0].handling_charges,
+      packing_charges: 0,
+      packing_charges_gst: 0,
+      donation_charges: chargesList[0].donation_charges,
+      sub_order_array: cartItems.map(item => ({
+        item_name: item.item_name,
+        item_image: item.item_image,
+        item_id: item.id,
+        category_id: item.category_id,
+        sub_category_id: item.sub_category_id,
+        category_name: item.category_name,
+        sub_category_name: item.sub_category_name,
+        actualitem_price: item.actual_price,
+        item_price: item.selling_price,
+        sub_item_count: item.quantity,
+        item_total_amount: item.selling_price * item.quantity,
+        filter_name: item.filter_one,
+        item_description: item.item_description,
+        saving_price: item.discount_amount,
+        shop_id: item.shop_id,
+        filter_one: item.filter_one,
+      })),
+    };
 
-      console.log(payload, "+++++++++++++++++++++++>>>>>>>>>>>>>>payload")
-
-
+    // 🔹 Case 1: COD
+    if (selectedPaymentMethod === 'COD') {
       const responseCod = await dispatch(placeOrder({ orderDetails: payload }));
-      console.log("+++++++++++++++++>>>>>>>>>>>>>>>>>>>>>>>>PPPPPPOPOO", responseCod)
+
+      if (!responseCod?.payload) {
+        Alert.alert("Order Failed", "Unable to place COD order. Please try again.");
+        return;
+      }
+
       navigation.replace('OrderSuccess', { response: responseCod.payload });
       return;
-    } catch (error) {
-      console.error('Payment error:', error);
-    } finally {
-      setIsProcessingPayment(false);
     }
-  };
+
+    // 🔹 Case 2: Razorpay Flow
+    if (selectedPaymentMethod === 'Pay Online') {
+      // Step 1: Generate Razorpay Order ID
+      const razorpayOrderResponse = await dispatch(generateOrderId({ orderAmount: grandTotal }));
+      const razorpayOrder = razorpayOrderResponse?.payload;
+
+      if (!razorpayOrder?.id) {
+        Alert.alert("Payment Error", "Failed to generate Razorpay Order ID. Please try again.");
+        return;
+      }
+
+      // Step 2: Create Pending Order in DB
+      const pendingOrder = await dispatch(placeOrder({
+        orderDetails: {
+          ...payload,
+          order_status: 7, // Pending
+          razorpay_order_id: razorpayOrder.id,
+        }
+      }));
+       console.log("rayzorpay place order", pendingOrder)
+      if (!pendingOrder?.payload?.order_id) {
+        Alert.alert("Order Error", "Failed to create pending order. Please try again.");
+        return;
+      }
+
+      // Step 3: Open Razorpay Checkout
+      const options = {
+        description: 'Order Payment',
+        currency: razorpayOrder.currency || 'INR',
+        key: razorpayOrder.key_id,
+        amount: razorpayOrder.amount,
+        order_id: razorpayOrder.id,
+        name: 'Melocal',
+        prefill: {
+          email: selectedAddress?.customer_email || 'test@example.com',
+          contact: selectedAddress?.customer_mobile_number,
+          name: selectedAddress?.customer_name,
+        },
+        theme: { color: '#3399cc' },
+      };
+
+      try {
+        const razorpayResult = await RazorpayCheckout.open(options);
+        // { razorpay_payment_id, razorpay_order_id, razorpay_signature }
+        console.log("razorpay pament respose", razorpayResult)
+        const verifyRes = await dispatch(updateOrderStatus({
+          paymentId: razorpayResult?.razorpay_payment_id,
+          rzpId: razorpayResult?.razorpay_order_id,
+          orderId: pendingOrder.payload.id,
+          customer_id: customerId
+        }));
+
+        if (!verifyRes?.payload) {
+          Alert.alert("Payment Verification Failed", "Your payment was captured, but verification failed. Contact support.");
+          return;
+        }
+
+        navigation.replace('OrderSuccess', { response: pendingOrder.payload });
+
+      } catch (error) {
+        console.log("Payment Failed / Cancelled", error);
+
+        // Mark order as failed (optional)
+        await dispatch(updateOrderStatus({
+          orderId: pendingOrder.payload.order_id,
+          status: "failed"
+        }));
+
+        Alert.alert("Payment Cancelled", "Transaction was not completed.");
+      }
+    }
+
+  } catch (error) {
+    console.error('Payment error:', error);
+    Alert.alert('Unexpected Error', error?.message || 'Something went wrong. Please try again.');
+  } finally {
+    setIsProcessingPayment(false);
+  }
+};
+
 
   const navigateToCoupons = () => {
     navigation.navigate('Coupons', {
@@ -617,13 +694,13 @@ const CheckoutScreen = ({ navigation, route }) => {
                 ))}
             </View>
             <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Delivery Charge</Text>
+              <Text style={styles.billLabel}>Handling Charges</Text>
               <Text style={styles.billValue}>
                 ₹{' '}
                 {delivery.totalCharge}
               </Text>
             </View>
-            {/* <Text style={styles.gstNote}>(GST Included)</Text> */}
+
             <View
               style={[
                 styles.dottedLineContainer,
@@ -732,7 +809,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                   onPress={() => {
                     dispatch(clearCart());
                     setClearCartConfirmVisible(false);
-                    console.log('Cart Cleared Successfully');
+
                   }}
                 >
                   <Text style={styles.modalButtonText}>Yes</Text>
@@ -1277,7 +1354,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  
+
   modalContent: {
     width: '80%',
     backgroundColor: 'white',
@@ -1285,33 +1362,33 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
   },
-  
+
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
   },
-  
+
   modalMessage: {
     fontSize: 14,
     color: '#555',
     textAlign: 'center',
   },
-  
+
   modalButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 6,
     marginHorizontal: 10,
   },
-  
+
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  
+
 
 
 });

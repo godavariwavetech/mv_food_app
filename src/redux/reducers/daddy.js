@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../utils/api';
 import { endpoints } from '../../config/config';
+import { resetCache } from '../../../metro.config';
 
 const initialState = {
   message: null,
@@ -135,9 +136,9 @@ export const getSubCategories = createAsyncThunk(
       "category_id": categoryId,
       "location_id": locationId
     }
-    console.log(">>>>>>>>>>>>>>>>>>>>>>IDDD", data)
+   
     const response = await api.post(endpoints.GET_SUB_CATEGORIES, data);
-    console.log("getSubCategories", response)
+   
     if (response) {
       if (response.data) {
         return fulfillWithValue(response.data);
@@ -162,7 +163,7 @@ export const getBanners = createAsyncThunk(
     const response = await api.post(endpoints.GET_BANNER, {
       "location_id": locationId
     });
-    console.log("getBanners", response)
+
     if (response) {
       if (response.data) {
         return fulfillWithValue(response.data);
@@ -189,7 +190,7 @@ export const getRestaurants = createAsyncThunk(
       "sub_category_id": subCatergoryId || 0,
       "shop_id": 0
     })
-    console.log("getRestaurants", response)
+  
     if (response) {
       if (response.data) {
         return fulfillWithValue(response.data);
@@ -208,14 +209,7 @@ export const getRestaurantsHome = createAsyncThunk(
   ) => {
 
     const { location, locationId } = getState().Auth;
-    console.log("location", {
-      "shop_latitude": location.latitude,
-      "shop_longitude": location.longitude,
-      "location_id": locationId,
-      "category_id": categoryId,
-      "sub_category_id": subCatergoryId || 0,
-      "shop_id": 0
-    })
+   
     const response = await api.post(endpoints.GET_SHOPS, {
       "shop_latitude": location.latitude,
       "shop_longitude": location.longitude,
@@ -224,7 +218,7 @@ export const getRestaurantsHome = createAsyncThunk(
       "sub_category_id": subCatergoryId || 0,
       "shop_id": 0
     })
-    console.log("response", response)
+
     if (response) {
       if (response.data) {
         return fulfillWithValue(response.data);
@@ -241,7 +235,7 @@ export const getItemsList = createAsyncThunk(
     { shopId, shopItem },
     { getState, rejectWithValue, fulfillWithValue }
   ) => {
-    console.log("shopId", shopId, "shopItem", shopItem)
+   
     const response = await api.post(endpoints.GET_ITEMS_LIST, {
       "shop_id": shopId,
       "shop_items_tb_nm": shopItem
@@ -263,7 +257,7 @@ export const getOrders = createAsyncThunk(
     { getState, rejectWithValue, fulfillWithValue }
   ) => {
     const { customerId } = getState().Auth;
-    console.log(customerId, "+++++++++++++++++CUSTOMERID")
+   
     const response = await api.post(endpoints.GET_ORDERS, {
       "customer_id": customerId,
       "order_id": orderId
@@ -405,34 +399,38 @@ export const placeOrder = createAsyncThunk(
 
 export const generateOrderId = createAsyncThunk(
   "generateOrderId",
-  async (
-    { orderAmount },
-    { getState, rejectWithValue, fulfillWithValue }
-  ) => {
-    const response = await api.post(endpoints.GENERATE_ORDER_ID, {
-      "order_amount": Number(orderAmount) * 100
-    })
-    if (response) {
-      if (response.data) {
-        return fulfillWithValue(response.data);
+  async ({ orderAmount }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(endpoints.GENERATE_ORDER_ID, {
+        order_amount: Number(orderAmount) * 100, // Razorpay expects paise
+      });
+
+      if (response?.data) {
+        console.log("resee----------------", response)
+        return response.data.orderId; // This will have order_id
       } else {
-        return rejectWithValue('Something went wrong!');
+        return rejectWithValue("Something went wrong!");
       }
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "API Error");
     }
   }
-)
+);
 
-export const updateOrderStatus = createAsyncThunk(
+
+export const  updateOrderStatus = createAsyncThunk(
   "updateOrderStatus",
   async (
-    { paymentId, rzpId, orderId },
+    { paymentId, rzpId, orderId ,customer_id },
     { getState, rejectWithValue, fulfillWithValue }
   ) => {
     const response = await api.post(endpoints.UPDATE_ORDER_STATUS, {
       "payment_id": paymentId,
       "razorpay_order_id": rzpId,
-      "id": orderId
+      "id": orderId,
+      "customer_id": customer_id
     })
+  
     if (response) {
       if (response.data) {
         return fulfillWithValue(response.data);

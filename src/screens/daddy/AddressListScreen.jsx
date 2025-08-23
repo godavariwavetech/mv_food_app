@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -16,7 +16,7 @@ import {
 import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Feather from 'react-native-vector-icons/Feather';
-import Ionicons from 'react-native-vector-icons/Ionicons';  
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkAddressExistence, deleteAddress, getAddressList } from '../../redux/reducers/daddy';
@@ -27,30 +27,29 @@ import { setSelectedAddress as setSelectedAddressAction, setUserDetails } from '
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { haversineDistance } from './distanceCalculator';
 import commonStyles from '../../commonstyles/CommonStyles';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const AddressListScreen = ({ navigation, route }) => {
   const dispatch = useDispatch();
   const { addressList } = useSelector(state => state.Dashboard);
   // const {userAddress} = useSelector(state => state.address);
-  const {userDetails} = useSelector(state=>state.address)
+  const { userDetails } = useSelector(state => state.address)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [isDeleted, setIsDeleted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const  [toggleValue,setToggleValue] = useState(false)
+  const [toggleValue, setToggleValue] = useState(false)
   const [refreshing, setRefreshing] = useState(false);
-  const { customerId,token, reaturantDetails, locationId } = useSelector(state => state.Auth);
+  const { customerId, token, reaturantDetails, locationId } = useSelector(state => state.Auth);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [isCheckingAddress, setIsCheckingAddress] = useState(false);
-
+  const insets = useSafeAreaInsets();
   // Check if the user is coming from the cart screen
   const isFromCart = route.params?.isFromCart;
 
 
-  console.log(addressList,"+++++++++++++++++++VVV")
 
   const handleSelectAddress = async (address) => {
     try {
@@ -62,7 +61,7 @@ const AddressListScreen = ({ navigation, route }) => {
         reaturantDetails.shop_latitude,
         reaturantDetails.shop_longitude,
       );
-      
+
       const response = await dispatch(checkAddressExistence({
         latitude: parseFloat(address?.customer_latitude),
         longitude: parseFloat(address?.customer_longitude)
@@ -76,7 +75,7 @@ const AddressListScreen = ({ navigation, route }) => {
         return;
       }
 
-      if (response.payload?.data?.length > 0 &&Number(value)<= Number(reaturantDetails.maximum_del_km)) {
+      if (response.payload?.data?.length > 0 && Number(value) <= Number(reaturantDetails.maximum_del_km)) {
         dispatch(setSelectedAddressAction(address));
         if (isFromCart) {
           navigation.navigate('Checkout');
@@ -85,7 +84,7 @@ const AddressListScreen = ({ navigation, route }) => {
         setShowAddressModal(true);
       }
     } catch (error) {
-      console.log("Error checking address:", error);
+      console.error("Error checking address:", error);
       setShowAddressModal(true);
     } finally {
       setIsCheckingAddress(false);
@@ -116,8 +115,8 @@ const AddressListScreen = ({ navigation, route }) => {
     setDeleteModalVisible(true);
   };
 
-  const handleConfirmDelete = async() => {
-    const res = await dispatch(deleteAddress({addressId:selectedAddress.id}));
+  const handleConfirmDelete = async () => {
+    const res = await dispatch(deleteAddress({ addressId: selectedAddress.id }));
     setDeleteModalVisible(false);
     setSelectedAddress(null);
     setIsDeleted(!isDeleted);
@@ -129,7 +128,7 @@ const AddressListScreen = ({ navigation, route }) => {
   };
 
   const handleAddAddress = (address) => {
-    if (!token) {
+    if (!token && customerId) {
       setShowLoginModal(true);
     } else {
       dispatch(setUserDetails(address))
@@ -139,44 +138,66 @@ const AddressListScreen = ({ navigation, route }) => {
 
   const renderAddress = ({ item }) => {
     return (
-    <TouchableOpacity 
-      style={styles.addressCard} 
-      onPress={() => handleSelectAddress(item)}
-      disabled={isCheckingAddress|| !isFromCart}
-    >
-      <View style={styles.addressHeader}>
-        <Text style={styles.addressType}>{item.address_type}</Text>
-        <View style={styles.actionButtons}>
-          <TouchableOpacity onPress={() => navigation.navigate('AddAddress', { address: item })}>
-            <Feather name="edit-2" size={20} color="#525252" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDeletePress(item)}>
-            <Ionicons name="trash-outline" size={20} color="#525252" />
-          </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.addressCard}
+        onPress={() => handleSelectAddress(item)}
+        disabled={isCheckingAddress || !isFromCart}
+      >
+        <View style={styles.addressHeader}>
+          <Text style={styles.addressType}>{item.address_type}</Text>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity onPress={() => navigation.navigate('AddAddress', { address: item })}>
+              <Feather name="edit-2" size={20} color="#525252" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleDeletePress(item)}>
+              <Ionicons name="trash-outline" size={20} color="#525252" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-      <Text style={styles.addressText}>{item.full_address}</Text>
-      <View style={styles.contactContainer}>
-        <Text style={styles.contactText}>{item?.customer_name}  {'\u2022'}  {item?.customer_mobile_number}</Text>
-      </View>
-    </TouchableOpacity>
-  )};
+        <Text style={styles.addressText}>{item.full_address}</Text>
+        <View style={styles.contactContainer}>
+          <Text style={styles.contactText}>{item?.customer_name}  {'\u2022'}  {item?.customer_mobile_number}</Text>
+        </View>
+      </TouchableOpacity>
+    )
+  };
 
   const renderEmptyList = () => (
     <View style={styles.emptyContainer}>
       <MaterialIcons name="location-off" size={80} color="#CCCCCC" />
-      <Text style={styles.emptyTitle}>No Addresses Found</Text>
-      <Text style={styles.emptyText}>
-        You haven't added any delivery addresses yet.
-      </Text>
-      <TouchableOpacity 
-        style={styles.addAddressButton}
-        onPress={handleAddAddress}
-      >
-        <Text style={styles.addAddressButtonText}>Add New Address</Text>
-      </TouchableOpacity>
+      {!customerId ? (
+        <>
+          <Text style={styles.emptyTitle}>Sign In Required</Text>
+          <Text style={styles.emptyText}>
+            Please sign in to view or add your delivery addresses.
+          </Text>
+          <TouchableOpacity
+            style={styles.addAddressButton}
+            onPress={() => {
+              setShowLoginModal(false);
+              navigation.navigate('Register1', { isFromCart: true });
+            }}
+          >
+            <Text style={styles.addAddressButtonText}>Sign In</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <Text style={styles.emptyTitle}>No Addresses Found</Text>
+          <Text style={styles.emptyText}>
+            You haven't added any delivery addresses yet.
+          </Text>
+          <TouchableOpacity
+            style={styles.addAddressButton}
+            onPress={() => handleAddAddress(null)}
+          >
+            <Text style={styles.addAddressButtonText}>Add New Address</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
+
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -187,58 +208,60 @@ const AddressListScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       {/* <StatusBar backgroundColor={commonStyles.btn2Color} barStyle="light-content" translucent /> */}
-    
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.title}>Address List</Text>
-        </View>
 
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={commonStyles.btn2Color} />
-            <Text style={styles.loadingText}>Loading addresses...</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={isFromCart ? addressList.filter(address => address.location_id === locationId) : addressList}
-            renderItem={renderAddress}
-            keyExtractor={item => item?.id?.toString()}
-            contentContainerStyle={[
-              styles.listContainer,
-              addressList.length === 0 && styles.emptyListContainer
-            ]}
-            key={toggleValue}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-            ListEmptyComponent={renderEmptyList}
-            onScrollToIndexFailed={({ index, highestMeasuredFrameIndex }) => {
-              console.warn(`Failed to scroll to index ${index}`);
-            }}
-            getItemLayout={(data, index) => ({
-              length: 120,
-              offset: 120 * index,
-              index,
-            })}
-          />
-        )}
-
-        <TouchableOpacity style={styles.addButton} onPress={handleAddAddress}>
-          <Icon name="add" size={30} color="#fff" />
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
         </TouchableOpacity>
+        <Text style={styles.title}>Address List</Text>
+      </View>
 
-        <CustomModal
-          visible={deleteModalVisible}
-          title="Delete Address"
-          message="Are you sure you want to delete this address? This action cannot be undone."
-          onConfirm={handleConfirmDelete}
-          onCancel={handleCancelDelete}
-          confirmText="Delete"
-          cancelText="Cancel"
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={commonStyles.btn2Color} />
+          <Text style={styles.loadingText}>Loading addresses...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={isFromCart ? addressList.filter(address => address.location_id === locationId) : addressList}
+          renderItem={renderAddress}
+          keyExtractor={item => item?.id?.toString()}
+          contentContainerStyle={[
+            styles.listContainer,
+            addressList.length === 0 && styles.emptyListContainer
+          ]}
+          key={toggleValue}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={renderEmptyList}
+          onScrollToIndexFailed={({ index, highestMeasuredFrameIndex }) => {
+            console.warn(`Failed to scroll to index ${index}`);
+          }}
+          getItemLayout={(data, index) => ({
+            length: 120,
+            offset: 120 * index,
+            index,
+          })}
         />
-    
+      )}
+
+      
+      {customerId &&  <TouchableOpacity style={styles.addButton} onPress={handleAddAddress}>
+        <Icon name="add" size={30} color="#fff" />
+      </TouchableOpacity>}
+      
+
+      <CustomModal
+        visible={deleteModalVisible}
+        title="Delete Address"
+        message="Are you sure you want to delete this address? This action cannot be undone."
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+
 
       {showLoginModal && (
         <View style={styles.modalOverlay}>
@@ -258,7 +281,7 @@ const AddressListScreen = ({ navigation, route }) => {
                 style={[styles.modalButton, styles.confirmButton]}
                 onPress={() => {
                   setShowLoginModal(false);
-                  navigation.navigate('Register1', {isFromCart:true});
+                  navigation.navigate('Register1', { isFromCart: true });
                 }}
               >
                 <Text style={styles.confirmButtonText}>Sign In</Text>
@@ -274,7 +297,7 @@ const AddressListScreen = ({ navigation, route }) => {
         onConfirm={() => setShowAddressModal(false)}
         confirmText="OK"
         cancelText=""
-        // showCancel={false}
+      // showCancel={false}
       />
       {isCheckingAddress && (
         <View style={styles.loadingOverlay}>
@@ -282,14 +305,14 @@ const AddressListScreen = ({ navigation, route }) => {
         </View>
       )}
     </View>
-   
+
   );
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#fff' 
+  container: {
+    flex: 1,
+    backgroundColor: '#fff'
   },
   listContainer: {
     flexGrow: 1,
@@ -339,34 +362,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  header: { 
+  header: {
     backgroundColor: commonStyles.btn2Color,
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: responsiveWidth(6),
-    paddingTop: responsiveHeight(6),
+    // paddingTop: responsiveHeight(6),
     paddingBottom: 18,
-    gap:10
+    gap: 10
   },
   backButton: {
     width: responsiveWidth(7)
   },
-  title: { 
-    fontSize: 16, 
-    fontWeight: '600', 
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#fff',
-    textAlign: "left" 
+    textAlign: "left"
 
   },
-  addressCard: { 
-    backgroundColor: '#fff', 
+  addressCard: {
+    backgroundColor: '#fff',
     marginHorizontal: responsiveWidth(5),
-    marginVertical: responsiveHeight(1), 
-    padding: 15, 
-    borderRadius: 8, 
+    marginVertical: responsiveHeight(1),
+    padding: 15,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#A3A3A3",
-    gap: 10 
+    gap: 10
   },
   addressHeader: {
     flexDirection: "row",
@@ -378,35 +401,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10
   },
-  addressType: { 
-    fontSize: 18, 
+  addressType: {
+    fontSize: 18,
     fontWeight: 'bold',
-    textAlign: "left" 
+    textAlign: "left"
   },
-  addressText: { 
-    fontSize: 14, 
+  addressText: {
+    fontSize: 14,
     color: '#3D3D3D',
     textAlign: "left",
     fontWeight: "600",
-    width: responsiveWidth(70) 
+    width: responsiveWidth(70)
   },
   contactContainer: {
     flexDirection: "row"
   },
-  contactText: { 
-    fontSize: 12, 
+  contactText: {
+    fontSize: 12,
     color: '#3D3D3D',
     textAlign: "left",
-    fontWeight: "600" 
+    fontWeight: "600"
   },
-  addButton: { 
-    position: 'absolute', 
-    bottom: "10%", 
-    right: "10%", 
-    backgroundColor: commonStyles.btn2Color, 
-    borderRadius: 50, 
-    padding: 10, 
-    elevation: 5 
+  addButton: {
+    position: 'absolute',
+    bottom: "10%",
+    right: "10%",
+    backgroundColor: commonStyles.btn2Color,
+    borderRadius: 50,
+    padding: 10,
+    elevation: 5
   },
   modalOverlay: {
     position: 'absolute',
@@ -453,7 +476,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   confirmButton: {
-      backgroundColor: "#FE4A31",
+    backgroundColor: "#FE4A31",
   },
   cancelButtonText: {
     color: '#666',

@@ -33,6 +33,7 @@ import { actionLogout, deleteAccount } from '../../redux/reducers/auth';
 import { clearCart, getOrders } from '../../redux/reducers/daddy';
 import VersionCheck from 'react-native-version-check';
 import commonStyles from '../../commonstyles/CommonStyles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -47,6 +48,7 @@ const ProfileScreen = () => {
   const [appVersion, setAppVersion] = useState('');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const getOrdersData = async () => {
     try {
@@ -70,7 +72,7 @@ const ProfileScreen = () => {
         const version = await VersionCheck.getCurrentVersion();
         setAppVersion(version);
       } catch (error) {
-        console.log('Error getting app version:', error);
+        console.error('Error getting app version:', error);
       }
     };
     getVersion();
@@ -109,9 +111,9 @@ const ProfileScreen = () => {
 
   const handleUpdate = async () => {
     try {
-      console.log('Checking for updates...');
+      console.info('Checking for updates...');
     } catch (error) {
-      console.log('Play Store error:', error);
+      console.error('Play Store error:', error);
     } finally {
       setShowUpdateModal(false);
     }
@@ -133,7 +135,7 @@ const ProfileScreen = () => {
         setShowUpdateModal(false); // Ensure update modal is hidden
       }
     } catch (error) {
-      console.log('Update check failed:', error);
+
       setUpdateModalVisible(true); // Show error message
       setShowUpdateModal(false);
     }
@@ -201,7 +203,7 @@ const ProfileScreen = () => {
 
   const handleDeleteAccount = async () => {
     try {
-      dispatch(deleteAccount())
+      // dispatch(deleteAccount())
       // return
       setIsLoading(true);
       await dispatch(deleteAccount())
@@ -339,12 +341,13 @@ const ProfileScreen = () => {
         onPress: () => navigation.navigate('Register1', { isFromCart: true }),
       },
 
-    {
+    // Only show delete account option if customerId exists
+    ...(customerId ? [{
       id: '10',
       title: 'Delete Account',
       icon: <MaterialCommunityIcons name="delete" size={24} color="#000" />,
       onPress: () => setDeleteModalVisible(true),
-    },
+    }] : []),
   ];
 
 
@@ -352,14 +355,14 @@ const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       {/* <LinearGradient colors={['#FD0', '#F7F2F2']} style={styles.gradientContainer}> */}
-      <LinearGradient colors={['#E7432D', '#E7432D']} style={styles.gradientContainer}>
+      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
         <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             gap: 10,
-            marginTop: responsiveHeight(5),
-            marginLeft: responsiveWidth(5),
+            // marginTop: responsiveHeight(5),
+            marginHorizontal: responsiveWidth(5),
           }}>
           <Image
             source={require("../daddy/tabassets/dummy-profile.png")}

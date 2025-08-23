@@ -31,6 +31,7 @@ import { colors } from '../../config/theme';
 import { getSearchShopList } from '../../redux/reducers/search';
 import commonStyles from '../../commonstyles/CommonStyles';
 import StatusBarManager from '../../components/StatusBarManager';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CategoriesScreen = ({ navigation, route }) => {
   const { allCategories } = useSelector(state => state.Dashboard);
@@ -39,10 +40,11 @@ const CategoriesScreen = ({ navigation, route }) => {
   const [filteredCategories, setFilteredCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
-
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const timeoutRef = useRef();
   const { globalSearchResults } = useSelector(state => state.address);
+  
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -147,8 +149,7 @@ const CategoriesScreen = ({ navigation, route }) => {
   }, [searchQuery, categories, globalSearchResults]); // Single dependency array
 
   const handleNavigation = async (item, subItem) => {
-    console.log("item", item)
-    console.log("subItem", subItem)
+
     await dispatch(setActiveCategoryIndex(item.category_id));
     dispatch(setsubCategory(subItem));
     Keyboard.dismiss()
@@ -162,9 +163,7 @@ const CategoriesScreen = ({ navigation, route }) => {
           style={styles.itemContainer}
           onPress={() => handleSearchResultPress(subItem)}
         >
-          <Text numberOfLines={1} style={styles.itemName}>
-            {subItem.sub_category_name}
-          </Text>
+
           <View style={styles.itemCard}>
             <Image
               source={{ uri: subItem.sub_category_image }}
@@ -172,18 +171,22 @@ const CategoriesScreen = ({ navigation, route }) => {
               resizeMode="cover"
             />
           </View>
+          <Text numberOfLines={1} style={styles.itemName}>
+            {subItem.sub_category_name}
+          </Text>
         </TouchableOpacity>
       );
     }
 
     return (
       <TouchableOpacity onPress={() => handleNavigation(item, subItem)} style={styles.itemContainer}>
-        <Text numberOfLines={1} style={styles.itemName}>
-          {subItem.sub_category_name}
-        </Text>
+
         <View style={styles.itemCard}>
           <Image source={{ uri: subItem.sub_category_image }} resizeMode='stretch' style={styles.itemImage} />
         </View>
+        <Text numberOfLines={1} style={styles.itemName}>
+          {subItem.sub_category_name}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -225,7 +228,7 @@ const CategoriesScreen = ({ navigation, route }) => {
 
   const handleSearchResultPress = async (result) => {
     // Handle navigation based on search result type
-    console.log("Search result pressed:", result.search_type);
+
     Keyboard.dismiss()
     if (result.search_type == 2) {
       navigation.navigate('BannerRestaurantScreen', { ...result, fromSearch: true });
@@ -235,7 +238,7 @@ const CategoriesScreen = ({ navigation, route }) => {
 
     // const response = await dispatch(getSearchShopList({tableName:result.table_name,searchText:result.search_text}));
 
-    // console.log("ressult>>>>>>>>>>>>>>>>>>>>>>>>>>>>>LLLLLLLLLLL",response)
+
     // Example: navigation.navigate('SearchResultDetail', {result});
   };
 
@@ -246,7 +249,7 @@ const CategoriesScreen = ({ navigation, route }) => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       {/* <LinearGradient colors={['#FD0', '#F7F2F2']} style={styles.gradientContainer}> */}
-      <LinearGradient colors={['#E7432D', '#E7432D']} style={styles.gradientContainer}>
+      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
         <View style={styles.headerContainer}>
           {route.params?.isFromHome ? (
             <TouchableOpacity
@@ -343,7 +346,7 @@ const CategoriesScreen = ({ navigation, route }) => {
               data={filteredCategories}
               renderItem={renderCategory}
               keyExtractor={item => item.category_id}
-              contentContainerStyle={[styles.categoriesList, !route?.params?.isFromHome && { paddingBottom: 90 , marginTop:responsiveHeight(2)}]}
+              contentContainerStyle={[styles.categoriesList, !route?.params?.isFromHome && { paddingBottom: 90, marginTop: responsiveHeight(2) }]}
               showsVerticalScrollIndicator={false}
             />
           )}
@@ -360,13 +363,13 @@ const styles = StyleSheet.create({
   },
   gradientContainer: {
     paddingBottom: 0,
-    paddingTop: 10
+    // paddingTop: 10
   },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: responsiveWidth(5),
-    paddingTop: responsiveHeight(5),
+    // paddingTop: responsiveHeight(5),
     gap: 10,
   },
   backButton: {
@@ -460,7 +463,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#313131',
     textAlign: 'left',
-    marginTop: responsiveHeight(1),
+
     flex: 1,
     // marginHorizontal: responsiveWidth(2),
     textTransform: 'capitalize',

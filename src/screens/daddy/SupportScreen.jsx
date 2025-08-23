@@ -7,21 +7,21 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch } from'react-redux';
 import { getChargesList } from '../../redux/reducers/addressSlice';
 import commonStyles from '../../commonstyles/CommonStyles';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';  
 
 const SupportScreen = ({ navigation }) => {
   const dispatch = useDispatch(); 
   const [contactInfo, setContactInfo] = useState();
-
+  const insets = useSafeAreaInsets();
   const getContact = async () => {
     try {
       const res = await dispatch(getChargesList());
-      console.log(res.payload.data[0]);
+     
       if(res.payload.data[0]){
         setContactInfo(res.payload.data[0]);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 
@@ -42,9 +42,9 @@ const SupportScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor={commonStyles.btn2Color} barStyle={'light-content'} translucent />
-      <LinearGradient colors={['#E7432D', '#E7432D']} style={styles.gradientContainer}>
+    <View style={styles.container}>
+      {/* <StatusBar backgroundColor={commonStyles.btn2Color} barStyle={'light-content'} translucent /> */}
+      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
@@ -73,14 +73,14 @@ const SupportScreen = ({ navigation }) => {
         </View>
       </ScrollView>
    
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    // backgroundColor: '#fff',
   },
   gradientContainer: {
     // paddingTop: 10,

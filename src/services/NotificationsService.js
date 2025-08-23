@@ -3,9 +3,9 @@ import messaging from '@react-native-firebase/messaging';
 
 export const setupNotificationHandlers = (navigation) => {
   // Foreground notifications
-  console.log("<><><><><><><><><><><>")
+
   messaging().onMessage(async remoteMessage => {
-    console.log(">>>>>>>>>>>>>>>HELLOMessage")
+   
     displayNotification(remoteMessage.notification);
   });
 
@@ -80,7 +80,7 @@ const handleNotificationNavigation = (data, navigation) => {
 
 export const getFCMToken = async () => {
   const token = await messaging().getToken();
-  console.log(token)
+
   messaging().onMessage(async (remoteMessage) => {
     await notifee.createChannel({
       id: 'default1',
@@ -89,7 +89,7 @@ export const getFCMToken = async () => {
       sound: 'default', // You can add a custom sound here
       vibration: true,
     });
-    console.log(">>>>>>>>>>>>>MESSAGECALLING",remoteMessage)
+   
     await notifee.displayNotification({
       title: remoteMessage.notification.title,
       body: remoteMessage.notification.body,

@@ -9,13 +9,14 @@ import { submitAppReview } from '../../redux/reducers/reviews';
 import CustomModal from '../../components/CustomModal';
 import commonStyles from '../../commonstyles/CommonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FeedbackScreen = ({ navigation }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const dispatch = useDispatch();
-
+  const insets = useSafeAreaInsets();
   const handleSubmit = async () => {
     try {
       await dispatch(submitAppReview({rating, comment}));
@@ -28,7 +29,7 @@ const FeedbackScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {/* <StatusBar backgroundColor={commonStyles.btn2Color} barStyle={'light-content'} /> */}
-      <LinearGradient colors={['#E7432D', '#E7432D']} style={styles.gradientContainer}>
+      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
   },
   gradientContainer: {
    paddingVertical: responsiveHeight(2),
-   paddingTop: 40
+  //  paddingTop: 40
   },
   headerContainer: {
     flexDirection: 'row',

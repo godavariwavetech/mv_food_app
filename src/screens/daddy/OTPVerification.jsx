@@ -105,7 +105,7 @@ export default function OTPVerification({ navigation, route }) {
   };
 
 
-  console.log(route.params, "location")
+
 
   const handleVerifyOtp = async () => {
     if (otp.includes('')) {
@@ -155,7 +155,7 @@ export default function OTPVerification({ navigation, route }) {
       //       })
       //     ).unwrap();
 
-      //     console.log(serviceResult,"serviceResult")
+   
 
       //     if (serviceResult?.data) {
       //       dispatch(actionLogin());
@@ -176,8 +176,8 @@ export default function OTPVerification({ navigation, route }) {
         // First verify OTP, then check location
 
         const response = await dispatch(addCustomer({ mobileNumber: route.params?.phoneNumber, otp: enteredOtp }))
-        console.log("verify login response", response)
-        route.params?.isFromCart ? navigation.replace("CartScreen") : dispatch(actionLogin())
+     
+        route.params?.isFromCart ? navigation.pop(2) : dispatch(actionLogin())
 
         return
         if (!location) {
@@ -223,7 +223,7 @@ export default function OTPVerification({ navigation, route }) {
         setError('Please enter valid OTP');
       }
     } catch (err) {
-      console.log('error', err);
+    
       setError('Something went wrong. Please try again.');
     } finally {
       setLoader(false);
@@ -269,7 +269,7 @@ export default function OTPVerification({ navigation, route }) {
     setTimer(60);
     setOtp(['', '', '', '']);
     const response = await dispatch(verifyCustomerMobile({ customer_mobile_number: route.params?.phoneNumber }));
-    console.log("hie", response.payload)
+
     setParamOtp(response.payload.loginotp)
   };
 

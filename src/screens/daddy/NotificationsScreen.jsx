@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, SafeAreaView   } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, SafeAreaView } from 'react-native';
 import { useDispatch } from 'react-redux';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
@@ -7,13 +7,14 @@ import { getNotifications } from '../../redux/reducers/reviews';
 import { useFocusEffect } from '@react-navigation/native';
 import commonStyles from '../../commonstyles/CommonStyles';
 import StatusBarManager from '../../components/StatusBarManager';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const NotificationsScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-
+  const insets = useSafeAreaInsets();
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -55,11 +56,8 @@ const NotificationsScreen = ({ navigation }) => {
   );
 
   return (
-    <>
-      <StatusBarManager barStyle='light-content'  screenName="Notifications" />
-    <SafeAreaView style={styles.container}>
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
         </TouchableOpacity>
@@ -79,10 +77,10 @@ const NotificationsScreen = ({ navigation }) => {
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <FontAwesome6 
-                  name="bell-slash" 
-                  size={40} 
-                  color="#ddd" 
+                <FontAwesome6
+                  name="bell-slash"
+                  size={40}
+                  color="#ddd"
                   style={styles.emptyIcon}
                 />
                 <Text style={styles.emptyText}>
@@ -103,8 +101,6 @@ const NotificationsScreen = ({ navigation }) => {
         )}
       </View>
     </View>
-    </SafeAreaView>
-    </>
   );
 };
 
@@ -113,12 +109,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  header: { 
+  header: {
     backgroundColor: commonStyles.btn2Color,
-    height: responsiveHeight(12),
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingBottom: responsiveHeight(2),
+    paddingVertical: responsiveHeight(2),
     paddingHorizontal: responsiveWidth(5),
     elevation: 4,
     shadowColor: '#000',
@@ -129,14 +124,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     width: responsiveWidth(7),
-    alignItems:"center",
-    justifyContent:"center",
-    marginRight:responsiveWidth(2),
-    color:'#fff'
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: responsiveWidth(2),
+    color: '#fff'
   },
-  title: { 
-    fontSize: 18, 
-    fontWeight: '700', 
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#fff',
     marginLeft: responsiveWidth(2),
   },

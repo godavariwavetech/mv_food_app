@@ -36,7 +36,8 @@ const OrderTrackingScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { orderDetails } = route.params;
-
+    console.log("orderdetails", orderDetails)
+    console.log("orderdetails", Object.keys(orderDetails))
     const getStatusColor = (statusCode) => {
         if ([4, 5, 6].includes(statusCode)) return STATUS_COLORS.canceled;
         if (statusCode === 7) return STATUS_COLORS.warning;
@@ -75,22 +76,23 @@ const OrderTrackingScreen = () => {
                 <View style={styles.timeline}>
                     {ORDER_STATUSES.map((status, index) => {
                         const isActive = orderDetails.order_status >= status.code && orderDetails.order_status < 4;
-                        const isCanceled = [4, 5, 6].includes(orderDetails.order_status);
-                        const showStep = orderDetails.order_status >= status.code || (isCanceled && orderDetails.order_status === status.code);
+                        const isCanceled = [4, 5, 6].includes(orderDetails.order_status) && orderDetails.order_status === status.code;
 
-                        if (!showStep) return null;
+                        const stepColor = isActive
+                            ? getStatusColor(status.code)   // green/active
+                            : isCanceled
+                                ? STATUS_COLORS.canceled        // red for rejected/canceled
+                                : STATUS_COLORS.inactive;
+
+                        // if (!showStep) return null;
 
                         return (
                             <View key={index} style={styles.stepContainer}>
-                                <View style={[styles.iconContainer, { borderColor: isActive ? getStatusColor(status.code) : STATUS_COLORS.inactive }]}>
-                                    <Icon
-                                        name={status.icon}
-                                        size={24}
-                                        color={isActive ? getStatusColor(status.code) : STATUS_COLORS.inactive}
-                                    />
+                                <View style={[styles.iconContainer, { borderColor: stepColor }]}>
+                                    <Icon name={status.icon} size={24} color={stepColor} />
                                 </View>
                                 <View>
-                                    <Text style={[styles.statusText, { color: isActive ? '#000' : STATUS_COLORS.inactive }]}>
+                                    <Text style={[styles.statusText, { color: stepColor }]}>
                                         {status.label}
                                     </Text>
                                     {getStatusDate(status.code) && (
@@ -100,6 +102,7 @@ const OrderTrackingScreen = () => {
                                     )}
                                 </View>
                             </View>
+
                         );
                     })}
                 </View>

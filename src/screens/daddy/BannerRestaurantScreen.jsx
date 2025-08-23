@@ -68,7 +68,7 @@ const BannerRestaurantScreen = ({navigation, route}) => {
   const toastAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-console.log(route.params,"+++++++++++++++PRARAMD")
+
 
 
   const fetchRestaurantData = async () => {
@@ -223,7 +223,7 @@ console.log(route.params,"+++++++++++++++PRARAMD")
   }, [showToast]);
 
   const handleAddToCart = item => {
-    console.log(cartRestaurant, restaurantData);
+   
     if (cartItems.length === 0 || cartRestaurant == restaurantData?.shop_id) {
       addItem(item);
       dispatch(setRestaurnatDetails(restaurantData));
@@ -245,7 +245,7 @@ console.log(route.params,"+++++++++++++++PRARAMD")
     setSelectedItem(null);
   };
 
-  console.log(translateY,"+++++translateY")
+
 
   const startAnim = () => {
     Animated.parallel([
@@ -292,7 +292,7 @@ console.log(route.params,"+++++++++++++++PRARAMD")
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        console.log('PanResponder Grant:', pan.x._value, pan.y._value);
+       
         pan.setOffset({x: pan.x._value, y: pan.y._value});
         pan.setValue({x: 0, y: 0});
       },

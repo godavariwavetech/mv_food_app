@@ -92,16 +92,16 @@ export default function SearchShopList({navigation, route}) {
       }
       return response
     } catch(e){
-      console.log(e, '++++++++++++++Error');
+      console.error(e, '++++++++++++++Error');
     }
   }
 
   const getShopDetails = async () => {
     try {
-      console.log(route?.params?.search_type, '++++++++++++++searchType');
+     
       setIsLoading(true);
       const response = await handleApiCall(route?.params?.search_type);
-      console.log(response,"++++++++++++++++++++responseSearch")
+     
       const shopDetails = await dispatch(
         indiviadualShop({
           shopId: response.payload.data[0].shop_ids,
@@ -112,7 +112,7 @@ export default function SearchShopList({navigation, route}) {
       setIsLoading(false);
     } catch (e) {
       setIsLoading(false);
-      console.log(e, '++++++++++++++Error');
+     
     }
   };
 
@@ -120,7 +120,7 @@ export default function SearchShopList({navigation, route}) {
     route?.params && getShopDetails();
   }, [route.params]);
 
-  console.log(route, '+++++++++++++++++++>>>>>>>>>route');
+
 
   // useFocusEffect(useCallback(()=>{
   //   getFilters()
@@ -208,7 +208,7 @@ export default function SearchShopList({navigation, route}) {
         showsVerticalScrollIndicator={false}
         keyExtractor={item => item.id}
         renderItem={({item}) => {
-          console.log(item.shop_active_status);
+       
           return (
             <TouchableOpacity
               onPress={() =>

@@ -25,7 +25,7 @@ const OrderSuccessScreen = ({ navigation, route }) => {
       handleBackPress()
       dispatch(clearCart())
       dispatch(removeCoupon())
-    },500)
+    },7000)
   },[])
 
   const handleBackPress = () => {

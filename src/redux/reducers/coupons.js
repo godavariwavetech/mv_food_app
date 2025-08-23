@@ -14,7 +14,7 @@ export const fetchCoupons = createAsyncThunk(
       "location_id": "1",
       "coupon_category_id": "1"
   })
-  console.log(response.data,"RESPONSE")
+ 
   
     if (response) {
 

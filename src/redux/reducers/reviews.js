@@ -51,7 +51,7 @@ export const submitAppReview = createAsyncThunk(
       {rating, comment},
       {getState, rejectWithValue, fulfillWithValue},
     ) => {
-        console.log("called here")
+       
       const {customerId} = await getState().Auth;
       const response = await api.post(endpoints.GIVE_APP_FEEDBACK, {
         usr_id:customerId,
@@ -75,7 +75,7 @@ export const submitAppReview = createAsyncThunk(
       {resultData},
       {getState, rejectWithValue, fulfillWithValue},
     ) => {
-        console.log("called here")
+       
       const response = await api.post(endpoints.GET_RESULT_FULL_DATA,resultData);
       if (response) {
         if (response.data) {

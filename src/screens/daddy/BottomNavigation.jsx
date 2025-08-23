@@ -1,6 +1,6 @@
-import React from 'react';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {View, Text, Pressable, Platform, StyleSheet, SafeAreaView} from 'react-native';
+import React, { useEffect } from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, Text, Pressable, Platform, StyleSheet, SafeAreaView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import User from './User';
 import HomeSvg from './HomeSvg';
@@ -19,44 +19,68 @@ import ProfileScreen from './ProfileScreen';
 import CategoriesScreen from './CategoriesScreen';
 import { useSelector } from 'react-redux';
 import commonStyles from '../../commonstyles/CommonStyles';
+import { getFCMToken } from '../../services/NotificationsService';
+import userService from '../../services/userService';
+
+
 
 const Tab = createBottomTabNavigator();
 
 export default function BottomNavigation() {
   const { cartItems } = useSelector((state) => state.Dashboard);
+  const customerId = useSelector((state) => state.Auth.customerId);
   const insets = useSafeAreaInsets();
 
+  useEffect(() => {
+    const initFCM = async () => {
+      try {
+        if (!customerId) return; // only run if logged in
+
+        const token = await getFCMToken();
+        if (token) {
+          await userService.registerFcmToken(customerId, token);
+          console.log("✅ FCM token registered successfully:", token);
+        }
+      } catch (error) {
+        console.error("❌ FCM token registration failed:", error);
+      }
+    };
+
+    initFCM();
+  }, [customerId]); // rerun when customerId changes
+
+
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['bottom']}>
       <Tab.Navigator
-        screenOptions={({route}) => ({
+        screenOptions={({ route }) => ({
           headerShown: false,
           tabBarButton: props => (
             <Pressable
               {...props}
-              android_ripple={null} 
-              style={({pressed}) => [
+              android_ripple={null}
+              style={({ pressed }) => [
                 props.style,
-                {opacity: pressed ? 1 : 1},
+                { opacity: pressed ? 1 : 1 },
               ]}
             />
           ),
-          tabBarIcon: ({focused, color, size}) => {
+          tabBarIcon: ({ focused, color, size }) => {
             let iconName;
             if (route.name === 'Home') {
               iconName = focused ? <HomeSvg color={commonStyles.btn2Color} /> : <HomeInactive />;
             } else if (route.name === 'Reorder') {
-              iconName = focused ? <ReorderInactive color={commonStyles.btn2Color}/> : <Reorder />;
+              iconName = focused ? <ReorderInactive color={commonStyles.btn2Color} /> : <Reorder />;
             } else if (route.name === 'Categories') {
               iconName = focused ? (
-                <CategoryInactive color={commonStyles.btn2Color}/>
+                <CategoryInactive color={commonStyles.btn2Color} />
               ) : (
-                <Categoreis/>
+                <Categoreis />
               );
             } else if (route.name === 'Cart') {
               iconName = (
                 <View>
-                  {focused ? <CartInactive color={commonStyles.btn2Color}/> : <Cart />}
+                  {focused ? <CartInactive color={commonStyles.btn2Color} /> : <Cart />}
                   {cartItems.length > 0 && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>
@@ -73,7 +97,7 @@ export default function BottomNavigation() {
           },
           tabBarActiveTintColor: commonStyles.btn2Color,
           tabBarInactiveTintColor: 'gray',
-          tabBarLabelStyle: {fontSize: 12, fontWeight: '700'},
+          tabBarLabelStyle: { fontSize: 12, fontWeight: '700' },
           tabBarStyle: {
             height: (Platform.OS === 'ios' ? 85 : 60) + insets.bottom,
             position: 'absolute',
@@ -91,8 +115,8 @@ export default function BottomNavigation() {
             // paddingBottom: Platform.OS === 'ios' ? 85 : 60,
           },
         })}>
-        <Tab.Screen 
-          name="Home" 
+        <Tab.Screen
+          name="Home"
           component={UserHome}
           options={{
             tabBarLabel: 'Home',
@@ -101,8 +125,8 @@ export default function BottomNavigation() {
             },
           }}
         />
-        <Tab.Screen 
-          name="Reorder" 
+        <Tab.Screen
+          name="Reorder"
           component={ReorderScreen}
           options={{
             tabBarLabel: 'Orders',
@@ -111,8 +135,8 @@ export default function BottomNavigation() {
             },
           }}
         />
-        <Tab.Screen 
-          name="Categories" 
+        <Tab.Screen
+          name="Categories"
           component={CategoriesScreen}
           options={{
             tabBarLabel: 'Categories',
@@ -121,8 +145,8 @@ export default function BottomNavigation() {
             },
           }}
         />
-        <Tab.Screen 
-          name="Cart" 
+        <Tab.Screen
+          name="Cart"
           component={CartScreen}
           options={{
             tabBarLabel: 'Cart',
@@ -131,8 +155,8 @@ export default function BottomNavigation() {
             },
           }}
         />
-        <Tab.Screen 
-          name="Profile" 
+        <Tab.Screen
+          name="Profile"
           component={ProfileScreen}
           options={{
             tabBarLabel: 'Profile',

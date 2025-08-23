@@ -8,13 +8,13 @@ export const getSearchShopList = createAsyncThunk(
   'getSearchShopList',
   async ({tableName,searchText}, {getState, rejectWithValue, fulfillWithValue}) => {
     const {locationId} = getState().Auth;
-    console.log(tableName,"TABLE_NAME",searchText)
+   
     const response = await api.post(endpoints.GET_SEARCH_SHOP_LIST, {
         "table_name": tableName, 
         "search_text": searchText,
         "location_id":locationId
     });
-    console.log(response.data,"++++++++++++++++++++ResponseData")
+   
     if (response) {
       if (response.data) {
         return fulfillWithValue(response.data);
@@ -29,14 +29,14 @@ export const getSingleShopDetails = createAsyncThunk(
     'getSingleShopDetails',
     async ({shopId}, {getState, rejectWithValue, fulfillWithValue}) => {
       const {locationId,location} = getState().Auth;
-      console.log("FroM REDUX")
+     
       const response = await api.post(endpoints.GET_SINGLE_SHOP_DETAILS, {
         "shop_latitude": location.latitude,
         "shop_longitude": location.longitude,
         "location_id":locationId,
         "shop_id":shopId
       });
-      console.log(response.data,"++++++++++++++++++++ResponseData")
+    
       if (response) {
         if (response.data) {
           return fulfillWithValue(response.data);

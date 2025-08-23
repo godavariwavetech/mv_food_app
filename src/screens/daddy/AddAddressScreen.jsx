@@ -103,7 +103,7 @@ const AddAddressScreen = ({ navigation, route }) => {
   const getAddressFromCoordinates = async (latitude, longitude) => {
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyD7VY9uECYSahSptZZefCl-NUm45Injb5o`,
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=`,
       );
       const data = await response.json();
 
@@ -287,7 +287,7 @@ const AddAddressScreen = ({ navigation, route }) => {
   }, []);
 
   // const onMapPress = useCallback((e) => {
-  //   console.log("+++++++++++++>>>MAPPRESS",e)
+
   //   const { latitude, longitude } = e.nativeEvent.coordinate;
   //   const newRegion = {
   //     latitude,
@@ -474,7 +474,7 @@ const AddAddressScreen = ({ navigation, route }) => {
           const response = await fetch(
             `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
               text,
-            )}&key=AIzaSyD7VY9uECYSahSptZZefCl-NUm45Injb5o`,
+            )}&key=`,
           );
           const data = await response.json();
 
@@ -497,7 +497,7 @@ const AddAddressScreen = ({ navigation, route }) => {
     async placeId => {
       try {
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,formatted_address&key=AIzaSyD7VY9uECYSahSptZZefCl-NUm45Injb5o`,
+          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,formatted_address&key=`,
         );
         const data = await response.json();
 

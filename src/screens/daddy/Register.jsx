@@ -36,7 +36,7 @@
 //   const dispatch = useDispatch();
 //   const loading = useSelector(state => state.Auth.loading);
 
-//   console.log("++++++++++++++++?>>>LOCATION",route.params,loading)
+
 
 //   const showErrorModal = (title, message) => {
 //     setModalContent({title, message});
@@ -58,7 +58,7 @@
 //     if (validatePhoneNumber()) {
 //       try {
 //         const response = await dispatch(verifyCustomerMobile({customer_mobile_number: phoneNumber}));
-        
+
 //         if(response.payload && !response.error){
 //           navigation.navigate(route.params?.isFromCart ? "OTPVerification1" : "OTPVerification",{
 //             phoneNumber: phoneNumber,
@@ -306,9 +306,9 @@ import {
   TouchableOpacity,
   Pressable,
   Keyboard,
-  ActivityIndicator,Image
+  ActivityIndicator, Image
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import AuthBackground from './tabassets/AuthBackground';
 import {
   responsiveHeight,
@@ -324,7 +324,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import commonStyles from '../../commonstyles/CommonStyles';
 // import CustomModal from '../components/CustomModal';
 
-export default function Register({navigation,route}) {
+export default function Register({ navigation, route }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -335,10 +335,10 @@ export default function Register({navigation,route}) {
   const dispatch = useDispatch();
   const loading = useSelector(state => state.Auth.loading);
 
-  console.log("++++++++++++++++?>>>LOCATION",route.params,loading)
+
 
   const showErrorModal = (title, message) => {
-    setModalContent({title, message});
+    setModalContent({ title, message });
     setModalVisible(true);
   };
 
@@ -353,16 +353,16 @@ export default function Register({navigation,route}) {
     return true;
   };
 
-  const handleRequestOTP = async() => {
+  const handleRequestOTP = async () => {
     if (validatePhoneNumber()) {
       try {
-        const response = await dispatch(verifyCustomerMobile({customer_mobile_number: phoneNumber}));
-        console.log("login response",response)
-        if(response.payload && !response.error){
-          navigation.navigate(route.params?.isFromCart ? "OTPVerification1" : "OTPVerification",{
+        const response = await dispatch(verifyCustomerMobile({ customer_mobile_number: phoneNumber }));
+     
+        if (response.payload && !response.error) {
+          navigation.navigate(route.params?.isFromCart ? "OTPVerification1" : "OTPVerification", {
             phoneNumber: phoneNumber,
             otp: response.payload.loginotp,
-            isFromCart: route.params?.isFromCart||null
+            isFromCart: route.params?.isFromCart || null
           });
         } else {
           showErrorModal('API Error', 'Failed to send OTP. Please try again.');
@@ -373,15 +373,15 @@ export default function Register({navigation,route}) {
     }
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     dispatch(setInitial())
     if (route.params?.phone) {
       setPhoneNumber(route.params.phone);
     }
-  },[])
+  }, [])
 
   return (
-    <Pressable style={{flex:1, backgroundColor:'#FE4A31'}} onPress={()=>Keyboard.dismiss()} >
+    <Pressable style={{ flex: 1, backgroundColor: '#FE4A31' }} onPress={() => Keyboard.dismiss()} >
       <View style={styles.topSection} />
       {/* Absolutely positioned logo */}
       <View style={styles.logoCircle}>
@@ -395,7 +395,7 @@ export default function Register({navigation,route}) {
       <View style={styles.cardSection}>
         <Text style={styles.signInTitle}>Sign Up</Text>
         <Text style={styles.subtitle}>Please enter your phone number to continue</Text>
-        <View style={{marginTop: responsiveHeight(0)}}>
+        <View style={{ marginTop: responsiveHeight(0) }}>
           <Text style={styles.label}>Phone Number</Text>
           <TextInput
             style={styles.input}
@@ -410,6 +410,14 @@ export default function Register({navigation,route}) {
         <TouchableOpacity onPress={handleRequestOTP} style={styles.loginButton}>
           <Text style={styles.loginText}>Request OTP</Text>
         </TouchableOpacity>
+        {route.params?.isFromCart ? null : 
+        <TouchableOpacity
+          onPress={() => dispatch(actionLogin())}   // 👈 Change "Home" to your main screen route
+          style={styles.skipButton}
+        >
+          <Text style={styles.skipText}>Skip Login</Text>
+        </TouchableOpacity>
+        }
       </View>
       {/* Modal and Loader (unchanged) */}
       <CustomModal
@@ -523,4 +531,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1,
   },
+  skipButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#E7432D',
+    width: '100%',
+  },
+  skipText: {
+    color: '#E7432D',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
 });

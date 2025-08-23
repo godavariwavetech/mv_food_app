@@ -27,14 +27,14 @@ import CartInactive from './tabassets/CartInactive';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { globalSearch } from '../../redux/reducers/addressSlice';
 import commonStyles from '../../commonstyles/CommonStyles';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import StatusBarManager from '../../components/StatusBarManager';
 import { ScrollView } from 'react-native-gesture-handler';
 
 const CartScreen = ({ navigation, route }) => {
   const { cartItems, totalPrice } = useSelector(state => state.Dashboard);
   const { customerId, token } = useSelector(state => state.Auth);
-  console.log(customerId);
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const timeoutRef = useRef();
   const { globalSearchResults } = useSelector(state => state.address);
@@ -95,7 +95,7 @@ const CartScreen = ({ navigation, route }) => {
   };
 
   const navigateToCategories = () => {
-    navigation.navigate('Categories');
+    navigation.navigate('CategoriesScreen');
   };
 
   const renderCartItem = ({ item }) => {
@@ -149,9 +149,9 @@ const CartScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={[styles.container, {paddingBottom: route.params?.isFromRestaurant ? 30 : 40}]}>
+    <View style={[styles.container]}>
       {route.params?.isFromRestaurant ? (
-        <View style={[styles.header,{paddingTop: route.params?.isFromRestaurant ? 40 : 50}]}>
+        <View style={[styles.header,{paddingTop: insets.top}]}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <AntDesign name="arrowleft" size={24} color="#fff" />
@@ -163,7 +163,7 @@ const CartScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
       ) : (
-        <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer,{paddingTop: route.params?.isFromRestaurant ? 40 : 30}]}>
+        <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer,{paddingTop: insets.top}]}>
           <View style={styles.headerContainer}>
             <CartInactive color="#fff" />
             <Text style={styles.headerTitle}>Your Cart</Text>
@@ -213,7 +213,7 @@ const CartScreen = ({ navigation, route }) => {
             )}
           />
 
-          <View style={[styles.bottomContainer, { bottom: route.params?.isFromRestaurant ? "10%" : "15%"}]}>
+          <View style={[styles.bottomContainer, { bottom: route.params?.isFromRestaurant ? 0 : "12%", paddingBottom: insets.bottom}]}>
             <View style={styles.totalContainer}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
@@ -268,6 +268,7 @@ const CartScreen = ({ navigation, route }) => {
   );
 };
 
+
 // Add these new styles to your StyleSheet
 const styles = StyleSheet.create({
   container: {
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     paddingHorizontal: responsiveWidth(5),
-    paddingBottom: responsiveHeight(3)
+    paddingBottom: responsiveHeight(2)
   },
   headerTop: {
     flexDirection: 'row',
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#fff',
-    paddingBottom: Platform.OS === 'ios' ? 0 : 0,
+    // paddingBottom: Platform.OS === 'ios' ? 0 : 0,
   },
   itemDetails: {
     flex: 1,
@@ -375,8 +376,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: responsiveHeight(2),
-    marginLeft: responsiveWidth(5),
+    // marginTop: responsiveHeight(2),
+    marginHorizontal: responsiveWidth(5),
     marginBottom: 1
   },
   headerTitle: {

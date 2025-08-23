@@ -56,8 +56,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       setOrderDetails(response.payload.data[0]);
     }
   };
-  console.log("orderDetails", orderDetails)
-  console.log("subOrderData", subOrderData)
+
   const fetchOrderItems = async () => {
     if (!orderDetails?.id) return;
     const response = await dispatch(
@@ -203,7 +202,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   };
 
   const handleCallRestaurant = () => {
-    console.log(orderDetails?.shop_phone_number, "+++++++++++++++++++>>>>NUM")
+
     Linking.openURL(`tel:${orderDetails?.shop_phone_number}`);
   };
 
@@ -523,12 +522,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   ))}
               </View>
               <View style={styles.billRow}>
-                <Text style={styles.billLabel}>Delivery Charge</Text>
+                <Text style={styles.billLabel}>Handling charges</Text>
                 <Text style={styles.billValue}>
                   ₹{orderData.billing.deliveryCharge}
                 </Text>
               </View>
-              <Text style={styles.gstNote}>(GST Included)</Text>
+              {/* <Text style={styles.gstNote}>(GST Included)</Text> */}
               <View style={styles.dottedLineContainer}>
                 {Array(20)
                   .fill(0)

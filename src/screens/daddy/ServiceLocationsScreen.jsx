@@ -27,14 +27,11 @@ const [serviceLocations,setServiceLocations]=useState([])
     // navigation.replace('UserHome');
   };
 
-  console.log(serviceLocations,"serviceLocations")
-
-//   console.log(route.params,"route.params")
 
 const getLocations = async()=>{
     try {
       const response = await dispatch(getServicesList({latitude: route.params?.latitude, longitude: route.params?.longitude}));
-      console.log(response.payload.data,"response")
+     
       if(response?.payload?.data){
         setServiceLocations(response.payload.data);
         setFilteredLocations(response.payload.data);

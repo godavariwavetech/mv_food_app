@@ -33,7 +33,7 @@ const networkCall = async (
   const makeCall = async () => {
     try {
       const fullUrl = /(http(s?)):\/\//i.test(url) ? url : baseURL + '/' + url;
-      console.log('fullURL ==', fullUrl)
+     
       const AuthData = store.getState()?.Auth;
       const token = AuthData.token;
       // const token = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxNSwiZXhwIjoxNjk3MTE3MzA1fQ.b3UzQdAk2mVGNMkcWGDP736HNvsS98jmHlOtcr0Y378'

@@ -68,7 +68,7 @@ export const indiviadualShop = createAsyncThunk(
     {shopId,categoryId},
     {getState, rejectWithValue, fulfillWithValue}
   ) => {
-    console.log("shopId individual shop",shopId,locationId,location)
+    
     const {location,locationId} = getState().Auth;
     const response = await api.post(endpoints.GET_SHOPS,{
       "shop_latitude":  location.latitude,

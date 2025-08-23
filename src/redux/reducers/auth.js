@@ -95,14 +95,14 @@ export const verifyCustomerMobile = createAsyncThunk(
     try {
 
       const response = await api.post(endpoints.REQUEST_OTP, data);
-      console.log("request otp response",response)
+      
       if (response?.data) {
         return fulfillWithValue(response.data);
       } else {
         return rejectWithValue('Something went wrong!');
       }
     } catch (error) {
-      console.log("request otp error",error)
+      
       return rejectWithValue(error.message || 'Something went wrong!');
     }
   },
@@ -136,7 +136,7 @@ export const deleteAccount = createAsyncThunk(
   async (_, {getState, rejectWithValue, fulfillWithValue}) => {
     const {customerId} = getState().Auth;
     const response = await api.post(endpoints.DELETE_ACCOUNT, {
-        "customer_id":customerId
+        "user_id":customerId
     });
     if (response) {
       if (response.data) {
@@ -169,11 +169,11 @@ export const AuthSlice = createSlice({
       state.location = action.payload;
     },
     setLocationName: (state, action) => {
-      console.log('calling setLocationName', action.payload);
+      
       state.locationName = action.payload;
     },
     setLocationId: (state, action) => {
-      console.log('calling setLocationId', action.payload);
+      
       state.locationId = action.payload;
     },
     clearNavigationFlag: state => {
@@ -212,7 +212,7 @@ export const AuthSlice = createSlice({
     builder.addCase(verifyMobile.fulfilled, (state, action) => {
       state.loading = false;
       state.message = null;
-      console.log('>>>>>>>OTP', action.payload?.data[0]?.otp);
+     
       if (action.payload?.data[0]?.mobile) {
         state.mobileNumber = action.payload?.data[0]?.mobile;
       }

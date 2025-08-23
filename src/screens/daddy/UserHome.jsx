@@ -51,7 +51,7 @@ import commonStyles from '../../commonstyles/CommonStyles';
 import { colors } from '../../config/theme';
 import { indiviadualShop } from '../../redux/reducers/addressSlice';
 import StatusBarManager from '../../components/StatusBarManager';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const screenWidth = Dimensions.get('window').width;
 const itemWidth = screenWidth / 6; // since you use numColumns={5}
@@ -76,6 +76,7 @@ export default function UserHome({ navigation }) {
   const [errorOccured, setErrorOccured] = useState(false);
   const networkStatusRef = useRef(isNetworkConnected);
   const numColumns = 6; // or 2, or based on your condition
+  const insets = useSafeAreaInsets();
 
 
 
@@ -94,7 +95,7 @@ export default function UserHome({ navigation }) {
     try {
       setErrorOccured(false)
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyD7VY9uECYSahSptZZefCl-NUm45Injb5o`,
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=`,
       );
       const data = await response.json();
       if (data.results && data.results.length > 0) {
@@ -190,7 +191,7 @@ export default function UserHome({ navigation }) {
       }
     } catch (error) {
       setErrorOccured(true)
-      console.log("ERRORIN INITIAL LOAD", error)
+
     }
   };
 
@@ -381,7 +382,7 @@ export default function UserHome({ navigation }) {
   const renderItem = ({ item }) => (
     <TouchableOpacity
       onPress={() => {
-        console.log('item going to next screen', item);
+
         dispatch(setsubCategory(item));
         navigation.navigate('CategorieItems');
       }}
@@ -406,7 +407,7 @@ export default function UserHome({ navigation }) {
   );
 
   return (
-    <View style={styles.mainContainer}>
+    <View style={[styles.mainContainer, { paddingTop: insets.top }]}>
       <StatusBar backgroundColor={"transparent"} translucent barStyle={'dark-content'} />
       <View style={styles.container}>
         {isNetworkConnected === null ? (
@@ -498,18 +499,21 @@ export default function UserHome({ navigation }) {
                   data={categories}
                   style={styles.categoriesList}
                   horizontal
-                  contentContainerStyle={{ paddingTop: 5, width: '100%', justifyContent: 'space-around' }}
-                  key={item => item.id}
+                  contentContainerStyle={[
+                    { paddingTop: 5, paddingHorizontal: 10, gap: 10 },
+                    categories.length <= 3 && { justifyContent: "space-around", flexGrow: 1 } // ✅ center if <= 3
+                  ]}
+                  keyExtractor={item => item.id.toString()}
                   renderItem={({ item }) => {
                     return item.id == activeCategoryIndex ? (
                       <TouchableOpacity
-                        style={[styles.activeItemTab, ]}
+                        style={[styles.activeItemTab,]}
                         onPress={() => handleSubCategories(item)}>
                         <Image
                           source={{ uri: item.category_image }}
                           resizeMode="contain"
-                          style={[styles.categoryImage, 
-                            {backgroundColor: "#fff7ec",borderColor:"#F38D33"}]}
+                          style={[styles.categoryImage,
+                          { backgroundColor: "#fff7ec", borderColor: "#F38D33" }]}
                         />
                         <Text numberOfLines={1} style={styles.activeCategoryText}>
                           {item.category_name}
@@ -558,7 +562,7 @@ export default function UserHome({ navigation }) {
                   <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No popular restaurants/Shops available</Text>
                 </View>}
                 renderItem={({ item }) => {
-                  console.log("items", item)
+
                   const isUnavailable = item.shop_active_status === "1";
                   const distance = item.distance;
                   return (
@@ -655,7 +659,7 @@ export default function UserHome({ navigation }) {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: "#fff",
     paddingBottom: Platform.OS === 'ios' ? 85 : 60,
   },
   container: {
@@ -664,7 +668,7 @@ const styles = StyleSheet.create({
     // paddingBottom: 10,
   },
   gradientContainer: {
-    paddingTop: 30
+    // paddingTop: 30
   },
   headerContainer: {
     flexDirection: 'row',

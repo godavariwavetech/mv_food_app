@@ -15,7 +15,7 @@ i18n.missingTranslation.get = text => `${text}`;
 export const translate = (text: string) => i18n.t(text);
 
 export const setAppLanguage = async (local: string) => {
-  console.log('setAppLanguage: local ', local)
+
   if (local) {
     i18n.locale = local;
   }
@@ -26,7 +26,7 @@ export const setAppLanguage = async (local: string) => {
 };
 
 export const setCurrentLanguage = async (local: string = 'en') => {
-  console.log('LOCAL: ', local)
+
   await AsyncStorage.setItem('SelectedLanguage', local);
   RNRestart.restart();
 };

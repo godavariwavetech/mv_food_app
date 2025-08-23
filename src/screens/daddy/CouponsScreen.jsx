@@ -41,7 +41,7 @@ const CouponsScreen = ({ navigation, route }) => {
 
 
   const handleConfirmApply = () => {
-    console.log("apply coupon", selectedCoupon , route.params?.onCouponSelect)
+   
     if (selectedCoupon && route.params?.onCouponSelect) {
       dispatch(applyCoupon(selectedCoupon));
       route.params.onCouponSelect(selectedCoupon);

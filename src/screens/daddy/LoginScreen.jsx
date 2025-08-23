@@ -376,13 +376,13 @@ const LoginScreen = () => {
     //     return false;
     // }else{
     //   navigation.navigate('SetLocationScreen');
-    //   console.log('valid phone number')
+    
     //   setError('')
     // }
 
     // const responseData =await dispatch(verifyMobile({mobileNumber:phone}))
 
-    // console.log(">>>>>>>>>>responseData",responseData.payload)
+    
     // if(responseData.payload.status){
     //   dispatch(setMobile(phone))
     //   navigation.navigate('OTPVerificationScreen',{otp:responseData.payload.data[0]?.otp,mobileNumber:phone})

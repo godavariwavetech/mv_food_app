@@ -13,24 +13,13 @@ const OnboardingScreen = () => {
   const navigation = useNavigation();
   return (
     <SafeAreaView style={styles.container}>
-      {/* <SystemBars style='light' hidden={true} /> */}
-      <SystemBars
-        barStyle="dark-content"
-        navigationBarColor="white" // or any color you want
-        navigationBarStyle="light" // or "dark" for icon color
-      />
-
-      {/* <StatusBar barStyle="dark-content" backgroundColor={commonStyles.bgColor} /> */}
       <TouchableOpacity style={styles.skipButton} onPress={() => navigation.replace('Register')}>
         <Text style={styles.skipText}>Skip</Text>
         <Ionicons name="arrow-forward-circle" size={24} color="#FF9800" />
       </TouchableOpacity>
-
-
       <View style={styles.imgContainer}>
         <OnboardingLogo1 />
       </View>
-
 
       <ImageBackground
         source={require('./tabassets/your-onboarding-image.png')}

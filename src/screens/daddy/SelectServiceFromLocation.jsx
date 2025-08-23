@@ -62,7 +62,7 @@ const SelectServiceFromLocation = ({ navigation, route }) => {
   const getAddressFromCoordinates = async (latitude, longitude) => {
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyD7VY9uECYSahSptZZefCl-NUm45Injb5o`,
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=`,
       );
       const data = await response.json();
       if (data.results && data.results.length > 0) {
@@ -85,7 +85,7 @@ const SelectServiceFromLocation = ({ navigation, route }) => {
     const lat = route?.params?.selectedAddress?.customer_latitude;
     const lng = route?.params?.selectedAddress?.customer_longitude;
 
-    console.log(lat, lng, "++++++++++++++lat,lng")
+   
 
     // Check if both lat and lng are valid numbers
     if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
@@ -95,7 +95,7 @@ const SelectServiceFromLocation = ({ navigation, route }) => {
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       };
-      console.log(newRegion, "++++++++++++++++++++>>>newRegion")
+      
       setRegion(newRegion);
     }
   }, [route?.params?.selectedAddress]);
@@ -148,7 +148,7 @@ const SelectServiceFromLocation = ({ navigation, route }) => {
         const response = await fetch(
           `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
             text,
-          )}&key=AIzaSyD7VY9uECYSahSptZZefCl-NUm45Injb5o&components=country:in`,
+          )}&key=&components=country:in`,
         );
 
         if (!response.ok) throw new Error('Network response was not ok');
@@ -159,7 +159,7 @@ const SelectServiceFromLocation = ({ navigation, route }) => {
           setSearchResults(data.predictions);
         } else {
           setSearchResults([]);
-          console.log('Google Places API error:', data.status);
+         
         }
       } catch (error) {
         console.error('Search error:', error);
@@ -189,7 +189,7 @@ const SelectServiceFromLocation = ({ navigation, route }) => {
   const handlePlaceSelect = async placeId => {
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=AIzaSyD7VY9uECYSahSptZZefCl-NUm45Injb5o`,
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=`,
       );
       const data = await response.json();
       const location = data.result.geometry.location;
@@ -293,7 +293,7 @@ const SelectServiceFromLocation = ({ navigation, route }) => {
 
   const removeCartItems = () => {
     dispatch(clearCart())
-    console.log(">>>>>>>>>>>>>>>>>>>>>>>PPPLPLPLL", locationResponse)
+   
     dispatch(
       setLocation({
         latitude: parseFloat(region.latitude),

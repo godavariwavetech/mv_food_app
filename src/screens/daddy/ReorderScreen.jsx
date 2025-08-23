@@ -13,6 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { globalSearch } from '../../redux/reducers/addressSlice';
 import commonStyles from '../../commonstyles/CommonStyles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ReorderScreen = ({navigation}) => {
   const [expandedRestaurants, setExpandedRestaurants] = useState({});
@@ -22,6 +23,7 @@ const ReorderScreen = ({navigation}) => {
   const dispatch = useDispatch();
   const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+   const insets = useSafeAreaInsets();
   
   // New state for search query
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +37,7 @@ const ReorderScreen = ({navigation}) => {
     try {
       setInitialLoading(true);
       const response = await dispatch(getOrders({orderId:0}));
-      console.log(response,"++++++++++++++++++++++++RRESPONSE")
+     
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {
@@ -260,7 +262,7 @@ const ReorderScreen = ({navigation}) => {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* <LinearGradient colors={['#FD0', '#F7F2F2']} style={styles.gradientContainer}> */}
       {/* <LinearGradient colors={['#FE4A31', '#FFD6CD']} style={styles.gradientContainer}> */}
-      <LinearGradient colors={['#E7432D', '#E7432D']} style={styles.gradientContainer}>
+      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer,{paddingTop: insets.top}]}>
         <View style={styles.headerContainer}>
           <ReorderInactive color='#fff' />
           <Text style={styles.headerTitle}>Orders</Text>
@@ -354,7 +356,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: responsiveHeight(5),
+    // marginTop: responsiveHeight(5),
     marginLeft: responsiveWidth(5)
   },
   headerTitle: {
@@ -415,30 +417,40 @@ const styles = StyleSheet.create({
   },
   card: { 
     backgroundColor: '#fff', 
-    margin: 10, 
-    padding: 15, 
-    borderRadius: 8, 
-    borderWidth: 1,
-    borderColor: '#A3A3A3',
-    // elevation: 3 
+    margin: 12, 
+    padding: 18, 
+    borderRadius: 16, 
+    borderWidth: 0,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   date: { 
-    fontSize: 12, 
-    color: '#888',
+    fontSize: 13, 
+    color: '#666',
+    fontWeight: '500',
     textAlign:"left" 
   },
   restaurantInfo: { 
-    marginVertical: 10 ,
-    gap:3
+    flex: 1,
+    marginLeft: 12,
+    gap: 4,
+    justifyContent: 'center'
   },
   restaurantName: { 
-    fontSize: 16, 
-    fontWeight: '500',
-    color: '#000'
+    fontSize: 18, 
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 2
   },
   details: { 
-    fontSize: 12, 
-    color: '#050505',
+    fontSize: 13, 
+    color: '#666',
     fontWeight: '500'
   },
   moreItems: { 
@@ -448,34 +460,38 @@ const styles = StyleSheet.create({
     fontWeight:"600"
   },
   gradientContainer: {
-    paddingTop: 10,
+    // paddingTop: 10,
   },
   cartItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    marginVertical: 4,
   },
   foodImage: {
-    width: 82,
-    height: 82,
-    borderRadius: 12
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginRight: 12,
   },
   itemDetails: {
     flex: 1,
-    // marginLeft: 16,
-    gap: 3,
+    gap: 4,
     justifyContent: 'center'
   },
   foodName: {
     fontSize: 16,
-    color: '#000',
-    fontWeight: '500',
-    width: '60%'
+    color: '#1a1a1a',
+    fontWeight: '600',
+    width: '100%'
   },
   foodPrice: {
     fontSize: 16,
     color: '#065E2C',
-    fontWeight: '700'
+    fontWeight: '700',
+    marginTop: 2
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -502,29 +518,29 @@ const styles = StyleSheet.create({
   },
   dottedLineContainer: {
     flexDirection: 'row',
-    marginTop: 5,
+    marginTop: 8,
     alignSelf: 'center',
+    marginBottom: 4,
   },
   dot: {
-    width: 7,
-    height: 2,
-    backgroundColor: '#D8D8D8',
-    borderRadius: 5,
-    marginHorizontal: 5,
+    width: 6,
+    height: 1.5,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    marginHorizontal: 4,
   },
   viewDetailsButton: {
-    // backgroundColor: "green",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: '#f8f9fa',
+    padding: 14,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 15,
+    marginTop: 16,
     borderWidth: 1, 
-    borderColor: "green",
-    color: "#000"
+    borderColor: '#E0E0E0',
   },
   viewDetailsButtonText: {
-    color: '#000',
-    fontSize: 14,
+    color: '#065E2C',
+    fontSize: 15,
     fontWeight: '600',
   },
   hideDetailsButton: {
@@ -628,8 +644,12 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 10,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#f8f9fa',
+    overflow: 'hidden',
   },
 });
 

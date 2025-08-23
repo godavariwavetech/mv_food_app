@@ -52,7 +52,7 @@ export default function CategorieItems({ navigation, route }) {
       }));
 
       setFilterData(getResponse.payload.data[1] || []);
-      console.log(getResponse.payload.data, 'reeeeee')
+    
     } catch (error) {
       console.error('Error fetching data:', error);
       setFilterData([]);
@@ -96,7 +96,7 @@ export default function CategorieItems({ navigation, route }) {
 
       return matchesSearch && matchesFilters;
     });
-    console.log(filtered, 'filter')
+ 
     setFilteredRestaurants(filtered);
   }, [searchQuery, restaurants, activeFilters, filterData]);
 
@@ -125,7 +125,10 @@ export default function CategorieItems({ navigation, route }) {
     { filter_name: 'All', filter_id: 'all' },
     ...(Array.isArray(filterData) ? filterData.filter(apiFilter =>
       apiFilter.filter_name !== 'All'
-    ) : [])
+    ).map((filter, index) => ({
+      ...filter,
+      filter_id: filter.filter_id || `filter_${index}_${filter.filter_name}`
+    })) : [])
   ];
 
   const renderContent = () => {
@@ -153,9 +156,9 @@ export default function CategorieItems({ navigation, route }) {
       <FlatList
         data={filteredRestaurants}
         showsVerticalScrollIndicator={false}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item, index) => item.shop_id.toString()}
         renderItem={({ item }) => {
-          console.log(item.shop_active_status)
+         
           return (
             <TouchableOpacity
               onPress={() => navigation.navigate("RestaurantScreen", {
@@ -224,7 +227,7 @@ export default function CategorieItems({ navigation, route }) {
         data={mergedFilters}
         horizontal
         showsHorizontalScrollIndicator={false}
-        keyExtractor={item => item.filter_id}
+        keyExtractor={(item, index) => `${item.filter_id}_${item.filter_name}_${index}`}
         contentContainerStyle={styles.filterList}
         renderItem={({ item }) => {
           const isActive = activeFilters.includes(item.filter_name);
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     // marginBottom: responsiveHeight(2),
-    paddingHorizontal: responsiveWidth(5),
+    paddingHorizontal: responsiveWidth(0),
     marginBottom: 10,
   },
   headerLeft: {
