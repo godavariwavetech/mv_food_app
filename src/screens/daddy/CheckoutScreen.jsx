@@ -694,7 +694,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                 ))}
             </View>
             <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Handling Charges</Text>
+              <Text style={styles.billLabel}>Delivery Charges</Text>
               <Text style={styles.billValue}>
                 ₹{' '}
                 {delivery.totalCharge}

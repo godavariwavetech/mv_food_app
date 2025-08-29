@@ -95,7 +95,7 @@ export default function UserHome({ navigation }) {
     try {
       setErrorOccured(false)
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=`,
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyBjxoAFhr00pjmZ95SEJYoUL98A6iX8hQ4`,
       );
       const data = await response.json();
       if (data.results && data.results.length > 0) {

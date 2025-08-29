@@ -56,7 +56,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       setOrderDetails(response.payload.data[0]);
     }
   };
-
+  console.log("order details", orderDetails)
   const fetchOrderItems = async () => {
     if (!orderDetails?.id) return;
     const response = await dispatch(
@@ -402,13 +402,24 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 }}
                 style={styles.callButton}
               >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}> 
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <Text style={{ color: "#000", fontSize: 16, fontWeight: "600" }}>Track Order</Text>
                   <MaterialIcons name="delivery-dining" size={23} color="#fff" style={styles.callIcon} />
                 </View>
               </TouchableOpacity>
             </View>
           </View>
+
+          {orderDetails?.customer_otp && (
+  <View style={styles.otpSection}>
+    <Text style={styles.sectionTitle}>Delivery OTP</Text>
+    <View style={styles.otpBox}>
+      <Text style={styles.otpValue}>{orderDetails.customer_otp}</Text>
+      <Text style={styles.otpHint}>Share this OTP with the delivery agent</Text>
+    </View>
+  </View>
+)}
+
 
           {/* Delivery Agent */}
           {(orderDetails?.order_status >= 8 || orderDetails?.order_status == 2) && (
@@ -522,7 +533,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   ))}
               </View>
               <View style={styles.billRow}>
-                <Text style={styles.billLabel}>Handling charges</Text>
+                <Text style={styles.billLabel}>Delivery charges</Text>
                 <Text style={styles.billValue}>
                   ₹{orderData.billing.deliveryCharge}
                 </Text>
@@ -762,6 +773,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
+  otpSection: {
+  padding: responsiveWidth(5),
+  backgroundColor: '#fff',
+  borderBottomWidth: 1,
+  borderBottomColor: '#E0E0E0',
+},
+otpBox: {
+  marginTop: responsiveHeight(1),
+  padding: responsiveWidth(2),
+  borderWidth: 1,
+  borderColor: commonStyles.btn2Color,
+  borderRadius: 10,
+  backgroundColor: '#F9F9F9',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+otpValue: {
+  fontSize: 24,
+  fontWeight: '700',
+  color: commonStyles.btn2Color,
+  letterSpacing: 5,
+  marginBottom: 8,
+},
+otpHint: {
+  fontSize: 10,
+  color: '#666',
+  textAlign: 'center',
+},
+
   agentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
