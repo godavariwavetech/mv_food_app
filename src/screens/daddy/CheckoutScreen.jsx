@@ -11,7 +11,7 @@ import {
   Modal,
   ActivityIndicator,
   SafeAreaView,
-  Alert 
+  Alert
 } from 'react-native';
 import {
   responsiveHeight,
@@ -45,7 +45,7 @@ import RazorpayCheckout from 'react-native-razorpay';
 const CheckoutScreen = ({ navigation, route }) => {
   const { cartItems, totalPrice } = useSelector(state => state.Dashboard);
   const { appliedCoupon } = useSelector(state => state.coupons);
-  const { chargesList, selectedAddress } = useSelector(
+  const { chargesList, selectedAddress} = useSelector(
     state => state.address,
   );
   const {
@@ -57,10 +57,12 @@ const CheckoutScreen = ({ navigation, route }) => {
   } = useSelector(state => state.Auth);
   const dispatch = useDispatch();
 
+  console.log("cartItems", cartItems)
+ 
+  const handlingCharges = chargesList?.[0]?.handling_charges || 0;
   const [clearCartConfirmVisible, setClearCartConfirmVisible] = useState(false);
   const [paymentMenuVisible, setPaymentMenuVisible] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState('Pay Online');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Pay Online');
   const [modalVisible, setModalVisible] = useState(false);
   const [totalSellingPrice, setTotalSellingPrice] = useState(0);
   const [itemsTotalPrice, setItemsTotalPrice] = useState(0);
@@ -281,162 +283,163 @@ const CheckoutScreen = ({ navigation, route }) => {
   }
 
 
- const handlePlaceOrder = async () => {
-  try {
-    setIsProcessingPayment(true);
 
-    // 🔹 Common payload (COD or Razorpay)
-    let payload = {
-      order_status: 0,
-      actual_total_amount: itemsTotalPrice,
-      customer_id: customerId,
-      customer_name: selectedAddress?.customer_name,
-      customer_mobile_number: selectedAddress?.customer_mobile_number,
-      category_id: cartItems[0]?.category_id,
-      sub_category_id: cartItems[0]?.sub_category_id,
-      admin_percentage: 10,
-      item_count: cartItems?.reduce((sum, item) => sum + Number(item.quantity), 0),
-      total_amount: totalSellingPrice,
-      total_saving_amount: totalSavings,
-      coupon_amount: couponDiscount,
-      delivery_charges: delivery.totalCharge,
-      grand_total: grandTotal,
-      location_id: locationId,
-      location_name: locationName,
-      payment_type: selectedPaymentMethod,
-      payment_id: selectedPaymentMethod,
-      razorpay_order_id: null,
-      order_instructions: 'test order',
-      coupon_type: appliedCoupon?.coupon_type || "0",
-      coupon_id: appliedCoupon?.id || "0",
-      delivery_address: selectedAddress
-        ? selectedAddress.full_address
-        : 'No address selected',
-      order_latitude: selectedAddress?.customer_latitude || '0',
-      order_longitude: selectedAddress?.customer_longitude || '0',
-      slot_timings: 'Fast Delivery',
-      order_distance: distance,
-      ext_del_charge: '0',
-      shop_id: cartItems[0]?.shop_id,
-      user_player_id: null,
-      order_type: 0,
-      delivery_charges_gst: delivery.gstAmount,
-      handling_charges: chargesList[0].handling_charges,
-      packing_charges: 0,
-      packing_charges_gst: 0,
-      donation_charges: chargesList[0].donation_charges,
-      sub_order_array: cartItems.map(item => ({
-        item_name: item.item_name,
-        item_image: item.item_image,
-        item_id: item.id,
-        category_id: item.category_id,
-        sub_category_id: item.sub_category_id,
-        category_name: item.category_name,
-        sub_category_name: item.sub_category_name,
-        actualitem_price: item.actual_price,
-        item_price: item.selling_price,
-        sub_item_count: item.quantity,
-        item_total_amount: item.selling_price * item.quantity,
-        filter_name: item.filter_one,
-        item_description: item.item_description,
-        saving_price: item.discount_amount,
-        shop_id: item.shop_id,
-        filter_one: item.filter_one,
-      })),
-    };
+  const handlePlaceOrder = async () => {
+    try {
+      setIsProcessingPayment(true);
 
-    // 🔹 Case 1: COD
-    if (selectedPaymentMethod === 'COD') {
-      const responseCod = await dispatch(placeOrder({ orderDetails: payload }));
-
-      if (!responseCod?.payload) {
-        Alert.alert("Order Failed", "Unable to place COD order. Please try again.");
-        return;
-      }
-
-      navigation.replace('OrderSuccess', { response: responseCod.payload });
-      return;
-    }
-
-    // 🔹 Case 2: Razorpay Flow
-    if (selectedPaymentMethod === 'Pay Online') {
-      // Step 1: Generate Razorpay Order ID
-      const razorpayOrderResponse = await dispatch(generateOrderId({ orderAmount: grandTotal }));
-      const razorpayOrder = razorpayOrderResponse?.payload;
-
-      if (!razorpayOrder?.id) {
-        Alert.alert("Payment Error", "Failed to generate Razorpay Order ID. Please try again.");
-        return;
-      }
-
-      // Step 2: Create Pending Order in DB
-      const pendingOrder = await dispatch(placeOrder({
-        orderDetails: {
-          ...payload,
-          order_status: 7, // Pending
-          razorpay_order_id: razorpayOrder.id,
-        }
-      }));
-       console.log("rayzorpay place order", pendingOrder)
-      if (!pendingOrder?.payload?.order_id) {
-        Alert.alert("Order Error", "Failed to create pending order. Please try again.");
-        return;
-      }
-
-      // Step 3: Open Razorpay Checkout
-      const options = {
-        description: 'Order Payment',
-        currency: razorpayOrder.currency || 'INR',
-        key: razorpayOrder.key_id,
-        amount: razorpayOrder.amount,
-        order_id: razorpayOrder.id,
-        name: 'Melocal',
-        prefill: {
-          email: selectedAddress?.customer_email || 'test@example.com',
-          contact: selectedAddress?.customer_mobile_number,
-          name: selectedAddress?.customer_name,
-        },
-        theme: { color: '#3399cc' },
+      // 🔹 Common payload (COD or Razorpay)
+      let payload = {
+        order_status: 0,
+        actual_total_amount: itemsTotalPrice,
+        customer_id: customerId,
+        customer_name: selectedAddress?.customer_name,
+        customer_mobile_number: selectedAddress?.customer_mobile_number,
+        category_id: cartItems[0]?.category_id,
+        sub_category_id: cartItems[0]?.sub_category_id,
+        admin_percentage: 10,
+        item_count: cartItems?.reduce((sum, item) => sum + Number(item.quantity), 0),
+        total_amount: totalSellingPrice,
+        total_saving_amount: totalSavings,
+        coupon_amount: couponDiscount,
+        delivery_charges: delivery.totalCharge,
+        grand_total: grandTotal,
+        location_id: locationId,
+        location_name: locationName,
+        payment_type: selectedPaymentMethod,
+        payment_id: selectedPaymentMethod,
+        razorpay_order_id: null,
+        order_instructions: 'test order',
+        coupon_type: appliedCoupon?.coupon_type || "0",
+        coupon_id: appliedCoupon?.id || "0",
+        delivery_address: selectedAddress
+          ? selectedAddress.full_address
+          : 'No address selected',
+        order_latitude: selectedAddress?.customer_latitude || '0',
+        order_longitude: selectedAddress?.customer_longitude || '0',
+        slot_timings: 'Fast Delivery',
+        order_distance: distance,
+        ext_del_charge: '0',
+        shop_id: cartItems[0]?.shop_id,
+        user_player_id: null,
+        order_type: 0,
+        delivery_charges_gst: delivery.gstAmount,
+        handling_charges: chargesList[0].handling_charges,
+        packing_charges: 0,
+        packing_charges_gst: 0,
+        donation_charges: chargesList[0].donation_charges,
+        sub_order_array: cartItems.map(item => ({
+          item_name: item.item_name,
+          item_image: item.item_image,
+          item_id: item.id,
+          category_id: item.category_id,
+          sub_category_id: item.sub_category_id,
+          category_name: item.category_name,
+          sub_category_name: item.sub_category_name,
+          actualitem_price: item.actual_price,
+          item_price: item.selling_price,
+          sub_item_count: item.quantity,
+          item_total_amount: item.selling_price * item.quantity,
+          filter_name: item.filter_one,
+          item_description: item.item_description,
+          saving_price: item.discount_amount,
+          shop_id: item.shop_id,
+          filter_one: item.filter_one,
+        })),
       };
 
-      try {
-        const razorpayResult = await RazorpayCheckout.open(options);
-        // { razorpay_payment_id, razorpay_order_id, razorpay_signature }
-        console.log("razorpay pament respose", razorpayResult)
-        const verifyRes = await dispatch(updateOrderStatus({
-          paymentId: razorpayResult?.razorpay_payment_id,
-          rzpId: razorpayResult?.razorpay_order_id,
-          orderId: pendingOrder.payload.id,
-          customer_id: customerId
-        }));
+      // 🔹 Case 1: COD
+      if (selectedPaymentMethod === 'COD') {
+        const responseCod = await dispatch(placeOrder({ orderDetails: payload }));
 
-        if (!verifyRes?.payload) {
-          Alert.alert("Payment Verification Failed", "Your payment was captured, but verification failed. Contact support.");
+        if (!responseCod?.payload) {
+          Alert.alert("Order Failed", "Unable to place COD order. Please try again.");
           return;
         }
 
-        navigation.replace('OrderSuccess', { response: pendingOrder.payload });
-
-      } catch (error) {
-        console.log("Payment Failed / Cancelled", error);
-
-        // Mark order as failed (optional)
-        await dispatch(updateOrderStatus({
-          orderId: pendingOrder.payload.order_id,
-          status: "failed"
-        }));
-
-        Alert.alert("Payment Cancelled", "Transaction was not completed.");
+        navigation.replace('OrderSuccess', { response: responseCod.payload });
+        return;
       }
-    }
 
-  } catch (error) {
-    console.error('Payment error:', error);
-    Alert.alert('Unexpected Error', error?.message || 'Something went wrong. Please try again.');
-  } finally {
-    setIsProcessingPayment(false);
-  }
-};
+      // 🔹 Case 2: Razorpay Flow
+      if (selectedPaymentMethod === 'Pay Online') {
+        // Step 1: Generate Razorpay Order ID
+        const razorpayOrderResponse = await dispatch(generateOrderId({ orderAmount: grandTotal }));
+        const razorpayOrder = razorpayOrderResponse?.payload;
+
+        if (!razorpayOrder?.id) {
+          Alert.alert("Payment Error", "Failed to generate Razorpay Order ID. Please try again.");
+          return;
+        }
+
+        // Step 2: Create Pending Order in DB
+        const pendingOrder = await dispatch(placeOrder({
+          orderDetails: {
+            ...payload,
+            order_status: 7, // Pending
+            razorpay_order_id: razorpayOrder.id,
+          }
+        }));
+        
+        if (!pendingOrder?.payload?.order_id) {
+          Alert.alert("Order Error", "Failed to create pending order. Please try again.");
+          return;
+        }
+
+        // Step 3: Open Razorpay Checkout
+        const options = {
+          description: 'Order Payment',
+          currency: razorpayOrder.currency || 'INR',
+          key: razorpayOrder.key_id,
+          amount: razorpayOrder.amount,
+          order_id: razorpayOrder.id,
+          name: 'Melocal',
+          prefill: {
+            email: selectedAddress?.customer_email || 'test@example.com',
+            contact: selectedAddress?.customer_mobile_number,
+            name: selectedAddress?.customer_name,
+          },
+          theme: { color: '#3399cc' },
+        };
+
+        try {
+          const razorpayResult = await RazorpayCheckout.open(options);
+          // { razorpay_payment_id, razorpay_order_id, razorpay_signature }
+
+          const verifyRes = await dispatch(updateOrderStatus({
+            paymentId: razorpayResult?.razorpay_payment_id,
+            rzpId: razorpayResult?.razorpay_order_id,
+            orderId: pendingOrder.payload.id,
+            customer_id: customerId
+          }));
+
+          if (!verifyRes?.payload) {
+            Alert.alert("Payment Verification Failed", "Your payment was captured, but verification failed. Contact support.");
+            return;
+          }
+
+          navigation.replace('OrderSuccess', { response: pendingOrder.payload });
+
+        } catch (error) {
+          
+
+          // Mark order as failed (optional)
+          await dispatch(updateOrderStatus({
+            orderId: pendingOrder.payload.order_id,
+            status: "failed"
+          }));
+
+          Alert.alert("Payment Cancelled", "Transaction was not completed.");
+        }
+      }
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      Alert.alert('Unexpected Error', error?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
 
   const navigateToCoupons = () => {
@@ -471,7 +474,10 @@ const CheckoutScreen = ({ navigation, route }) => {
     );
 
     setGrandTotal(
-      totalSellingPrice - couponDiscount + Number(charges.totalCharge),
+      totalSellingPrice
+      - couponDiscount
+      + Number(charges.totalCharge)
+      + Number(handlingCharges || 0)
     );
   }, [
     selectedAddress,
@@ -481,6 +487,16 @@ const CheckoutScreen = ({ navigation, route }) => {
     totalSellingPrice,
     couponDiscount,
   ]);
+
+  useEffect(() => {
+    if (grandTotal > 700 && selectedPaymentMethod === "COD") {
+      setSelectedPaymentMethod(
+        paymentMethods.find(m => m !== "COD") || ""
+      );
+    }
+  }, [grandTotal, selectedPaymentMethod, paymentMethods]);
+
+  
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -618,19 +634,19 @@ const CheckoutScreen = ({ navigation, route }) => {
           <View style={styles.billingCard}>
             <View style={styles.billRow}>
               <Text style={styles.billLabel}>Original Price</Text>
-              <Text style={styles.billValue}>₹ {totalSellingPrice + totalSavings}</Text>
+              <Text style={styles.billValue}>₹ {(totalSellingPrice + totalSavings).toFixed(2)}</Text>
             </View>
             <View style={styles.billRow}>
               <Text style={styles.billLabel}>Amount</Text>
-              <Text style={styles.billValue}>₹ {totalSellingPrice}</Text>
+              <Text style={styles.billValue}>₹ {totalSellingPrice.toFixed(2)}</Text>
             </View>
             <View style={styles.billRow}>
               <Text style={styles.billLabel}>Savings</Text>
-              <Text style={styles.savingsValue}>₹ {totalSavings}</Text>
+              <Text style={styles.savingsValue}>₹ {totalSavings.toFixed(2)}</Text>
             </View>
             {appliedCoupon && <View style={styles.billRow}>
               <Text style={styles.billLabel}>Coupon Discount</Text>
-              <Text style={styles.savingsValue}>₹ {couponDiscount}</Text>
+              <Text style={styles.savingsValue}>₹ {couponDiscount.toFixed(2)}</Text>
             </View>}
             {/* {appliedCoupon && (
               <Text style={styles.couponCode}>{appliedCoupon?.coupon_name}</Text>
@@ -650,7 +666,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             <View style={styles.billRow}>
               <Text style={styles.billLabel}>Total</Text>
               <Text style={styles.savingsValue}>
-                ₹ {itemsTotalPrice || totalSellingPrice - couponDiscount}
+                ₹ {(itemsTotalPrice || totalSellingPrice - couponDiscount).toFixed(2)}
               </Text>
             </View>
             {/* <View
@@ -693,13 +709,23 @@ const CheckoutScreen = ({ navigation, route }) => {
                   <View key={index} style={styles.dot} />
                 ))}
             </View>
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Delivery Charges</Text>
-              <Text style={styles.billValue}>
-                ₹{' '}
-                {delivery.totalCharge}
-              </Text>
-            </View>
+            {/* Delivery Charges */}
+            {delivery?.totalCharge > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Delivery Charges</Text>
+                <Text style={styles.billValue}>
+                  ₹ {delivery.totalCharge}
+                </Text>
+              </View>
+            )}
+
+            {/* Handling Charges */}
+            {handlingCharges > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Handling Charges</Text>
+                <Text style={styles.billValue}>₹ {handlingCharges.toFixed(2)}</Text>
+              </View>
+            )}
 
             <View
               style={[
@@ -719,7 +745,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>TOTAL</Text>
-              <Text style={styles.totalValue}>₹ {grandTotal}</Text>
+              <Text style={styles.totalValue}>₹ {grandTotal.toFixed(2)}</Text>
             </View>
           </View>
         </ScrollView>
@@ -736,19 +762,23 @@ const CheckoutScreen = ({ navigation, route }) => {
 
           {paymentMenuVisible && (
             <View style={styles.paymentMethodsContainer}>
-              {paymentMethods.map(method => (
-                <TouchableOpacity
-                  key={method}
-                  style={styles.paymentMethodItem}
-                  onPress={() => {
-                    setSelectedPaymentMethod(method);
-                    setPaymentMenuVisible(false);
-                  }}>
-                  <Text style={styles.paymentMethodText}>{method}</Text>
-                </TouchableOpacity>
-              ))}
+              {paymentMethods
+                .filter(method => !(Number(grandTotal) > 700 && method === "COD"))
+                .map(method => (
+                  <TouchableOpacity
+                    key={method}
+                    style={styles.paymentMethodItem}
+                    onPress={() => {
+                      setSelectedPaymentMethod(method);
+                      setPaymentMenuVisible(false);
+                    }}>
+                    <Text style={styles.paymentMethodText}>{method}</Text>
+                  </TouchableOpacity>
+                ))}
             </View>
           )}
+
+
 
           <TouchableOpacity
             style={styles.placeOrderButton}
@@ -759,7 +789,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             ) : (
               <View style={styles.placeOrderContent}>
                 <View style={styles.orderTotal}>
-                  <Text style={styles.orderTotalValue}>₹ {grandTotal}</Text>
+                  <Text style={styles.orderTotalValue}>₹ {Number(grandTotal).toFixed(2)}</Text>
                   <Text style={styles.orderTotalLabel}>Total</Text>
                 </View>
                 <View style={styles.placeOrderTextContainer}>

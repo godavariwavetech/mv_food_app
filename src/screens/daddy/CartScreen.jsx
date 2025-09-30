@@ -206,6 +206,7 @@ const CartScreen = ({ navigation, route }) => {
             data={filteredCartItems}
             keyExtractor={item => item.id}
             renderItem={renderCartItem}
+            scrollEnabled
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>No items found</Text>

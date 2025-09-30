@@ -402,11 +402,11 @@ export const generateOrderId = createAsyncThunk(
   async ({ orderAmount }, { rejectWithValue }) => {
     try {
       const response = await api.post(endpoints.GENERATE_ORDER_ID, {
-        order_amount: Number(orderAmount) * 100, // Razorpay expects paise
+        order_amount: Number(orderAmount)  
       });
 
       if (response?.data) {
-        console.log("resee----------------", response)
+        
         return response.data.orderId; // This will have order_id
       } else {
         return rejectWithValue("Something went wrong!");

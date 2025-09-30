@@ -15,19 +15,19 @@ import { globalSearch } from '../../redux/reducers/addressSlice';
 import commonStyles from '../../commonstyles/CommonStyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const ReorderScreen = ({navigation}) => {
+const ReorderScreen = ({ navigation }) => {
   const [expandedRestaurants, setExpandedRestaurants] = useState({});
   const [orderItems, setOrderItems] = useState({});
   const [loading, setLoading] = useState({});
-  const {orders, cartItems, cartRestaurant} = useSelector((state) => state.Dashboard);
+  const { orders, cartItems, cartRestaurant } = useSelector((state) => state.Dashboard);
   const dispatch = useDispatch();
   const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-   const insets = useSafeAreaInsets();
-  
+  const insets = useSafeAreaInsets();
+
   // New state for search query
   const [searchQuery, setSearchQuery] = useState('');
-  const [refreshing, setRefreshing] = useState(false); 
+  const [refreshing, setRefreshing] = useState(false);
   const timeoutRef = useRef();
   const { globalSearchResults } = useSelector(state => state.address);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,8 +36,8 @@ const ReorderScreen = ({navigation}) => {
   const getOrdersData = async () => {
     try {
       setInitialLoading(true);
-      const response = await dispatch(getOrders({orderId:0}));
-     
+      const response = await dispatch(getOrders({ orderId: 0 }));
+
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {
@@ -52,14 +52,14 @@ const ReorderScreen = ({navigation}) => {
   const fetchOrderItems = async (orderId) => {
     try {
       setLoading(prev => ({ ...prev, [orderId]: true }));
-      const response = await dispatch(getOrderDetails({orderId}));
-      
+      const response = await dispatch(getOrderDetails({ orderId }));
+
       if (response.payload && response.payload.data) {
         setOrderItems(prev => ({
           ...prev,
           [orderId]: response.payload.data
         }));
-        
+
         setExpandedRestaurants(prev => ({
           ...prev,
           [orderId]: true
@@ -113,7 +113,7 @@ const ReorderScreen = ({navigation}) => {
   const handleSearch = (query) => {
     setSearchQuery(query);
     clearTimeout(timeoutRef.current);
-    
+
     if (query.trim()) {
       timeoutRef.current = setTimeout(() => {
         dispatch(globalSearch({ searchText: query }));
@@ -121,15 +121,15 @@ const ReorderScreen = ({navigation}) => {
     }
   };
 
-  
-  const filteredOrders = orders?.filter(order => 
+
+  const filteredOrders = orders?.filter(order =>
     globalSearchResults?.some(result => result.shop_name === order.shop_name) ||
     order.shop_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await dispatch(getOrders({orderId:0})); // Fetch orders again
+    await dispatch(getOrders({ orderId: 0 })); // Fetch orders again
     setRefreshing(false);
   };
 
@@ -141,7 +141,7 @@ const ReorderScreen = ({navigation}) => {
       <View>
         <View style={styles.cartItem}>
           <View style={styles.itemDetails}>
-            <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <HeaderPick2 />
               <Text style={styles.foodName}>{item.item_name}</Text>
             </View>
@@ -191,7 +191,7 @@ const ReorderScreen = ({navigation}) => {
     7: 'Waiting for Payment',
     8: 'Delivery Partner Assigned',
   };
-  
+
   // Add this function to get status color
   const getStatusColor = (status) => {
     const colorMap = {
@@ -207,42 +207,42 @@ const ReorderScreen = ({navigation}) => {
     };
     return colorMap[status] || '#666'; // Default gray
   };
-  
+
   // Update the renderRestaurantCard function to include status
   const renderRestaurantCard = useCallback(({ item }) => {
     const isLoading = loading[item.id];
-  
+
     return (
       <View style={styles.card}>
-        <View style={{flexDirection:"row",justifyContent:"space-between",alignItems:"center"}}>
-        <Text style={styles.date}>{item.order_date}</Text>
-         <Text style={[styles.statusText, {color: getStatusColor(item.order_status)}]}>
-                {STATUS_MAP[item.order_status]}
-        </Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Text style={styles.date}>{item.order_date}</Text>
+          <Text style={[styles.statusText, { color: getStatusColor(item.order_status) }]}>
+            {STATUS_MAP[item.order_status]}
+          </Text>
         </View>
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 7}}>
-          <Image source={{uri: item.shop_image}} style={{width: 72, height: 72, borderRadius: 8}} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 7 }}>
+          <Image source={{ uri: item.shop_image }} style={{ width: 72, height: 72, borderRadius: 8 }} />
           <View style={styles.restaurantInfo}>
             <Text style={styles.restaurantName}>{item.shop_name}</Text>
-            <Text style={[styles.details,{fontSize:10}]}>{item?.order_id} / {item?.id}</Text>
-            <View style={{flexDirection: 'row', alignItems: 'center', gap: 5}}>
+            <Text style={[styles.details, { fontSize: 10 }]}>{item?.order_id} / {item?.id}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <Text style={styles.details}>₹ {item.grand_total}</Text>
             </View>
             <Text style={styles.details}>{item.location_name}</Text>
           </View>
         </View>
 
-      {/* ( */}
-          <TouchableOpacity 
-            style={styles.viewDetailsButton}
-            onPress={() => {
-              // fetchOrderItems(item.id);
-              navigation.navigate('OrderDetails', { orderDetails: item });
-            }}
-            disabled={isLoading}
-          >
-              <Text style={styles.viewDetailsButtonText}>View Order Details</Text>
-          </TouchableOpacity>
+        {/* ( */}
+        <TouchableOpacity
+          style={styles.viewDetailsButton}
+          onPress={() => {
+            // fetchOrderItems(item.id);
+            navigation.navigate('OrderDetails', { orderDetails: item });
+          }}
+          disabled={isLoading}
+        >
+          <Text style={styles.viewDetailsButtonText}>View Order Details</Text>
+        </TouchableOpacity>
         {/* )  */}
       </View>
     );
@@ -262,7 +262,7 @@ const ReorderScreen = ({navigation}) => {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* <LinearGradient colors={['#FD0', '#F7F2F2']} style={styles.gradientContainer}> */}
       {/* <LinearGradient colors={['#FE4A31', '#FFD6CD']} style={styles.gradientContainer}> */}
-      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer,{paddingTop: insets.top}]}>
+      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
         <View style={styles.headerContainer}>
           <ReorderInactive color='#fff' />
           <Text style={styles.headerTitle}>Orders</Text>
@@ -278,7 +278,7 @@ const ReorderScreen = ({navigation}) => {
             />
             <Icon name="search" size={24} color="gray" style={styles.searchIcon} />
             {searchQuery.length > 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.clearButton}
                 onPress={() => setSearchQuery('')}
               >
@@ -312,7 +312,7 @@ const ReorderScreen = ({navigation}) => {
           <Text style={styles.emptyListText}>No orders found.</Text>
         </View>
       )}
-      
+
       <Modal
         visible={showReplaceModal}
         transparent
@@ -326,14 +326,14 @@ const ReorderScreen = ({navigation}) => {
               Your cart contains items from a different restaurant. Would you like to replace them with items from {selectedItem?.shop_name}?
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]} 
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
                 onPress={handleCancelReplace}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.confirmButton]} 
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
                 onPress={handleReplaceCart}
               >
                 <Text style={styles.confirmButtonText}>Replace</Text>
@@ -347,8 +347,8 @@ const ReorderScreen = ({navigation}) => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: '#fff',
     // paddingBottom: 60
   },
@@ -415,11 +415,11 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
-  card: { 
-    backgroundColor: '#fff', 
-    margin: 12, 
-    padding: 18, 
-    borderRadius: 16, 
+  card: {
+    backgroundColor: '#fff',
+    margin: 12,
+    padding: 18,
+    borderRadius: 16,
     borderWidth: 0,
     elevation: 4,
     shadowColor: '#000',
@@ -430,34 +430,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
-  date: { 
-    fontSize: 13, 
+  date: {
+    fontSize: 13,
     color: '#666',
     fontWeight: '500',
-    textAlign:"left" 
+    textAlign: "left"
   },
-  restaurantInfo: { 
+  restaurantInfo: {
     flex: 1,
     marginLeft: 12,
     gap: 4,
     justifyContent: 'center'
   },
-  restaurantName: { 
-    fontSize: 18, 
+  restaurantName: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#1a1a1a',
     marginBottom: 2
   },
-  details: { 
-    fontSize: 13, 
+  details: {
+    fontSize: 13,
     color: '#666',
     fontWeight: '500'
   },
-  moreItems: { 
-    color: '#C3A710', 
+  moreItems: {
+    color: '#C3A710',
     marginTop: 10,
-    fontSize:14,
-    fontWeight:"600"
+    fontSize: 14,
+    fontWeight: "600"
   },
   gradientContainer: {
     // paddingTop: 10,
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 16,
-    borderWidth: 1, 
+    borderWidth: 1,
     borderColor: '#E0E0E0',
   },
   viewDetailsButtonText: {
@@ -564,11 +564,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#065E2C",
   },
-  counterText: { 
-    color: '#065E2C', 
-    fontSize: 16, 
-    fontWeight: '700', 
-    marginHorizontal: 10 
+  counterText: {
+    color: '#065E2C',
+    fontSize: 16,
+    fontWeight: '700',
+    marginHorizontal: 10
   },
   addButton: {
     backgroundColor: '#fff',
@@ -578,10 +578,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#065E2C',
   },
-  addButtonText: { 
-    color: '#065E2C', 
-    fontWeight: '700', 
-    fontSize: 14 
+  addButtonText: {
+    color: '#065E2C',
+    fontWeight: '700',
+    fontSize: 14
   },
   modalOverlay: {
     flex: 1,
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   confirmButton: {
-    backgroundColor:commonStyles.btn2Color,
+    backgroundColor: commonStyles.btn2Color,
   },
   cancelButtonText: {
     color: '#666',

@@ -7,25 +7,53 @@ import api from '../../utils/api';
 export const fetchCoupons = createAsyncThunk(
   'fetchCoupons',
   async (
-    _,
-    {getState, rejectWithValue, fulfillWithValue}
+    { shop_id, location_id,category_id },
+    { getState, rejectWithValue, fulfillWithValue }
   ) => {
-    const response = await api.post(endpoints.GET_COUPONS,{
-      "location_id": "1",
-      "coupon_category_id": "1"
-  })
- 
-  
-    if (response) {
-
-
-        if (response.data) {
-          return fulfillWithValue(response.data);
-        } else {
-          return rejectWithValue('Something went wrong!');
-        }
+    try {
+     console.log("coupon payload",{
+      "shop_id": shop_id,
+      "location_id": location_id,
+      "coupon_category_id": category_id
+    })
+      
+      // Validate required parameters
+      if (!shop_id || !location_id) {
+        return rejectWithValue('Shop ID and Location ID are required');
       }
-}
+      
+      const response = await api.post(endpoints.GET_COUPONS, {
+        "shop_id": shop_id,
+        "location_id": location_id,
+        "coupon_category_id": category_id
+      })
+      
+      console.log("Response:", response)
+      
+      if (response && response.data) {
+        return fulfillWithValue(response.data);
+      } else {
+        return rejectWithValue('No data received from server');
+      }
+    } catch (error) {
+      console.error('Error fetching coupons:', error);
+      
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with error status
+        const errorMessage = error.response.data?.message || 
+                           error.response.data?.error || 
+                           `Server error: ${error.response.status}`;
+        return rejectWithValue(errorMessage);
+      } else if (error.request) {
+        // Network error
+        return rejectWithValue('Network error: Please check your connection');
+      } else {
+        // Other errors
+        return rejectWithValue(error.message || 'An unexpected error occurred');
+      }
+    }
+  }
 );
 
 const initialState = {
@@ -48,16 +76,16 @@ const couponSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(fetchCoupons.pending, (state) => {
-        state.loading = true; // Set loading to true while fetching
-      })
-      builder.addCase(fetchCoupons.fulfilled, (state, action) => {
-        state.loading = false; // Set loading to false on success
-        state.coupons = action.payload.data; 
-      })
-      builder.addCase(fetchCoupons.rejected, (state, action) => {
-        state.loading = false; // Set loading to false on error
-        state.error = action.error.message; // Store the error message
-      });
+      state.loading = true; // Set loading to true while fetching
+    })
+    builder.addCase(fetchCoupons.fulfilled, (state, action) => {
+      state.loading = false; // Set loading to false on success
+      state.coupons = action.payload.data;
+    })
+    builder.addCase(fetchCoupons.rejected, (state, action) => {
+      state.loading = false; // Set loading to false on error
+      state.error = action.error.message; // Store the error message
+    });
   },
 });
 

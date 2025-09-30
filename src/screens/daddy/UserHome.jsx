@@ -589,12 +589,13 @@ export default function UserHome({ navigation }) {
                           {/* <View style={styles.heartIcon}>
                         <MaterialIcons name="favorite" size={28} color="red" />
                         </View> */}
-                          {isUnavailable && (
+                         
+                        </View>
+                         {isUnavailable && (
                             <View style={styles.unavailableOverlay}>
                               <Text style={[styles.unavailableText, { color: "red" }]}>Currently Unavailable</Text>
                             </View>
                           )}
-                        </View>
 
                         {/* Right text content */}
                         <View style={styles.restaurantTextContainer}>
@@ -922,7 +923,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 1,
     textTransform: 'uppercase',
-    marginTop: 12,
   },
   offlineContainer: {
     flex: 1,
@@ -1066,6 +1066,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     position: 'relative',
+    textAlign: "center",
+   
   },
 
   restaurantImageContainer: {

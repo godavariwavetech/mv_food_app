@@ -29,8 +29,7 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, getItemsList, removeFromCart, setCartRestaurant } from '../../redux/reducers/daddy';
-import { setRestaurnatDetails } from '../../redux/reducers/auth';
-import { globalSearch } from '../../redux/reducers/addressSlice';
+import { globalSearch, setRestaurnatDetails } from '../../redux/reducers/auth';
 import StarRating from '../../components/StarRating';
 import commonStyles from '../../commonstyles/CommonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,6 +54,7 @@ const RestaurantScreen = ({ navigation, route }) => {
   const [renderedItems, setRenderedItems] = useState(new Set());
   const [initialFilter, setSetInitialFilter] = useState(true);
   const flatListRef = useRef(null);
+  const [selectedFilter, setSelectedFilter] = useState("All");
   // state for active filters
   // const [activeFilters, setActiveFilters] = useState([]);
 
@@ -89,9 +89,11 @@ const RestaurantScreen = ({ navigation, route }) => {
       .map(sc => ({ filter_name: sc, id: sc.toLowerCase().replace(/\s+/g, '-'), type: 'subcategory' })),
   ];
 
-  // console.log("restaurantItems", restaurantItems)
 
+  const shopId = route.params
+  console.log("shopId", shopId)
   const getItems = async () => {
+
     try {
       setIsLoading(true);
       const response = await dispatch(getItemsList({ shopId: route.params.shopId, shopItem: route.params.shopItem }))
@@ -103,45 +105,29 @@ const RestaurantScreen = ({ navigation, route }) => {
     } finally {
       setIsLoading(false);
     }
+
+
+
+    // const handleFilter = (selected) => {
+    //   if (selected.type === 'subcategory') {
+    //     setActiveSubCategoryFilter(selected.filter_name === 'All' ? 'All' : selected.filter_name);
+    //   } else {
+
+
+    //     setActiveFilters([selected.filter_name]);
+    //     // if (selected.filter_name === 'All') {
+    //     //   setActiveFilters(['All']);
+    //     //   return;
+    //     // }
+    //     // const newFilters = activeFilters.includes(selected.filter_name) 
+    //     //   ? activeFilters.filter(f => f !== selected.filter_name)
+    //     //   : [...activeFilters.filter(f => f !== 'All'), selected.filter_name];
+    //     // setActiveFilters(newFilters);
+    //   }
+    // };
+
+
   }
-
-  // const handleFilter = (selected) => {
-  //   if (selected.type === 'subcategory') {
-  //     setActiveSubCategoryFilter(selected.filter_name === 'All' ? 'All' : selected.filter_name);
-  //   } else {
-
-
-  //     setActiveFilters([selected.filter_name]);
-  //     // if (selected.filter_name === 'All') {
-  //     //   setActiveFilters(['All']);
-  //     //   return;
-  //     // }
-  //     // const newFilters = activeFilters.includes(selected.filter_name) 
-  //     //   ? activeFilters.filter(f => f !== selected.filter_name)
-  //     //   : [...activeFilters.filter(f => f !== 'All'), selected.filter_name];
-  //     // setActiveFilters(newFilters);
-  //   }
-  // };
-
-  const handleFilter = (item) => {
-    if (item.id === 'all') {
-      setActiveFilters([]);
-      setActiveSubCategoryFilter(null);
-      return;
-    }
-
-    if (item.type === 'subcategory') {
-      // only one subcategory active at a time
-      setActiveSubCategoryFilter(item.filter_name);
-    } else {
-      // toggle multiple active filters (Veg/Non Veg, categories, etc.)
-      setActiveFilters((prev) =>
-        prev.includes(item.filter_name)
-          ? prev.filter(f => f !== item.filter_name)
-          : [...prev, item.filter_name]
-      );
-    }
-  };
 
 
   // useEffect(() => {
@@ -165,21 +151,21 @@ const RestaurantScreen = ({ navigation, route }) => {
         item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.item_description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Veg/Non-Veg/Category filters (can be multiple)
-      const matchesFilters =
-        activeFilters.length === 0 || activeFilters.includes('All') ||
-        activeFilters.includes(item.filter_one) ||
-        activeFilters.includes(item.category_name);
+      const matchesFilter =
+        selectedFilter === "All" ||
+        item.filter_one === selectedFilter ||
+        item.category_name === selectedFilter;
 
-      // Subcategory filter (only one active at a time)
       const matchesSubCategory =
         !activeSubCategoryFilter || activeSubCategoryFilter === item.sub_category_name;
 
-      return matchesSearch && matchesFilters && matchesSubCategory;
+      return matchesSearch && matchesFilter && matchesSubCategory;
     });
 
     setFilterData(filtered);
-  }, [searchQuery, activeFilters, activeSubCategoryFilter, restaurantItems, initialFilter]);
+  }, [searchQuery, selectedFilter, activeSubCategoryFilter, restaurantItems, initialFilter]);
+
+
 
 
   useEffect(() => {
@@ -234,6 +220,7 @@ const RestaurantScreen = ({ navigation, route }) => {
 
   const handleReplaceCart = () => {
     dispatch(setCartRestaurant(route.params.shopId));
+    dispatch(setRestaurnatDetails(route.params.item))
     dispatch(addToCart(selectedItem));
     setShowReplaceModal(false);
     setSelectedItem(null);
@@ -315,6 +302,23 @@ const RestaurantScreen = ({ navigation, route }) => {
     };
   }, []);
 
+  const handleFilter = (item) => {
+    if (item.type === "subcategory") {
+      // toggle subcategory
+      if (activeSubCategoryFilter === item.filter_name) {
+        setActiveSubCategoryFilter(null); // deselect if clicked again
+      } else {
+        setActiveSubCategoryFilter(item.filter_name);
+      }
+    } else {
+      // handle main Veg/Non Veg/All filter
+      if (item.id === "all") {
+        setSelectedFilter("All");
+      } else {
+        setSelectedFilter(item.filter_name);
+      }
+    }
+  };
 
 
   const renderFilters = () => (
@@ -327,7 +331,7 @@ const RestaurantScreen = ({ navigation, route }) => {
         keyExtractor={(item, index) => `${item.id}_${item.filter_name}_${index}`}
         contentContainerStyle={styles.filterList}
         renderItem={({ item }) => {
-          const isActive = activeFilters.includes(item.filter_name);
+          const isActive = selectedFilter === item.filter_name;
           return (
             <TouchableOpacity
               onPress={() => handleFilter(item)}
@@ -421,67 +425,95 @@ const RestaurantScreen = ({ navigation, route }) => {
           }
         }}
       >
+
         <View
           style={[styles.card, item.active_status === "1" && styles.unavailableCard]}
-        // onPress={() => item.active_status === "1" ? null : handleAddToCart(item)}
-        // disabled={item.active_status === "1"}
         >
+          {/* Overlay when unavailable */}
           {item.active_status === "1" && (
             <View style={styles.unavailableOverlay}>
               <Text style={styles.unavailableText}>Currently Unavailable</Text>
             </View>
           )}
 
-          <Image
-            source={{ uri: item.item_image }}
-            style={[styles.image, item.active_status === "1" && styles.unavailableImage]}
-          />
 
-          <View style={styles.itemHeader}>
-            <Text style={styles.itemName}>{item.item_name}</Text>
-            <View style={styles.itemIcon}>
+
+          {/* Details Right */}
+          <View style={styles.itemDetails}>
+            <View style={styles.itemHeader}>
               <HeaderPick2 color={item.filter_one === "Veg" ? "#0EAF50" : "#CD2A2A"} />
-            </View>
-          </View>
-          {/* 
-          <View style={styles.itemRatingContainer}>
-            <Icon name="star" size={17} color="#D0A50F" />
-            <Text style={styles.itemRating}>4.7</Text>
-            <Text style={styles.itemReviewCount}>(12)</Text>
-          </View> */}
+              <Text style={styles.itemName}>{item.item_name}</Text>
 
-          <View style={styles.itemFooter}>
-            <View>
-              <View style={{ flexDirection: 'row', justifyContent: "flex-start" }}>
+            </View>
+            <Text style={styles.itemdescription}>{item.item_description}</Text>
+
+            {/* Optional Rating */}
+            {/* 
+    <View style={styles.itemRatingContainer}>
+      <Icon name="star" size={17} color="#D0A50F" />
+      <Text style={styles.itemRating}>4.7</Text>
+      <Text style={styles.itemReviewCount}>(12)</Text>
+    </View> 
+    */}
+
+            <View style={styles.itemFooter}>
+              <View>
                 {item.actual_price !== item.selling_price && (
-                  <Text style={[styles.price, { textDecorationLine: 'line-through', color: '#888', fontSize: 10, textAlign: "left" }]}>₹{item.actual_price}</Text>
+                  <Text
+                    style={[
+                      styles.price,
+                      {
+                        textDecorationLine: "line-through",
+                        color: "#888",
+                        fontSize: 10,
+                        textAlign: "left"
+                      }
+                    ]}
+                  >
+                    ₹{item.actual_price}
+                  </Text>
                 )}
+                <Text style={styles.price}>₹{item.selling_price}</Text>
               </View>
 
-              <Text style={styles.price}>₹{item.selling_price}</Text>
+
+
+
             </View>
+
+          </View>
+          <View>
+            <Image
+              source={{ uri: item.item_image }}
+              style={[
+                styles.horizontalImage,
+                item.active_status === "1" && styles.unavailableImage
+              ]}
+            />
             {cartItems.findIndex(value => value.id === item.id) !== -1 ? (
               <View style={styles.counterContainer}>
                 <TouchableOpacity onPress={() => decreaseItem(item)}>
-                  <AntDesign name="minus" size={18} color={commonStyles.btn2Color} />
+                  <AntDesign name="minus" size={20} color={commonStyles.btn2Color} />
                 </TouchableOpacity>
-                <Text style={styles.counterText}>{cartItems.find(value => value.id === item.id).quantity}</Text>
+                <Text style={styles.counterText}>
+                  {cartItems.find(value => value.id === item.id).quantity}
+                </Text>
                 <TouchableOpacity onPress={() => handleAddToCart(item)}>
-                  <AntDesign name="plus" size={18} color={commonStyles.btn2Color} />
+                  <AntDesign name="plus" size={20} color={commonStyles.btn2Color} />
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
                 style={styles.addButton}
-                onPress={() => {
-                  handleAddToCart(item);
-                }}
+                onPress={() => handleAddToCart(item)}
               >
                 <Text style={styles.addButtonText}>ADD</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
+
+
       </Animated.View>
     );
   };
@@ -496,7 +528,7 @@ const RestaurantScreen = ({ navigation, route }) => {
   const cartCalculations = useMemo(() => {
     const itemCount = cartItems?.reduce((sum, item) => sum + Number(item.quantity), 0) || 0;
     const totalPrice = cartItems?.reduce((sum, item) => sum + (Number(item.selling_price) * Number(item.quantity)), 0) || 0;
-    
+
     return {
       itemCount,
       totalPrice: totalPrice.toFixed(2),
@@ -506,7 +538,7 @@ const RestaurantScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
         bounces={true}
@@ -595,27 +627,31 @@ const RestaurantScreen = ({ navigation, route }) => {
           </View>
         ) : (
           <View style={styles.itemListContainer}>
-            <FlatList
-              ref={flatListRef}
-              data={filteredData}
-              keyExtractor={(item, index) => `${item.id}_${index}`}
-              numColumns={2}
-              style={[styles.itemList]}
-              contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 160 : 150 }}
-              columnWrapperStyle={styles.columnWrapper}
-              renderItem={renderItem}
-              scrollEnabled={false}
-              nestedScrollEnabled={true}
-              onScrollToIndexFailed={({ index, averageItemLength }) => {
-                flatListRef.current?.scrollToOffset({
-                  offset: index * averageItemLength,
-                  animated: true
-                });
-                setTimeout(() => {
-                  flatListRef.current?.scrollToIndex({ index, animated: true });
-                }, 100);
-              }}
-            />
+            <View style={styles.itemListContainer}>
+              <FlatList
+                ref={flatListRef}
+                data={filteredData}
+                keyExtractor={(item, index) => `${item.id}_${index}`}
+                style={styles.itemList}
+                contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 160 : 150 }}
+                renderItem={renderItem}
+                scrollEnabled={false}
+                nestedScrollEnabled={true}
+                // 👇 Remove grid props
+                // numColumns={2}
+                // columnWrapperStyle={styles.columnWrapper}
+                onScrollToIndexFailed={({ index, averageItemLength }) => {
+                  flatListRef.current?.scrollToOffset({
+                    offset: index * averageItemLength,
+                    animated: true
+                  });
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToIndex({ index, animated: true });
+                  }, 100);
+                }}
+              />
+            </View>
+
           </View>
         )}
       </ScrollView>
@@ -627,7 +663,7 @@ const RestaurantScreen = ({ navigation, route }) => {
         <Animated.View
           style={styles.cartSummary(translateY)}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigation.navigate("CartScreen", { isFromRestaurant: true })}
             style={styles.cartSummaryButton}
             activeOpacity={0.8}
@@ -694,12 +730,13 @@ const RestaurantScreen = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  scrollContainer: { 
+  scrollContainer: {
     flex: 1,
   },
   itemListContainer: {
     flex: 1,
     minHeight: 500, // Ensures FlatList has enough height to render properly
+
   },
   imageBackground: { width: responsiveWidth(100), height: responsiveHeight(30), },
   imageOverlay: {
@@ -756,7 +793,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
-  filterList: { marginVertical: 5, paddingHorizontal: 15 },
+  filterList: { marginVertical: 5, paddingHorizontal: 10 },
   filterButton: {
     padding: 5,
     borderWidth: 1,
@@ -768,16 +805,18 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   filterText: { fontSize: 16, fontWeight: '500' },
-  itemList: { paddingHorizontal: responsiveWidth(5), paddingBottom: responsiveHeight(5), flex: 1 },
+  itemList: { paddingHorizontal: responsiveWidth(0), paddingBottom: responsiveHeight(5), flex: 1 },
   columnWrapper: { gap: responsiveWidth(3.5), justifyContent: 'space-between' },
   card: {
+    flexDirection: 'row',  // horizontal layout
     backgroundColor: '#fff',
-    marginBottom: responsiveHeight(1),
-    padding: 7,
+    marginTop: 12,
+    padding: 12,
     borderRadius: 12,
+    elevation: 1,
+    width: '100%',
     alignItems: 'center',
-    elevation: 3,
-    width: responsiveWidth(45),
+    position: 'relative',   // needed for overlay
   },
   image: {
     width: responsiveWidth(40),
@@ -785,12 +824,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     resizeMode: 'cover'
   },
+  horizontalImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    resizeMode: 'cover',
+    marginLeft: 12,
+  },
+  itemDetails: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
   itemHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    alignItems: "center",
     width: '100%',
     marginTop: 5,
-    paddingHorizontal: 5,
+    gap: 5
   },
   itemName: {
     fontSize: 14,
@@ -798,8 +849,6 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     flex: 1,
     color: '#000',
-    marginRight: 5,
-    height: responsiveHeight(4)
   },
   itemIcon: {
     marginTop: 3,
@@ -823,26 +872,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     marginTop: 5,
   },
-  price: { fontSize: 17, fontWeight: '700', color: commonStyles.btn2Color },
+  price: { fontSize: 17, fontWeight: '700', color: "black" },
+  itemdescription: { color: "gray" },
   counterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 6,
+    justifyContent: "center",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderWidth: 1,
     borderColor: commonStyles.btn2Color,
+    marginTop: 10
   },
-  counterText: { color: commonStyles.btn2Color, fontSize: 16, fontWeight: '700', marginHorizontal: 10 },
+  counterText: { color: commonStyles.btn2Color, fontSize: 16, fontWeight: '700', marginHorizontal: 20 },
   addButton: {
     backgroundColor: '#fff',
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: commonStyles.btn2Color,
+    borderColor: "black",
+    marginTop: 10,
   },
-  addButtonText: { color: commonStyles.btn2Color, fontWeight: '700', fontSize: 14 },
+  addButtonText: { color: "black", textAlign: "center", fontWeight: '700', fontSize: 14 },
   draggableMenu: {
     position: 'absolute',
     backgroundColor: 'white',
@@ -1127,6 +1180,66 @@ const styles = StyleSheet.create({
 export default RestaurantScreen;
 
 
+// <View
+// style={[styles.card, item.active_status === "1" && styles.unavailableCard]}
+// >
+// {item.active_status === "1" && (
+//   <View style={styles.unavailableOverlay}>
+//     <Text style={styles.unavailableText}>Currently Unavailable</Text>
+//   </View>
+// )}
+
+// <Image
+//   source={{ uri: item.item_image }}
+//   style={[styles.image, item.active_status === "1" && styles.unavailableImage]}
+// />
+
+// <View style={styles.itemHeader}>
+//   <Text style={styles.itemName}>{item.item_name}</Text>
+//   <View style={styles.itemIcon}>
+//     <HeaderPick2 color={item.filter_one === "Veg" ? "#0EAF50" : "#CD2A2A"} />
+//   </View>
+// </View>
+// {/* 
+// <View style={styles.itemRatingContainer}>
+//   <Icon name="star" size={17} color="#D0A50F" />
+//   <Text style={styles.itemRating}>4.7</Text>
+//   <Text style={styles.itemReviewCount}>(12)</Text>
+// </View> */}
+
+// <View style={styles.itemFooter}>
+//   <View>
+//     <View style={{ flexDirection: 'row', justifyContent: "flex-start" }}>
+//       {item.actual_price !== item.selling_price && (
+//         <Text style={[styles.price, { textDecorationLine: 'line-through', color: '#888', fontSize: 10, textAlign: "left" }]}>₹{item.actual_price}</Text>
+//       )}
+//     </View>
+
+//     <Text style={styles.price}>₹{item.selling_price}</Text>
+//   </View>
+//   {cartItems.findIndex(value => value.id === item.id) !== -1 ? (
+//     <View style={styles.counterContainer}>
+//       <TouchableOpacity onPress={() => decreaseItem(item)}>
+//         <AntDesign name="minus" size={18} color={commonStyles.btn2Color} />
+//       </TouchableOpacity>
+//       <Text style={styles.counterText}>{cartItems.find(value => value.id === item.id).quantity}</Text>
+//       <TouchableOpacity onPress={() => handleAddToCart(item)}>
+//         <AntDesign name="plus" size={18} color={commonStyles.btn2Color} />
+//       </TouchableOpacity>
+//     </View>
+//   ) : (
+//     <TouchableOpacity
+//       style={styles.addButton}
+//       onPress={() => {
+//         handleAddToCart(item);
+//       }}
+//     >
+//       <Text style={styles.addButtonText}>ADD</Text>
+//     </TouchableOpacity>
+//   )}
+// </View>
+// </View>
+
 
 // <FlatList
 //     data={[
@@ -1196,45 +1309,45 @@ export default RestaurantScreen;
 
 
 
-  // const renderFilters = () => (
-  //   <FlatList
-  //     data={allFilters}
-  //     horizontal
-  //     showsHorizontalScrollIndicator={false}
-  //     keyExtractor={item => item.id}
-  //     contentContainerStyle={styles.filterList}
-  //     renderItem={({ item }) => {
-  //       // const isActive = item.type === 'subcategory'
-  //       //   ? item.filter_name === activeSubCategoryFilter
-  //       //   : activeFilters.includes(item.filter_name);
-  //       const isActive = item.type === 'subcategory'
-  //         ? item.filter_name === activeSubCategoryFilter
-  //         : activeFilters.includes(item.filter_name);
-  //       return (
-  //         <TouchableOpacity
-  //           onPress={() => handleFilter(item)}
-  //           style={[
-  //             styles.filterButton,
-  //             {
-  //               borderColor: isActive ? "#0EAF50" : '#8F8F8F',
-  //               backgroundColor: isActive ? "#0EAF50" : '#fff',
-  //             }
-  //           ]}
-  //         >
-  //           {(item.type !== 'subcategory') && (
-  //             item.id !== "all" && <HeaderPick2 color={
-  //               item.filter_name === "Veg" ? (isActive ? "#fff" : "#0EAF50") :
-  //                 item.filter_name === "Non Veg" ? "#CD2A2A" : "#065E2C"
-  //             } />
-  //           )}
-  //           <Text style={[styles.filterText, { color: isActive ? "#fff" : '#313131' }]}>
-  //             {item.filter_name}
-  //           </Text>
-  //         </TouchableOpacity>
-  //       );
-  //     }}
-  //   />
-  // );
+// const renderFilters = () => (
+//   <FlatList
+//     data={allFilters}
+//     horizontal
+//     showsHorizontalScrollIndicator={false}
+//     keyExtractor={item => item.id}
+//     contentContainerStyle={styles.filterList}
+//     renderItem={({ item }) => {
+//       // const isActive = item.type === 'subcategory'
+//       //   ? item.filter_name === activeSubCategoryFilter
+//       //   : activeFilters.includes(item.filter_name);
+//       const isActive = item.type === 'subcategory'
+//         ? item.filter_name === activeSubCategoryFilter
+//         : activeFilters.includes(item.filter_name);
+//       return (
+//         <TouchableOpacity
+//           onPress={() => handleFilter(item)}
+//           style={[
+//             styles.filterButton,
+//             {
+//               borderColor: isActive ? "#0EAF50" : '#8F8F8F',
+//               backgroundColor: isActive ? "#0EAF50" : '#fff',
+//             }
+//           ]}
+//         >
+//           {(item.type !== 'subcategory') && (
+//             item.id !== "all" && <HeaderPick2 color={
+//               item.filter_name === "Veg" ? (isActive ? "#fff" : "#0EAF50") :
+//                 item.filter_name === "Non Veg" ? "#CD2A2A" : "#065E2C"
+//             } />
+//           )}
+//           <Text style={[styles.filterText, { color: isActive ? "#fff" : '#313131' }]}>
+//             {item.filter_name}
+//           </Text>
+//         </TouchableOpacity>
+//       );
+//     }}
+//   />
+// );
 
 
 

@@ -113,13 +113,13 @@ const AuthNavigation = () => {
       />
 
       {/* food trial */}
-      <Stack.Screen name="SetLocationScreen" component={SetLocationScreen} />
+      {/* <Stack.Screen name="SetLocationScreen" component={SetLocationScreen} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name='CategoriesScreen' component={CategoriesScreen} />
       <Stack.Screen name='RestaurantsScreen' component={RestaurantsScreen} />
 
       <Stack.Screen name='OnboardingScreen2' component={OnboardingScreen2} />
-      <Stack.Screen name='OnboardingScreen3' component={OnboardingScreen3} />
+      <Stack.Screen name='OnboardingScreen3' component={OnboardingScreen3} /> */}
 
 
     </Stack.Navigator>

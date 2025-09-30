@@ -15,8 +15,8 @@ const initialState = {
   locationName: null,
   locationId: null,
   shouldNavigate: false,
-  reaturantDetails: null,
   orderOfferAmount: 0,
+  reaturantDetails: null,
 };
 
 export const verifyMobile = createAsyncThunk(
@@ -176,12 +176,13 @@ export const AuthSlice = createSlice({
       
       state.locationId = action.payload;
     },
-    clearNavigationFlag: state => {
-      state.shouldNavigate = false;
-    },
     setRestaurnatDetails: (state, action) => {
       state.reaturantDetails = action.payload;
     },
+    clearNavigationFlag: state => {
+      state.shouldNavigate = false;
+    },
+   
     setOrderOfferAmount: (state, action) => {
       state.orderOfferAmount = action.payload;
     },

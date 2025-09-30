@@ -24,7 +24,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import HeaderPick2 from './tabassets/HeaderPick2';
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
 // import { getOrderDetails } from '../../redux/reducers/addressSlice';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { getOrderDetails, getOrders } from '../../redux/reducers/daddy';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import CustomModal from '../../components/CustomModal';
@@ -33,6 +33,9 @@ import { getMessaging } from '@react-native-firebase/messaging';
 import commonStyles from '../../commonstyles/CommonStyles';
 import { colors } from '../../config/theme';
 import StatusBarManager from '../../components/StatusBarManager';
+import FontAwesome from "react-native-vector-icons/FontAwesome";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getChargesList } from '../../redux/reducers/addressSlice';
 
 const OrderDetailsScreen = ({ navigation, route }) => {
   // const { orderDetails } = route.params;
@@ -47,6 +50,13 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showReviewDetails, setShowReviewDetails] = useState(false);
   const [cancelSuccess, setCancelSuccess] = useState(false)
+  const { chargesList, selectedAddress } = useSelector(
+    state => state.address,
+  );
+
+
+
+  const insets = useSafeAreaInsets();
 
   const getOrderData = async () => {
     const response = await dispatch(
@@ -56,7 +66,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       setOrderDetails(response.payload.data[0]);
     }
   };
-  console.log("order details", orderDetails)
+  // console.log("order details", orderDetails)
   const fetchOrderItems = async () => {
     if (!orderDetails?.id) return;
     const response = await dispatch(
@@ -66,6 +76,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       setSubOrderData(response.payload.data);
     }
   };
+
+  useEffect(() => {
+    dispatch(getChargesList());
+  }, []);
 
   useEffect(() => {
     getOrderData();
@@ -138,13 +152,14 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       phone: orderDetails?.shop_phone_number, // Use shop phone number for contact
     },
     billing: {
-      amount: orderDetails?.grand_total, // Updated total amount
+      amount: orderDetails?.actual_total_amount, // Updated total amount
       savings: orderDetails?.total_saving_amount, // Updated savings
       couponDiscount: orderDetails?.coupon_amount, // Updated coupon discount
       couponCode: '', // You can update this if needed
       subtotal: orderDetails?.grand_total - orderDetails?.delivery_charges || 0, // Calculate subtotal if needed
       gst: 0, // You can update this if needed
       deliveryCharge: orderDetails?.delivery_charges, // Updated delivery charge
+      handlingCharge: orderDetails?.handling_charges, // Updated handling charge
       total: orderDetails?.grand_total, // Updated grand total
     },
     tracking: {
@@ -276,7 +291,8 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     });
   }, []);
 
-
+  // Define allowed tracking statuses
+  const TRACKING_STATUSES = [0, 1, 2, 8, 3];
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -311,48 +327,6 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }>
-          {/* Map View */}
-          {/* <View style={styles.mapContainer}>
-          <MapView
-            provider={PROVIDER_GOOGLE}
-            style={styles.map}
-            initialRegion={{
-              latitude: orderData.tracking.restaurant.latitude,
-              longitude: orderData.tracking.restaurant.longitude,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-          >
-            <Marker
-              coordinate={orderData.tracking.restaurant}
-              title="Restaurant"
-            >
-              <MaterialIcons name="restaurant" size={30} color="#065E2C" />
-            </Marker>
-            <Marker
-              coordinate={orderData.tracking.delivery}
-              title="Delivery Location"
-            >
-              <MaterialIcons name="location-on" size={30} color="#065E2C" />
-            </Marker>
-            <Marker
-              coordinate={orderData.tracking.current}
-              title="Delivery Agent"
-            >
-              <MaterialIcons name="delivery-dining" size={30} color="#065E2C" />
-            </Marker>
-            <Polyline
-              coordinates={[
-                orderData.tracking.restaurant,
-                orderData.tracking.current,
-                orderData.tracking.delivery,
-              ]}
-              strokeColor="#065E2C"
-              strokeWidth={3}
-              lineDashPattern={[5, 5]}
-            />
-          </MapView>
-        </View> */}
 
           {/* Restaurant Info */}
           <View style={styles.restaurantInfo}>
@@ -376,49 +350,49 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             </TouchableOpacity> */}
           </View>
 
-          {/* Order Status */}
           <View
             style={[
               styles.statusContainer,
               orderDetails?.order_status === 4 && styles.cancelledStatus,
               orderDetails?.order_status === 5 && styles.rejectedStatus,
-            ]}>
+            ]}
+          >
             <View style={styles.statusHeader}>
               <Text style={styles.statusText}>{orderData.status}</Text>
-              {/* <View style={styles.estimatedTime}>
-                <Text style={styles.estimatedTimeValue}>
-                  {orderDetails?.customer_otp}
-                </Text>
-                <Text style={styles.estimatedTimeLabel}>ESTIMATED{'\n'}DELIVERY TIME</Text>
-              </View> */}
-              <TouchableOpacity
-                onPress={() => {
-                  if (orderDetails?.order_status !== undefined && orderDetails?.order_status !== null) {
-                    navigation.navigate('OrderTracking', { orderDetails: orderDetails });
-                  } else {
-                    // Optional: Handle if order_status is not available
-                    console.warn('Order status not available');
-                  }
-                }}
-                style={styles.callButton}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                  <Text style={{ color: "#000", fontSize: 16, fontWeight: "600" }}>Track Order</Text>
-                  <MaterialIcons name="delivery-dining" size={23} color="#fff" style={styles.callIcon} />
-                </View>
-              </TouchableOpacity>
+
+              {/* Show Track Order button only if status is in tracking statuses */}
+              {TRACKING_STATUSES.includes(orderDetails?.order_status) && (
+                <TouchableOpacity
+                  onPress={() => {
+                    navigation.navigate('OrderTracking', { orderDetails });
+                  }}
+                  style={styles.callButton}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <Text style={{ color: "#000", fontSize: 16, fontWeight: "600" }}>
+                      Track Order
+                    </Text>
+                    <MaterialIcons
+                      name="delivery-dining"
+                      size={23}
+                      color="#fff"
+                      style={styles.callIcon}
+                    />
+                  </View>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
           {orderDetails?.customer_otp && (
-  <View style={styles.otpSection}>
-    <Text style={styles.sectionTitle}>Delivery OTP</Text>
-    <View style={styles.otpBox}>
-      <Text style={styles.otpValue}>{orderDetails.customer_otp}</Text>
-      <Text style={styles.otpHint}>Share this OTP with the delivery agent</Text>
-    </View>
-  </View>
-)}
+            <View style={styles.otpSection}>
+              <Text style={styles.sectionTitle}>Delivery OTP</Text>
+              <View style={styles.otpBox}>
+                <Text style={styles.otpValue}>{orderDetails.customer_otp}</Text>
+                <Text style={styles.otpHint}>Share this OTP with the delivery agent</Text>
+              </View>
+            </View>
+          )}
 
 
           {/* Delivery Agent */}
@@ -522,7 +496,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               <View style={styles.billRow}>
                 <Text style={styles.billLabel}>Total</Text>
                 <Text style={styles.savingsValue}>
-                  ₹{orderData.billing.total}
+                  ₹{orderData.billing.amount}
                 </Text>
               </View>
               <View style={styles.dottedLineContainer}>
@@ -538,7 +512,19 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   ₹{orderData.billing.deliveryCharge}
                 </Text>
               </View>
-              {/* <Text style={styles.gstNote}>(GST Included)</Text> */}
+
+              {orderData.billing.handlingCharge > 0 && (
+                <>
+                  <View>Handling charges</View>
+                  <View style={styles.billRow}>
+                    <Text style={styles.billLabel}>Handling charges</Text>
+                    <Text style={styles.billValue}>
+                      ₹{orderData.billing.handlingCharge}
+                    </Text>
+                  </View>
+                </>
+              )}
+
               <View style={styles.dottedLineContainer}>
                 {Array(20)
                   .fill(0)
@@ -664,6 +650,21 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           showCancel={false}
         />
       </View>
+      {/* WhatsApp Floating Button */}
+      <TouchableOpacity
+        style={[styles.whatsappButton, { bottom: (Platform.OS === 'ios' ? 20 : 20) + insets.bottom }]}
+        onPress={() => {
+          let phoneNumber = "+91" + chargesList[0].contact_number; // fallback number
+          let message = `Hello, I have a query regarding my order #${orderDetails?.order_id}`;
+          let url = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+          Linking.openURL(url).catch(() => {
+            Alert.alert("Make sure WhatsApp is installed on your device");
+          });
+        }}
+      >
+        <FontAwesome name="whatsapp" size={32} color="#fff" />
+      </TouchableOpacity>
+
     </SafeAreaView>
   );
 };
@@ -672,6 +673,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+  },
+  whatsappButton: {
+    position: "absolute",
+
+    right: 20,
+    backgroundColor: "#25D366",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 5,
   },
   header: {
     backgroundColor: commonStyles.btn2Color,
@@ -774,33 +791,33 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E0E0E0',
   },
   otpSection: {
-  padding: responsiveWidth(5),
-  backgroundColor: '#fff',
-  borderBottomWidth: 1,
-  borderBottomColor: '#E0E0E0',
-},
-otpBox: {
-  marginTop: responsiveHeight(1),
-  padding: responsiveWidth(2),
-  borderWidth: 1,
-  borderColor: commonStyles.btn2Color,
-  borderRadius: 10,
-  backgroundColor: '#F9F9F9',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-otpValue: {
-  fontSize: 24,
-  fontWeight: '700',
-  color: commonStyles.btn2Color,
-  letterSpacing: 5,
-  marginBottom: 8,
-},
-otpHint: {
-  fontSize: 10,
-  color: '#666',
-  textAlign: 'center',
-},
+    padding: responsiveWidth(5),
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  otpBox: {
+    marginTop: responsiveHeight(1),
+    padding: responsiveWidth(2),
+    borderWidth: 1,
+    borderColor: commonStyles.btn2Color,
+    borderRadius: 10,
+    backgroundColor: '#F9F9F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: commonStyles.btn2Color,
+    letterSpacing: 5,
+    marginBottom: 8,
+  },
+  otpHint: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+  },
 
   agentHeader: {
     flexDirection: 'row',

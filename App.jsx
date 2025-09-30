@@ -5,7 +5,7 @@ import { store } from './src/redux/store';
 import AppNavigation from './src/navigation/AppNavigation';
 import SplashScreen from 'react-native-splash-screen';
 import { getFCMToken } from './src/services/NotificationsService';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Linking } from 'react-native';
 import { checkNotifications, requestNotifications, RESULTS } from 'react-native-permissions';
 import VersionCheck from 'react-native-version-check'; 
 import CustomModal from './src/components/CustomModal';
@@ -87,7 +87,16 @@ const App = () => {
 
   const handleUpdate = async () => {
     try {
-      console.log("Open playstore");
+      console.log("Opening Play Store");
+      const playStoreUrl = 'market://details?id=com.melocal';
+      const fallbackUrl = 'https://play.google.com/store/apps/details?id=com.melocal';
+      
+      const supported = await Linking.canOpenURL(playStoreUrl);
+      if (supported) {
+        await Linking.openURL(playStoreUrl);
+      } else {
+        await Linking.openURL(fallbackUrl);
+      }
     } catch (error) {
       console.log("Play Store link error:", error);
     } finally {

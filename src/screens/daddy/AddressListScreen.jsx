@@ -41,7 +41,8 @@ const AddressListScreen = ({ navigation, route }) => {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [toggleValue, setToggleValue] = useState(false)
   const [refreshing, setRefreshing] = useState(false);
-  const { customerId, token, reaturantDetails, locationId } = useSelector(state => state.Auth);
+  const { customerId, token,locationId,reaturantDetails } = useSelector(state => state.Auth);
+
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [isCheckingAddress, setIsCheckingAddress] = useState(false);
@@ -49,7 +50,8 @@ const AddressListScreen = ({ navigation, route }) => {
   // Check if the user is coming from the cart screen
   const isFromCart = route.params?.isFromCart;
 
-
+  console.log(reaturantDetails
+    , "reaturantDetails in addresess list")
 
   const handleSelectAddress = async (address) => {
     try {
@@ -58,8 +60,8 @@ const AddressListScreen = ({ navigation, route }) => {
       const value = haversineDistance(
         address?.customer_latitude,
         address?.customer_longitude,
-        reaturantDetails.shop_latitude,
-        reaturantDetails.shop_longitude,
+        reaturantDetails?.shop_latitude,
+        reaturantDetails?.shop_longitude,
       );
 
       const response = await dispatch(checkAddressExistence({
@@ -75,7 +77,7 @@ const AddressListScreen = ({ navigation, route }) => {
         return;
       }
 
-      if (response.payload?.data?.length > 0 && Number(value) <= Number(reaturantDetails.maximum_del_km)) {
+      if (response.payload?.data?.length > 0 && Number(value) <= Number(reaturantDetails?.maximum_del_km)) {
         dispatch(setSelectedAddressAction(address));
         if (isFromCart) {
           navigation.navigate('Checkout');

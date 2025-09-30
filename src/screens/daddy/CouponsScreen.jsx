@@ -29,6 +29,16 @@ const CouponsScreen = ({ navigation, route }) => {
   const {coupons} = useSelector(state=>state.coupons)
   const dispatch = useDispatch();
 
+  
+  const { chargesList, selectedAddress ,} = useSelector(
+    state => state.address,
+  );
+  const { reaturantDetails} = useSelector(
+    state => state.Auth,
+  );
+  console.log("hieeeegggggggggggggg",reaturantDetails)
+
+
   const handleApplyCoupon = (coupon) => {
     if (totalPrice >= coupon.coupon_upto_price) {
       setSelectedCoupon(coupon);
@@ -55,13 +65,13 @@ const CouponsScreen = ({ navigation, route }) => {
   const handleRemoveCoupon = () => {
     if (selectedCoupon) {
       dispatch(removeCoupon(selectedCoupon.id)); // Dispatch action to remove the coupon
-      setSelectedCoupon(null); // Clear the selected coupon
+      setSelectedCoupon(null); // Clear the selected
       Alert.alert("Coupon Removed", "The coupon has been successfully removed.");
     }
   };
 
   useEffect(()=>{
-    dispatch(fetchCoupons())
+    dispatch(fetchCoupons({shop_id:reaturantDetails.shop_id,location_id:selectedAddress.location_id,category_id:reaturantDetails.category_id    }))
   },[])
 
 
