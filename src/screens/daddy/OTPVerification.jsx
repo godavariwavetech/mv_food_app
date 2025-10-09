@@ -155,7 +155,7 @@ export default function OTPVerification({ navigation, route }) {
       //       })
       //     ).unwrap();
 
-   
+
 
       //     if (serviceResult?.data) {
       //       dispatch(actionLogin());
@@ -176,7 +176,7 @@ export default function OTPVerification({ navigation, route }) {
         // First verify OTP, then check location
 
         const response = await dispatch(addCustomer({ mobileNumber: route.params?.phoneNumber, otp: enteredOtp }))
-     
+
         route.params?.isFromCart ? navigation.pop(2) : dispatch(actionLogin())
 
         return
@@ -223,7 +223,7 @@ export default function OTPVerification({ navigation, route }) {
         setError('Please enter valid OTP');
       }
     } catch (err) {
-    
+
       setError('Something went wrong. Please try again.');
     } finally {
       setLoader(false);
@@ -274,16 +274,13 @@ export default function OTPVerification({ navigation, route }) {
   };
 
   return (
-    <Pressable onPress={() => Keyboard.dismiss()} style={{ flex: 1, backgroundColor: '#E7432D' }}>
-
-      {/* Top Red Section */}
-      <View style={styles.topSection} />
-      {/* Absolutely positioned logo */}
-      <View style={styles.logoCircle}>
+    <Pressable onPress={() => Keyboard.dismiss()} style={{ flex: 1, backgroundColor: '#fff' }}>
+      {/* ==== Green Wave Header Image ==== */}
+      <View style={styles.topSection} >
         <Image
-          source={require('./tabassets/chillbroLogo.png')}
-          style={styles.logoImage}
-          resizeMode="contain"
+          source={require('./tabassets/greenWaveDesign.png')} // 👈 replace with your actual image path
+          style={styles.headerImage}
+          resizeMode="cover"
         />
       </View>
       {/* White Card Section */}
@@ -309,10 +306,10 @@ export default function OTPVerification({ navigation, route }) {
           ))}
         </View>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <View style={{ marginTop: responsiveHeight(5) }}>
+        <View style={{ height: 70, marginTop: responsiveHeight(3) }}>
           {timer !== 0 && <Text style={{ color: "#3D3D3D", fontSize: 18, fontWeight: "700", textAlign: "center" }}>Resend OTP in {timer}s </Text>}
           <TouchableOpacity disabled={timer != 0} onPress={resendOtpHandler}>
-            <Text style={{ fontSize: 14, color: timer == 0 ? '#FE4A31' : "#8F8F8F", fontWeight: "700", textAlign: "center", marginTop: responsiveHeight(1) }}>Resend OTP</Text>
+            <Text style={{ fontSize: 14, color: timer == 0 ? '#08B341' : "#8F8F8F", fontWeight: "700", textAlign: "center", marginTop: responsiveHeight(1) }}>Resend OTP</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={handleVerifyOtp} style={styles.loginButton}>
@@ -329,57 +326,45 @@ export default function OTPVerification({ navigation, route }) {
 
 const styles = StyleSheet.create({
   topSection: {
-    backgroundColor: '#E7432D',
     height: responsiveHeight(5),
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
   },
-  logoCircle: {
-    position: 'absolute',
-    top: responsiveHeight(7),
-    alignSelf: 'center',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 0,
-    zIndex: 10,
-  },
-  logoImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 75,
-  },
+  // logoCircle: {
+  //   position: 'absolute',
+  //   top: responsiveHeight(7),
+  //   alignSelf: 'center',
+  //   width: 150,
+  //   height: 150,
+  //   borderRadius: 75,
+  //   backgroundColor: 'transparent',
+  //   alignItems: 'center',
+  //   justifyContent: 'center',
+  //   borderWidth: 0,
+  //   zIndex: 10,
+  // },
+  // logoImage: {
+  //   width: '100%',
+  //   height: '100%',
+  //   borderRadius: 75,
+  // },
   cardSection: {
     flex: 1,
-    backgroundColor: '#fff',
-    marginTop: responsiveHeight(14),
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: responsiveWidth(7),
-    paddingTop: responsiveHeight(8),
-    paddingBottom: responsiveHeight(2),
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    paddingHorizontal: responsiveWidth(5),
+    paddingTop: responsiveHeight(20),
   },
   signInTitle: {
     fontSize: 28,
+    fontFamily: 'Rubik-Black',
     fontWeight: '700',
-    color: '#222',
+    color: '#000',
     marginBottom: 8,
-    textAlign: 'left',
+    // textAlign: 'left',
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#3D3D3D',
     marginBottom: 18,
-    textAlign: 'left',
-    fontWeight: '400',
+    // textAlign: 'left',
+    fontWeight: '500',
   },
   main: {
     flex: 1,
@@ -445,11 +430,11 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   loginButton: {
-    backgroundColor: '#E7432D',
+    backgroundColor: '#08B341',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: responsiveHeight(5),
+    marginTop: responsiveHeight(1),
   },
   loginText: {
     color: 'white',
@@ -491,7 +476,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     // alignSelf:"center",
     // marginVertical: 16,
-    marginTop: responsiveHeight(5),
+    marginTop: responsiveHeight(10),
     gap: 16,
   },
   otpBox: {

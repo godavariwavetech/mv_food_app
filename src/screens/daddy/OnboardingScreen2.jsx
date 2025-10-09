@@ -10,7 +10,7 @@ import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimen
 import OnboardingLogo1 from './tabassets/OnboardingLogo1';
 import OnboardingLogo2 from './tabassets/OnboardingLogo2';
 import { TextInput } from 'react-native-gesture-handler';
- 
+
 const OnboardingScreen2 = () => {
   const navigation = useNavigation();
   const [phone, setPhone] = useState('');
@@ -18,7 +18,7 @@ const OnboardingScreen2 = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* <StatusBar barStyle="dark-content" backgroundColor={commonStyles.bgColor} /> */}
-     
+
       <View style={styles.imgContainer}>
         <OnboardingLogo2 />
       </View>

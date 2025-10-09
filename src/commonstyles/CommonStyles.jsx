@@ -1,15 +1,15 @@
-import {StyleSheet} from 'react-native';
+import { StyleSheet } from 'react-native';
 
 const commonStyles = StyleSheet.create({
   //COLORS
- 
-  bgColor: '#FFFDF4',
-  mainColor:'#FFBF2D',
-  btnColor:'#857300',
-  btn2Color:'#E7432D',
-  yellowColor:'#FD0',
 
-  arrowBtnColor:'#FE4A31',
+  bgColor: '#FFFDF4',
+  mainColor: '#FFBF2D',
+  btnColor: '#857300',
+  btn2Color: '#08B341',
+  yellowColor: '#FD0',
+
+  arrowBtnColor: '#FE4A31',
 
   container: {
     padding: 16,
@@ -28,22 +28,22 @@ const commonStyles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'space-around',
   },
-  mb4: {marginBottom: 4},
-  mb8: {marginBottom: 8},
-  mb12: {marginBottom: 12},
-  mb16: {marginBottom: 16},
-  mb20: {marginBottom: 20},
-  mb24: {marginBottom: 24},
-  mb32:{marginBottom:32},
+  mb4: { marginBottom: 4 },
+  mb8: { marginBottom: 8 },
+  mb12: { marginBottom: 12 },
+  mb16: { marginBottom: 16 },
+  mb20: { marginBottom: 20 },
+  mb24: { marginBottom: 24 },
+  mb32: { marginBottom: 32 },
 
-  mt4: {marginTop: 4},
-  mt8: {marginTop: 8},
-  mt12: {marginTop: 12},
-  mt16: {marginTop: 16},
-  mt20: {marginTop: 20},
-  mt24: {marginTop: 24},
-  mt32: {marginTop: 32},
-  mt40: {marginTop: 40},
+  mt4: { marginTop: 4 },
+  mt8: { marginTop: 8 },
+  mt12: { marginTop: 12 },
+  mt16: { marginTop: 16 },
+  mt20: { marginTop: 20 },
+  mt24: { marginTop: 24 },
+  mt32: { marginTop: 32 },
+  mt40: { marginTop: 40 },
 
   hr: {
     borderWidth: 1,
@@ -53,14 +53,14 @@ const commonStyles = StyleSheet.create({
   },
   //headings and texts
 
-  title:{
-    fontSize:20,
-    fontWeight:'700',
-    color:'#2B2B2B',
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2B2B2B',
   },
 
   heading: {
-  
+
   },
   heading2: {
     fontSize: 20,
@@ -76,31 +76,31 @@ const commonStyles = StyleSheet.create({
 
   },
   text2: {
- 
+
   },
   text3: {
-    fontSize:14,
-    fontWeight:'400',
-    color:'#000',
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#000',
   },
   text4: {
-    fontSize:13,
-    fontWeight:'400',
-    color:'#000',
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#000',
   },
   text5: {
-    fontSize:12,
-    fontWeight:'400',
-    color:'#000',
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#000',
   },
-  
-  
-    //Buttons
 
-    center:{
-      flexDirection:'row',
-      justifyContent:'center',
-      alignItems:'center'
-    },
-})    
+
+  //Buttons
+
+  center: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+})
 export default commonStyles;

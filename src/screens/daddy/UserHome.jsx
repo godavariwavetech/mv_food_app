@@ -48,10 +48,12 @@ import Permissions, { PERMISSIONS, RESULTS, check, request } from 'react-native-
 import SimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons';
 import StarIcon from './svg/StarIcon';
 import commonStyles from '../../commonstyles/CommonStyles';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 import { colors } from '../../config/theme';
 import { indiviadualShop } from '../../redux/reducers/addressSlice';
 import StatusBarManager from '../../components/StatusBarManager';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import SearchIcon from 'react-native-vector-icons/Ionicons';
 
 const screenWidth = Dimensions.get('window').width;
 const itemWidth = screenWidth / 6; // since you use numColumns={5}
@@ -77,6 +79,7 @@ export default function UserHome({ navigation }) {
   const networkStatusRef = useRef(isNetworkConnected);
   const numColumns = 6; // or 2, or based on your condition
   const insets = useSafeAreaInsets();
+  const [search, setSearch] = useState('');
 
 
 
@@ -407,7 +410,7 @@ export default function UserHome({ navigation }) {
   );
 
   return (
-    <View style={[styles.mainContainer, { paddingTop: insets.top }]}>
+    <LinearGradient colors={['#08B341', '#08B341', '#8AD9A4', '#8AD9A4', '#8AD9A4', '#fff']} style={[styles.mainContainer, { paddingTop: insets.top }]}>
       <StatusBar backgroundColor={"transparent"} translucent barStyle={'dark-content'} />
       <View style={styles.container}>
         {isNetworkConnected === null ? (
@@ -434,32 +437,52 @@ export default function UserHome({ navigation }) {
           <Skeleton />
         ) : serviceAvailable ? (
           <>
-            <LinearGradient colors={['#fff', '#fff']} style={styles.gradientContainer}>
+            <View style={styles.addressBlock}>
               <View style={styles.headerContainer}>
-                <View>
+                <View style={styles.addressTextContainer}>
                   <TouchableOpacity
                     onPress={() => navigation.navigate("SelectServiceFromLocation", { selectedAddress })}
                     style={styles.locationContainer}
                   >
-                    <SimpleLineIcons name="location-pin" color="#000" size={22} />
+                    <SimpleLineIcons name="location-pin" color="#fff" size={22} />
                     <View>
                       <Text style={styles.locationTitle}>
                         {locationName ? (locationName || 'Current Location') : 'Select Location'}
                       </Text>
-                      <Text style={styles.locationAddress} numberOfLines={1}>
+                      {/* <Text style={styles.locationAddress} numberOfLines={1}>
                         {selectedAddress?.full_address || 'Tap to choose delivery location'}
-                      </Text>
+                      </Text> */}
                     </View>
+                    <AntDesign
+                      name="down"
+                      size={18}
+                      color="#fff"
+                    // style={styles.searchIcon}
+                    />
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Notifications')}
                   style={styles.supportButton}
                 >
-                  <FontAwesome6 name="bell" size={20} color={colors.black} />
+                  <FontAwesome6 name="bell" size={20} color='#fff' />
                 </TouchableOpacity>
               </View>
-            </LinearGradient>
+            </View>
+            <View style={styles.searchBar}>
+              <SearchIcon name="search" size={20} color="#888" style={{ marginHorizontal: 8 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search"
+                value={search}
+                onChangeText={setSearch}
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <Icon name="close-circle" size={20} color="#888" style={{ marginHorizontal: 8 }} />
+                </TouchableOpacity>
+              )}
+            </View>
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 40 }}
@@ -489,147 +512,149 @@ export default function UserHome({ navigation }) {
                   </TouchableOpacity>
                 )}
               />
-              <View style={styles.categoryHeaderContainer}>
-                <Text style={styles.categoryHeaderTitle}>Category</Text>
-                <View style={styles.categoryHeaderLine} />
-              </View>
-              {categories && (
-                <FlatList
-                  showsHorizontalScrollIndicator={false}
-                  data={categories}
-                  style={styles.categoriesList}
-                  horizontal
-                  contentContainerStyle={[
-                    { paddingTop: 5, paddingHorizontal: 10, gap: 10 },
-                    categories.length <= 3 && { justifyContent: "space-around", flexGrow: 1 } // ✅ center if <= 3
-                  ]}
-                  keyExtractor={item => item.id.toString()}
-                  renderItem={({ item }) => {
-                    return item.id == activeCategoryIndex ? (
-                      <TouchableOpacity
-                        style={[styles.activeItemTab,]}
-                        onPress={() => handleSubCategories(item)}>
-                        <Image
-                          source={{ uri: item.category_image }}
-                          resizeMode="contain"
-                          style={[styles.categoryImage,
-                          { backgroundColor: "#fff7ec", borderColor: "#F38D33" }]}
-                        />
-                        <Text numberOfLines={1} style={styles.activeCategoryText}>
-                          {item.category_name}
-                        </Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity style={styles.activeItemTab} onPress={() => handleSubCategories(item)}>
-                        <Image
-                          source={{ uri: item.category_image }}
-                          resizeMode="contain"
-                          style={[styles.categoryImage, { borderColor: item.id == activeCategoryIndex ? "#F38D33" : '#ddd' }]}
-                        />
-                        <Text numberOfLines={1} style={styles.inactiveCategoryText}>
-                          {item.category_name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  }}
-                />
-              )}
+              <ScrollView style={styles.cardsContainer}>
+                <View style={styles.categoryHeaderContainer}>
+                  <Text style={styles.categoryHeaderTitle}>Category</Text>
+                  <View style={styles.categoryHeaderLine} />
+                </View>
+                {categories && (
+                  <FlatList
+                    showsHorizontalScrollIndicator={false}
+                    data={categories}
+                    style={styles.categoriesList}
+                    horizontal
+                    contentContainerStyle={[
+                      { paddingTop: 5, paddingHorizontal: 10, gap: 10 },
+                      categories.length <= 3 && { justifyContent: "space-around", flexGrow: 1 } // ✅ center if <= 3
+                    ]}
+                    keyExtractor={item => item.id.toString()}
+                    renderItem={({ item }) => {
+                      return item.id == activeCategoryIndex ? (
+                        <TouchableOpacity
+                          style={[styles.activeItemTab,]}
+                          onPress={() => handleSubCategories(item)}>
+                          <Image
+                            source={{ uri: item.category_image }}
+                            resizeMode="contain"
+                            style={[styles.categoryImage,
+                            { backgroundColor: "#fff7ec", borderColor: "#F38D33" }]}
+                          />
+                          <Text numberOfLines={1} style={styles.activeCategoryText}>
+                            {item.category_name}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity style={styles.activeItemTab} onPress={() => handleSubCategories(item)}>
+                          <Image
+                            source={{ uri: item.category_image }}
+                            resizeMode="contain"
+                            style={[styles.categoryImage, { borderColor: item.id == activeCategoryIndex ? "#F38D33" : '#ddd' }]}
+                          />
+                          <Text numberOfLines={1} style={styles.inactiveCategoryText}>
+                            {item.category_name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    }}
+                  />
+                )}
 
-              <View style={styles.customContainer}>
-                <FlatList
-                  data={subCategories}
-                  key={6}
-                  numColumns={6}
-                  keyExtractor={(item) => item.id.toString()}
-                  renderItem={renderItem}
-                  scrollEnabled={true}
-                />
-              </View>
+                <View style={styles.customContainer}>
+                  <FlatList
+                    data={subCategories}
+                    key={6}
+                    numColumns={6}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderItem}
+                    scrollEnabled={true}
+                  />
+                </View>
 
-              {/* Popular Restaurants */}
-              <View style={[commonStyles.row, { paddingHorizontal: 16, marginTop: 3 }]}>
-                <Text style={{ fontSize: 18, fontWeight: '600', color: '#2B2B2B' }}>Popular {activeCategoryIndex === 1 ? "Restaurants" : "Shops"} </Text>
-                {/* <TouchableOpacity onPress={()=>navigation.navigate('RestaurantsScreen')}>
+                {/* Popular Restaurants */}
+                <View style={[commonStyles.row, { paddingHorizontal: 16, marginTop: 3 }]}>
+                  <Text style={{ fontSize: 18, fontWeight: '600', color: '#2B2B2B' }}>Popular {activeCategoryIndex === 1 ? "Restaurants" : "Shops"} </Text>
+                  {/* <TouchableOpacity onPress={()=>navigation.navigate('RestaurantsScreen')}>
                 <Text style={styles.moreText}>More</Text>
               </TouchableOpacity> */}
-              </View>
-              <FlatList
-                data={popularRestaurants}
-                keyExtractor={item => item.id}
-                contentContainerStyle={{ padding: 10 }}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={() => <View style={{ alignItems: "center", justifyContent: "center", height: responsiveHeight(10), width: responsiveWidth(100) }}>
-                  <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No popular restaurants/Shops available</Text>
-                </View>}
-                renderItem={({ item }) => {
+                </View>
+                <FlatList
+                  data={popularRestaurants}
+                  keyExtractor={item => item.id}
+                  contentContainerStyle={{ padding: 10 }}
+                  showsVerticalScrollIndicator={false}
+                  ListEmptyComponent={() => <View style={{ alignItems: "center", justifyContent: "center", height: responsiveHeight(10), width: responsiveWidth(100) }}>
+                    <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No popular restaurants/Shops available</Text>
+                  </View>}
+                  renderItem={({ item }) => {
 
-                  const isUnavailable = item.shop_active_status === "1";
-                  const distance = item.distance;
-                  return (
-                    <TouchableOpacity
-                      style={[styles.restaurantCard, isUnavailable && styles.unavailableCard]}
-                      onPress={() => {
-                        if (!isUnavailable) {
-                          navigation.navigate('RestaurantScreen', {
-                            shopId: item.shop_id,
-                            shopItem: item.shop_items_tb_nm,
-                            item,
-                          });
-                        }
-                      }}
-                    >
-                      <View style={styles.restaurantContent}>
-                        {/* Left image */}
-                        <View style={styles.restaurantImageContainer}>
-                          <Image
-                            source={item?.shop_image ? { uri: item.shop_image } : ''}
-                            style={styles.restaurantImage}
-                          />
-                          {/* Heart icon */}
-                          {/* <View style={styles.heartIcon}>
+                    const isUnavailable = item.shop_active_status === "1";
+                    const distance = item.distance;
+                    return (
+                      <TouchableOpacity
+                        style={[styles.restaurantCard, isUnavailable && styles.unavailableCard]}
+                        onPress={() => {
+                          if (!isUnavailable) {
+                            navigation.navigate('RestaurantScreen', {
+                              shopId: item.shop_id,
+                              shopItem: item.shop_items_tb_nm,
+                              item,
+                            });
+                          }
+                        }}
+                      >
+                        <View style={styles.restaurantContent}>
+                          {/* Left image */}
+                          <View style={styles.restaurantImageContainer}>
+                            <Image
+                              source={item?.shop_image ? { uri: item.shop_image } : ''}
+                              style={styles.restaurantImage}
+                            />
+                            {/* Heart icon */}
+                            {/* <View style={styles.heartIcon}>
                         <MaterialIcons name="favorite" size={28} color="red" />
                         </View> */}
-                         
-                        </View>
-                         {isUnavailable && (
+
+                          </View>
+                          {isUnavailable && (
                             <View style={styles.unavailableOverlay}>
                               <Text style={[styles.unavailableText, { color: "red" }]}>Currently Unavailable</Text>
                             </View>
                           )}
 
-                        {/* Right text content */}
-                        <View style={styles.restaurantTextContainer}>
-                          <Text style={styles.restaurantName}>{item.shop_name}</Text>
-                          <View style={styles.ratingRow}>
-                            <StarIcon />
-                            <Text style={styles.ratingText}>{item.shop_rating}</Text>
-                            <Text style={styles.dot}>•</Text>
-                            {/* <Text style={styles.deliveryTime}>{calculateDeliveryTime(distance)}</Text> */}
-                            <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
-                              <Clock />
-                              <Text style={{ fontSize: 11, fontWeight: '400' }}>{calculateDeliveryTime(distance)}</Text>
+                          {/* Right text content */}
+                          <View style={styles.restaurantTextContainer}>
+                            <Text style={styles.restaurantName}>{item.shop_name}</Text>
+                            <View style={styles.ratingRow}>
+                              <StarIcon />
+                              <Text style={styles.ratingText}>{item.shop_rating}</Text>
+                              <Text style={styles.dot}>•</Text>
+                              {/* <Text style={styles.deliveryTime}>{calculateDeliveryTime(distance)}</Text> */}
+                              <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
+                                <Clock />
+                                <Text style={{ fontSize: 11, fontWeight: '400' }}>{calculateDeliveryTime(distance)}</Text>
+                              </View>
                             </View>
+                            {/* <Text numberOfLines={1} style={styles.cuisineText}>{item.cuisines || 'Fried Rice, Chinese, Italian'}</Text> */}
+                            <Text style={styles.addressText}>{item.shop_address || 'Tilak Road • 3.0 km'}</Text>
+
+                            {/* Optional Offer Tag */}
+                            {item.offer && (
+                              <View style={styles.offerTag}>
+                                <Text style={styles.offerText}>{item.offer}</Text>
+                              </View>
+                            )}
                           </View>
-                          {/* <Text numberOfLines={1} style={styles.cuisineText}>{item.cuisines || 'Fried Rice, Chinese, Italian'}</Text> */}
-                          <Text style={styles.addressText}>{item.shop_address || 'Tilak Road • 3.0 km'}</Text>
 
-                          {/* Optional Offer Tag */}
-                          {item.offer && (
-                            <View style={styles.offerTag}>
-                              <Text style={styles.offerText}>{item.offer}</Text>
-                            </View>
-                          )}
-                        </View>
-
-                        {/* More menu */}
-                        {/* <TouchableOpacity style={styles.menuButton}>
+                          {/* More menu */}
+                          {/* <TouchableOpacity style={styles.menuButton}>
                       <Icon name="more-vert" size={24} color="black" />
                       </TouchableOpacity> */}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+              </ScrollView>
             </ScrollView>
           </>
         ) : serviceAvailable === false ? (
@@ -650,7 +675,7 @@ export default function UserHome({ navigation }) {
             </View>
         }
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -660,16 +685,16 @@ export default function UserHome({ navigation }) {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#fff",
     paddingBottom: Platform.OS === 'ios' ? 85 : 60,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: 'transparent',
     // paddingBottom: 10,
   },
-  gradientContainer: {
+  addressBlock: {
     // paddingTop: 30
+    backgroundColor: 'transparent',
   },
   headerContainer: {
     flexDirection: 'row',
@@ -681,7 +706,8 @@ const styles = StyleSheet.create({
   categoryHeaderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
   },
   categoryHeaderTitle: {
     fontSize: 18,
@@ -699,9 +725,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   locationTitle: {
-    color: '#000',
+    color: '#fff',
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   locationAddress: {
     color: '#000',
@@ -1067,7 +1093,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     position: 'relative',
     textAlign: "center",
-   
+
   },
 
   restaurantImageContainer: {
@@ -1185,9 +1211,31 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: 'center',
     color: '#000'
-  }
-
-
+  },
+  cardsContainer: {
+    backgroundColor: '#fff',
+    marginTop: 10,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    padding: 10,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f1f1',
+    borderRadius: 25,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    // marginVertical: 10,
+    marginHorizontal: responsiveWidth(3),
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  addressTextContainer: {
+    marginBottom: 0,
+  },
 });
 
 

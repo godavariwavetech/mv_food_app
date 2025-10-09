@@ -97,6 +97,7 @@ const AuthNavigation = () => {
       <Stack.Screen name="LoginScreen" component={LoginScreen} />
       <Stack.Screen name="Register" component={Register} />
       <Stack.Screen name="OnboardingScreen" component={OnboardingScreen} />
+      <Stack.Screen name="OnBoardingScreen2" component={OnboardingScreen2} />
       <Stack.Screen name="OTPVerification" component={OTPVerification} />
 
       <Stack.Screen

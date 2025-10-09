@@ -301,7 +301,6 @@ import {
   Text,
   StyleSheet,
   StatusBar,
-  ImageBackground,
   TextInput,
   TouchableOpacity,
   Pressable,
@@ -357,7 +356,7 @@ export default function Register({ navigation, route }) {
     if (validatePhoneNumber()) {
       try {
         const response = await dispatch(verifyCustomerMobile({ customer_mobile_number: phoneNumber }));
-     
+
         if (response.payload && !response.error) {
           navigation.navigate(route.params?.isFromCart ? "OTPVerification1" : "OTPVerification", {
             phoneNumber: phoneNumber,
@@ -381,21 +380,31 @@ export default function Register({ navigation, route }) {
   }, [])
 
   return (
-    <Pressable style={{ flex: 1, backgroundColor: '#FE4A31' }} onPress={() => Keyboard.dismiss()} >
-      <View style={styles.topSection} />
+    <Pressable style={{ flex: 1, backgroundColor: '#fff' }} onPress={() => Keyboard.dismiss()} >
+      {/* <View style={styles.topSection} /> */}
       {/* Absolutely positioned logo */}
-      <View style={styles.logoCircle}>
+      {/* <View style={styles.logoCircle}>
         <Image
           source={require('./tabassets/chillbroLogo.png')}
           style={styles.logoImage}
           resizeMode="contain"
         />
+      </View> */}
+
+      {/* ==== Green Wave Header Image ==== */}
+      <View style={styles.topSection} >
+        <Image
+          source={require('./tabassets/greenWaveDesign.png')} // 👈 replace with your actual image path
+          style={styles.headerImage}
+          resizeMode="cover"
+        />
       </View>
+
       {/* White Card Section */}
       <View style={styles.cardSection}>
-        <Text style={styles.signInTitle}>Sign Up</Text>
+        <Text style={styles.signInTitle}>Sign In</Text>
         <Text style={styles.subtitle}>Please enter your phone number to continue</Text>
-        <View style={{ marginTop: responsiveHeight(0) }}>
+        <View style={{ marginTop: responsiveHeight(10) }}>
           <Text style={styles.label}>Phone Number</Text>
           <TextInput
             style={styles.input}
@@ -410,13 +419,13 @@ export default function Register({ navigation, route }) {
         <TouchableOpacity onPress={handleRequestOTP} style={styles.loginButton}>
           <Text style={styles.loginText}>Request OTP</Text>
         </TouchableOpacity>
-        {route.params?.isFromCart ? null : 
-        <TouchableOpacity
-          onPress={() => dispatch(actionLogin())}   // 👈 Change "Home" to your main screen route
-          style={styles.skipButton}
-        >
-          <Text style={styles.skipText}>Skip Login</Text>
-        </TouchableOpacity>
+        {route.params?.isFromCart ? null :
+          <TouchableOpacity
+            onPress={() => dispatch(actionLogin())}   // 👈 Change "Home" to your main screen route
+            style={styles.skipButton}
+          >
+            <Text style={styles.skipText}>Skip Login</Text>
+          </TouchableOpacity>
         }
       </View>
       {/* Modal and Loader (unchanged) */}
@@ -430,7 +439,7 @@ export default function Register({ navigation, route }) {
       />
       {loading && (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#FE4A31" />
+          <ActivityIndicator size="large" color="#08B341" />
         </View>
       )}
     </Pressable>
@@ -439,57 +448,45 @@ export default function Register({ navigation, route }) {
 
 const styles = StyleSheet.create({
   topSection: {
-    backgroundColor: '#E7432D',
     height: responsiveHeight(20), // adjust as needed
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
   },
-  logoCircle: {
-    position: 'absolute',
-    top: responsiveHeight(10), // or your value
-    alignSelf: 'center',
-    width: 150,
-    height: 150,
-    borderRadius: 55,
-    backgroundColor: 'transparent', // or keep as '#fff' if you want a white background
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 0, // remove border
-    zIndex: 10,
-  },
-  logoImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 55, // half of logoCircle's width/height
-  },
+  // logoCircle: {
+  //   position: 'absolute',
+  //   top: responsiveHeight(10), // or your value
+  //   alignSelf: 'center',
+  //   width: 150,
+  //   height: 150,
+  //   borderRadius: 55,
+  //   backgroundColor: 'transparent', // or keep as '#fff' if you want a white background
+  //   alignItems: 'center',
+  //   justifyContent: 'center',
+  //   borderWidth: 0, // remove border
+  //   zIndex: 10,
+  // },
+  // logoImage: {
+  //   width: '100%',
+  //   height: '100%',
+  //   borderRadius: 55, // half of logoCircle's width/height
+  // },
   cardSection: {
     flex: 1,
-    backgroundColor: '#fff',
-    marginTop: responsiveHeight(-1), // push down to make room for logo
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: responsiveWidth(7),
-    paddingTop: responsiveHeight(14), // add extra padding for logo
-    paddingBottom: responsiveHeight(2),
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    paddingHorizontal: responsiveWidth(5),
+    paddingTop: responsiveHeight(5),
   },
   signInTitle: {
     fontSize: 28,
+    fontFamily: 'Rubik-Black',
     fontWeight: '700',
-    color: '#222',
+    color: '#000',
     marginBottom: 8,
-    textAlign: 'left',
+    // textAlign: 'left',
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#3D3D3D',
     marginBottom: 18,
-    textAlign: 'left',
-    fontWeight: '400',
+    // textAlign: 'left',
+    fontWeight: '500',
   },
   label: {
     fontSize: 16,
@@ -500,18 +497,18 @@ const styles = StyleSheet.create({
   },
   input: {
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#989191ff',
     color: '#000',
     backgroundColor: '#fff',
     fontSize: 16,
     marginBottom: 18,
   },
   loginButton: {
-    backgroundColor: '#E7432D',
+    backgroundColor: '#08B341',
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 6,
     alignItems: 'center',
     marginTop: 8,
     width: '100%',
@@ -534,15 +531,15 @@ const styles = StyleSheet.create({
   skipButton: {
     backgroundColor: '#fff',
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 6,
     alignItems: 'center',
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#E7432D',
+    borderColor: '#08B341',
     width: '100%',
   },
   skipText: {
-    color: '#E7432D',
+    color: '#08B341',
     fontSize: 16,
     fontWeight: '600',
   },

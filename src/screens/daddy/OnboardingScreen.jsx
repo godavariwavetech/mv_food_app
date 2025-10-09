@@ -15,7 +15,7 @@ const OnboardingScreen = () => {
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.skipButton} onPress={() => navigation.replace('Register')}>
         <Text style={styles.skipText}>Skip</Text>
-        <Ionicons name="arrow-forward-circle" size={24} color="#FF9800" />
+        <Ionicons name="arrow-forward-circle" size={24} color="#08B341" />
       </TouchableOpacity>
       <View style={styles.imgContainer}>
         <OnboardingLogo1 />
@@ -28,7 +28,7 @@ const OnboardingScreen = () => {
       >
 
         <TouchableOpacity style={styles.nextButton} onPress={() => navigation.replace("Register")}>
-          <AntDesign name="arrowright" size={25} color="#FE4A31" />
+          <AntDesign name="arrowright" size={25} color="#08B341" />
         </TouchableOpacity>
       </ImageBackground>
       {/* </View> */}
@@ -52,15 +52,15 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF1E6',
+    backgroundColor: '#E6F7EC',
     // paddingHorizontal: 12,
     paddingLeft: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#FF9800", gap: 6
+    borderColor: "#08B341", gap: 6
   },
   skipText: {
-    color: '#F07100',
+    color: '#08B341',
     fontWeight: '400',
     // marginRight: 5,
     fontSize: 14
