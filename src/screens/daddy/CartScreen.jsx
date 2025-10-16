@@ -163,7 +163,7 @@ const CartScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
       ) : (
-        <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer,{paddingTop: insets.top}]}>
+        <LinearGradient colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}  style={[styles.gradientContainer,{paddingTop: insets.top}]}>
           <View style={styles.headerContainer}>
             <CartInactive color="#fff" />
             <Text style={styles.headerTitle}>Your Cart</Text>
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     // paddingTop:  Platform.OS === 'ios' ? 10 : 25,
   },
   header: {
-    backgroundColor: "#E7432D",
+    backgroundColor: "#07A13B",
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
-    backgroundColor: "#E7432D",
+    backgroundColor: "#07A13B",
   },
   supportButton: {
     width: 44,

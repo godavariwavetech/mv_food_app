@@ -1,4 +1,4 @@
-package com.melocal
+package com.varadhifood
 
 import android.app.Application
 import com.facebook.react.PackageList

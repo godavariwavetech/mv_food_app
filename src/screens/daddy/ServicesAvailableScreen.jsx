@@ -69,7 +69,7 @@ const ServicesAvailableScreen = ({ navigation, route }) => {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            {!route?.params?.permissionDenied && <FontAwesome6 name="arrow-left-long" size={20} color={colors.black} />}
+            {!route?.params?.permissionDenied && <FontAwesome6 name="arrow-left-long" size={20} color={colors.white} />}
           </TouchableOpacity>
           <Text style={styles.title}>Available Service Areas</Text>
         </View>
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     // paddingTop: responsiveHeight(2),
   },
   header: {
-    backgroundColor: "#FE4A31",
+    backgroundColor: "#088B35",
     height: responsiveHeight(15),
     flexDirection: "row",
     alignItems: "flex-end",

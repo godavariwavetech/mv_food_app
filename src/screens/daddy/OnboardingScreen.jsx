@@ -9,14 +9,14 @@ import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimen
 import OnboardingLogo1 from './tabassets/OnboardingLogo1';
 import { SystemBars } from 'react-native-edge-to-edge';
 
-const OnboardingScreen = () => {
+const OnboardingScreen = ({onNext}) => {
   const navigation = useNavigation();
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.skipButton} onPress={() => navigation.replace('Register')}>
+      {/* <TouchableOpacity style={styles.skipButton} onPress={() => navigation.replace('Register')}>
         <Text style={styles.skipText}>Skip</Text>
         <Ionicons name="arrow-forward-circle" size={24} color="#08B341" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       <View style={styles.imgContainer}>
         <OnboardingLogo1 />
       </View>
@@ -27,7 +27,7 @@ const OnboardingScreen = () => {
         imageStyle={{ resizeMode: 'contain' }}
       >
 
-        <TouchableOpacity style={styles.nextButton} onPress={() => navigation.replace("Register")}>
+        <TouchableOpacity style={styles.nextButton} onPress={onNext}>
           <AntDesign name="arrowright" size={25} color="#08B341" />
         </TouchableOpacity>
       </ImageBackground>

@@ -262,7 +262,7 @@ const ReorderScreen = ({ navigation }) => {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* <LinearGradient colors={['#FD0', '#F7F2F2']} style={styles.gradientContainer}> */}
       {/* <LinearGradient colors={['#FE4A31', '#FFD6CD']} style={styles.gradientContainer}> */}
-      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
+      <LinearGradient colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}  style={[styles.gradientContainer, { paddingTop: insets.top }]}>
         <View style={styles.headerContainer}>
           <ReorderInactive color='#fff' />
           <Text style={styles.headerTitle}>Orders</Text>

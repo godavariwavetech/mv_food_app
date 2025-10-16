@@ -10,6 +10,7 @@ import {
 import {useDispatch, useSelector} from 'react-redux';
 import {verifyOTP, checkAddressExistence} from '../../redux/reducers/daddy';
 import Geolocation from '@react-native-community/geolocation';
+import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
 
 export default function OTPVerificationScreen({navigation}) {
   const [otp, setOtp] = useState('');
@@ -142,4 +143,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+    headerImage:{
+      width:responsiveWidth(100),
+      height:responsiveHeight(20),
+      resizeMode:"stretch"
+    }
+  
 }); 

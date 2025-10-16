@@ -27,6 +27,7 @@ import { actionLogin, addCustomer, verifyCustomerMobile, verifyCustomerOTP } fro
 import Geolocation from '@react-native-community/geolocation';
 import { checkAddressExistence } from '../../redux/reducers/daddy';
 import commonStyles from '../../commonstyles/CommonStyles';
+import { logintoppng } from '../../assets';
 
 export default function OTPVerification({ navigation, route }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -278,7 +279,7 @@ export default function OTPVerification({ navigation, route }) {
       {/* ==== Green Wave Header Image ==== */}
       <View style={styles.topSection} >
         <Image
-          source={require('./tabassets/greenWaveDesign.png')} // 👈 replace with your actual image path
+          source={logintoppng} // 👈 replace with your actual image path
           style={styles.headerImage}
           resizeMode="cover"
         />
@@ -534,4 +535,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+      headerImage:{
+      width:responsiveWidth(100),
+      height:responsiveHeight(20),
+      resizeMode:"stretch"
+    }
 });

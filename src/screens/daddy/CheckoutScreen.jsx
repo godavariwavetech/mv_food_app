@@ -517,20 +517,20 @@ const CheckoutScreen = ({ navigation, route }) => {
         </View>
 
         {/* Savings Banner */}
-        <ScrollView style={[styles.content, { marginBottom: responsiveHeight(20) }]}>
+        <ScrollView style={[styles.content, { marginBottom: responsiveHeight(17) }]}>
+            {totalSavings!="" && (
           <View style={styles.savingsBanner}>
             <MaterialCommunityIcons
               name="brightness-percent"
               color={commonStyles.btn2Color}
               size={15}
             />
-            {totalSavings && (
               <Text style={styles.savingsText}>
                 {' '}
                 ₹{totalSavings} saved from this order
               </Text>
-            )}
           </View>
+            )}
           {/* Cart Items */}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", margin: 10, paddingTop: 10 }}>
             <Text style={styles.checkoutSectionTitle}>Cart Items</Text>
@@ -886,7 +886,7 @@ const styles = StyleSheet.create({
     width: responsiveWidth(7),
   },
   savingsText: {
-
+    color:"#000",
     fontWeight: '600',
     fontSize: 14,
   },

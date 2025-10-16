@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    backgroundColor: "#E7432D",
+    backgroundColor: "#088B35",
     height: responsiveHeight(15),
     flexDirection: 'row',
     alignItems: 'flex-end',

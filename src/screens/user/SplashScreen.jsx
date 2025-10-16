@@ -2,11 +2,6 @@ import { SafeAreaView, StyleSheet, View, Image, StatusBar } from 'react-native'
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setInitial } from '../../redux/reducers/auth'
-// import SplashScreenImg from './svgs/SplashScreenImg'
-import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions'
-import commonStyles from '../../commonstyles/CommonStyles'
-import { translate } from '../../config/i18n'
-import { SystemBars } from 'react-native-edge-to-edge';
 
 const SplashScreen = ({ navigation }) => {
   const { token } = useSelector((state) => state.Auth);
@@ -17,7 +12,7 @@ const SplashScreen = ({ navigation }) => {
     if (rehydrated) {
       setTimeout(() => {
         if (!token) {
-          navigation.replace('OnboardingScreen');
+          navigation.replace('Onboarding');
         }
       }, 500);
     }
@@ -27,7 +22,7 @@ const SplashScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.imgContainer}>
-        <Image source={require('../daddy/tabassets/SplashChilbro.png')} style={{height: 200, width: 200}} />
+        <Image source={require('../daddy/tabassets/varadhiSplash.png')} style={{height: 500, width: 300,resizeMode:"contain"}} />
       </View>
     </SafeAreaView>
 
@@ -39,7 +34,7 @@ export default SplashScreen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E7432D',
+    backgroundColor: '#08B341',
     position: 'relative'
   },
   imgContainer: {

@@ -637,9 +637,6 @@ const RestaurantScreen = ({ navigation, route }) => {
                 renderItem={renderItem}
                 scrollEnabled={false}
                 nestedScrollEnabled={true}
-                // 👇 Remove grid props
-                // numColumns={2}
-                // columnWrapperStyle={styles.columnWrapper}
                 onScrollToIndexFailed={({ index, averageItemLength }) => {
                   flatListRef.current?.scrollToOffset({
                     offset: index * averageItemLength,
@@ -964,7 +961,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 65,
     bottom: Platform.OS === 'ios' ? 60 : 50, // Platform-specific bottom spacing
-    backgroundColor: "#FE4A31",
+    backgroundColor: "#07A13B",
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     borderBottomLeftRadius: 12,
@@ -1166,7 +1163,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   unavailableText: {
-    color: '#ff4444',
+    color: '#07A13B',
     fontWeight: '700',
     fontSize: 14,
     textAlign: 'center',

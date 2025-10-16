@@ -62,6 +62,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     const response = await dispatch(
       getOrders({ orderId: route.params?.orderDetails?.id }),
     );
+    console.log(response,">>>>>>>>>>>>>>>>>>>>>responseenenenenen",route.params?.orderDetails?.id);
     if (response.payload?.data) {
       setOrderDetails(response.payload.data[0]);
     }

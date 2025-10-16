@@ -321,6 +321,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import CustomModal from '../../components/CustomModal';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import commonStyles from '../../commonstyles/CommonStyles';
+import { logintoppng } from '../../assets';
 // import CustomModal from '../components/CustomModal';
 
 export default function Register({ navigation, route }) {
@@ -394,9 +395,9 @@ export default function Register({ navigation, route }) {
       {/* ==== Green Wave Header Image ==== */}
       <View style={styles.topSection} >
         <Image
-          source={require('./tabassets/greenWaveDesign.png')} // 👈 replace with your actual image path
+          source={logintoppng} // 👈 replace with your actual image path
           style={styles.headerImage}
-          resizeMode="cover"
+          // resizeMode="cover"
         />
       </View>
 
@@ -543,5 +544,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  headerImage:{
+    width:responsiveWidth(100),
+    height:responsiveHeight(20),
+    resizeMode:"stretch"
+  }
 
 });

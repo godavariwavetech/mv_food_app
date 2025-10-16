@@ -83,6 +83,7 @@ import CategoriesScreen from '../screens/restaurants/CategoriesScreen';
 import RestaurantsScreen from '../screens/restaurants/RestaurantsScreen';
 import OnboardingScreen2 from '../screens/daddy/OnboardingScreen2';
 import OnboardingScreen3 from '../screens/daddy/OnboardingScreen3';
+import OnboardingFlow from '../screens/daddy/OnboardingFlow';
 
 
 const Stack = createStackNavigator();
@@ -99,6 +100,11 @@ const AuthNavigation = () => {
       <Stack.Screen name="OnboardingScreen" component={OnboardingScreen} />
       <Stack.Screen name="OnBoardingScreen2" component={OnboardingScreen2} />
       <Stack.Screen name="OTPVerification" component={OTPVerification} />
+      <Stack.Screen
+  name="Onboarding"
+  component={OnboardingFlow}
+  options={{ headerShown: false }}
+/>
 
       <Stack.Screen
         name="ServiceLocations"

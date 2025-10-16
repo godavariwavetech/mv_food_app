@@ -261,7 +261,7 @@ export default function CategorieItems({ navigation, route }) {
    
       <View style={styles.main}>
         <LinearGradient
-          colors={['#E7432D', '#E7432D']}
+          colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']} 
           style={styles.gradientContainer}>
           <View style={styles.headerContent}>
             <View style={styles.headerLeft}>

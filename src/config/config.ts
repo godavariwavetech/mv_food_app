@@ -1,4 +1,4 @@
-export const baseURL = "https://melocalapp.com:2630/"; 
+export const baseURL = "https://varadhifood.com:2636/"; 
 
 //2630
 

@@ -14,6 +14,9 @@ import { setIsNetworkConnected } from './src/redux/reducers/addressSlice';
 import { useDispatch } from 'react-redux';
 import SystemNavigationBar from 'react-native-system-navigation-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';  // ✅ added
+import OnboardingScreen from './src/screens/daddy/OnboardingScreen';
+import OnboardingScreen2 from './src/screens/daddy/OnboardingScreen2';
+import OnboardingScreen3 from './src/screens/daddy/OnboardingScreen3';
 
 const NetworkStatusBanner = () => {
   const [isConnected, setIsConnected] = useState(true);
@@ -118,6 +121,7 @@ const App = () => {
         <NavigationContainer>
           {/* <SafeAreaView style={{ flex: 1 }}>  */}
             <NetworkStatusBanner />
+            {/* <OnboardingScreen3  /> */}
             <AppNavigation />
             <CustomModal
               visible={showUpdateModal}

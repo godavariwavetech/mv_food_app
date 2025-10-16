@@ -249,7 +249,7 @@ const CategoriesScreen = ({ navigation, route }) => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       {/* <LinearGradient colors={['#FD0', '#F7F2F2']} style={styles.gradientContainer}> */}
-      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
+      <LinearGradient colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
         <View style={styles.headerContainer}>
           {route.params?.isFromHome ? (
             <TouchableOpacity

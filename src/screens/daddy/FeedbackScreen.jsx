@@ -29,7 +29,7 @@ const FeedbackScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {/* <StatusBar backgroundColor={commonStyles.btn2Color} barStyle={'light-content'} /> */}
-      <LinearGradient colors={['#E7432D', '#E7432D']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
+      <LinearGradient colors={['#088B35','#8AD9A4']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
