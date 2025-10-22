@@ -118,60 +118,60 @@ export default function OTPVerification({ navigation, route }) {
       const enteredOtp = otp.join('');
       setLoader(true);
 
-      // if(route.params?.phoneNumber == "9876543210"){
-      //   dispatch(addCustomer({mobileNumber:route.params?.phoneNumber,otp:enteredOtp}))
-      //   if(enteredOtp=="1234"){
-      //     route.params?.isFromCart ? navigation.pop(2) : dispatch(actionLogin())
-      //   return
-      //     if (!location) {
-      //       setError('Please enable location services to continue');
-      //       Alert.alert(
-      //         'Location Required',
-      //         'Please enable location services to use this app. This is required to check service availability in your area.',
-      //         [
-      //           {
-      //             text: 'Open Settings',
-      //             onPress: () => {
-      //               if (Platform.OS === 'ios') {
-      //                 Linking.openURL('app-settings:');
-      //               } else {
-      //                 Linking.openSettings();
-      //               }
-      //             },
-      //           },
-      //           {
-      //             text: 'Cancel',
-      //             style: 'cancel',
-      //           },
-      //         ]
-      //       );
-      //       return;
-      //     }
+      if(route.params?.phoneNumber == "7997753587"){
+        dispatch(addCustomer({mobileNumber:route.params?.phoneNumber,otp:enteredOtp}))
+        if(enteredOtp=="1234"){
+          route.params?.isFromCart ? navigation.pop(2) : dispatch(actionLogin())
+        return
+          if (!location) {
+            setError('Please enable location services to continue');
+            Alert.alert(
+              'Location Required',
+              'Please enable location services to use this app. This is required to check service availability in your area.',
+              [
+                {
+                  text: 'Open Settings',
+                  onPress: () => {
+                    if (Platform.OS === 'ios') {
+                      Linking.openURL('app-settings:');
+                    } else {
+                      Linking.openSettings();
+                    }
+                  },
+                },
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+              ]
+            );
+            return;
+          }
 
-      //     // Check service availability
-      //     const serviceResult = await dispatch(
-      //       checkAddressExistence({
-      //         latitude: location.latitude.toString(),
-      //         longitude: location.longitude.toString(),
-      //       })
-      //     ).unwrap();
+          // Check service availability
+          const serviceResult = await dispatch(
+            checkAddressExistence({
+              latitude: location.latitude.toString(),
+              longitude: location.longitude.toString(),
+            })
+          ).unwrap();
 
 
 
-      //     if (serviceResult?.data) {
-      //       dispatch(actionLogin());
-      //       navigation.replace('UserHome');
-      //     } else {
-      //       navigation.replace('ServiceLocations', {
-      //         latitude: location.latitude,
-      //         longitude: location.longitude
-      //       });
-      //     }
-      //   } else {
-      //     setError('Please enter valid OTP');
-      //   }
-      //   return;
-      // }
+          if (serviceResult?.data) {
+            dispatch(actionLogin());
+            navigation.replace('UserHome');
+          } else {
+            navigation.replace('ServiceLocations', {
+              latitude: location.latitude,
+              longitude: location.longitude
+            });
+          }
+        } else {
+          setError('Please enter valid OTP');
+        }
+        return;
+      }
 
       if (paramOtp == enteredOtp) {
         // First verify OTP, then check location

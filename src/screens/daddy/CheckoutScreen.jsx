@@ -62,7 +62,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   const handlingCharges = chargesList?.[0]?.handling_charges || 0;
   const [clearCartConfirmVisible, setClearCartConfirmVisible] = useState(false);
   const [paymentMenuVisible, setPaymentMenuVisible] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Pay Online');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('COD');
   const [modalVisible, setModalVisible] = useState(false);
   const [totalSellingPrice, setTotalSellingPrice] = useState(0);
   const [itemsTotalPrice, setItemsTotalPrice] = useState(0);
@@ -77,7 +77,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   });
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  const paymentMethods = ['Pay Online', 'COD'];
+  const paymentMethods = ['COD'];
 
   const buttonRef = useRef(null);
 
@@ -1260,7 +1260,7 @@ const styles = StyleSheet.create({
   },
   paymentMethodsContainer: {
     position: 'absolute',
-    top: -responsiveHeight(10), // Adjust based on your layout
+    top: -responsiveHeight(5), // Adjust based on your layout
     left: 10,
     // right: 0,
     backgroundColor: '#fff',

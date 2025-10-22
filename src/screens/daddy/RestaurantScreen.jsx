@@ -732,10 +732,10 @@ const styles = StyleSheet.create({
   },
   itemListContainer: {
     flex: 1,
-    minHeight: 500, // Ensures FlatList has enough height to render properly
+    minHeight: 500
 
   },
-  imageBackground: { width: responsiveWidth(100), height: responsiveHeight(30), },
+  imageBackground: { width: responsiveWidth(100), height: responsiveHeight(33), },
   imageOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",

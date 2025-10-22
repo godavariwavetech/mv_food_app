@@ -514,7 +514,8 @@ export default function UserHome({ navigation }) {
                 contentContainerStyle={{ paddingTop: 0, paddingBottom: 30 }}
                 keyExtractor={item => item.id}
                 renderItem={({ item }) => (
-                  <TouchableOpacity onPress={() => handleBannerPress(item)} style={styles.bannerContainer}>
+                  // <TouchableOpacity onPress={() => handleBannerPress(item)} style={styles.bannerContainer}>
+                  <TouchableOpacity onPress={() => {}} style={styles.bannerContainer}>
                     <Image
                       source={{ uri: item.banner_image }}
                       style={styles.bannerImage}
