@@ -19,7 +19,7 @@ import {
   responsiveHeight,
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
-import { checkAddressExistence, clearCart } from '../../redux/reducers/daddy';
+import { checkAddressExistence, clearCart, getBanners, getCategories, getRestaurantsHome, getSubCategories, setActiveCategoryIndex } from '../../redux/reducers/daddy';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomModal from '../../components/CustomModal';
 import {
@@ -237,6 +237,18 @@ const SelectServiceFromLocation = ({ navigation, route }) => {
     };
   }, []);
 
+    const getCategoreis = async () => {
+      try {
+        dispatch(setActiveCategoryIndex(1))
+        dispatch(getCategories());
+        dispatch(getSubCategories({ categoryId: 1 }));
+        dispatch(getBanners());
+        dispatch(getRestaurantsHome({ categoryId: 1 }));
+      } catch (error) {
+        console.log(error,">>>>>>>>>>error on location selections");
+      }
+    };
+
   const handleConfirmLocation = async () => {
     try {
       setIsCheckingAddress(true);
@@ -263,6 +275,7 @@ const SelectServiceFromLocation = ({ navigation, route }) => {
         );
         dispatch(setLocationName(response.payload.data[0].location_name));
         dispatch(setLocationId(response.payload.data[0].id));
+        getCategoreis()
         navigation.goBack();
       } else {
         setShowServiceModal(true);

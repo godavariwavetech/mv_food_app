@@ -276,9 +276,9 @@ const ProfileScreen = () => {
           color="#000"
         />
       ),
-      onPress: () => Linking.openURL('https://varadhifood.com/terms/'),
+      onPress: () => Linking.openURL('https://varadhifood.com/about/'),
       isExternal: true,
-      url: 'https://varadhifood.com/terms/',
+      url: 'https://varadhifood.com/about',
     },
     {
       id: '5',
@@ -308,21 +308,21 @@ const ProfileScreen = () => {
       isExternal: true,
       url: 'https://varadhifood.com/terms/',
     },
-    // {
-    //   id: '7',
-    //   title: 'Refund Policy',
-    //   icon: (
-    //     <MaterialCommunityIcons
-    //       name="credit-card-refund-outline"
-    //       size={24}
-    //       color="#000"
-    //     />
-    //   ),
-    //   onPress: () => Linking.openURL('https://melocalapp.com/refundpolicy/'),
-    //   isExternal: true,
-    //   url: 'https://melocalapp.com/refundpolicy/',
+    {
+      id: '7',
+      title: 'Refund Policy',
+      icon: (
+        <MaterialCommunityIcons
+          name="credit-card-refund-outline"
+          size={24}
+          color="#000"
+        />
+      ),
+    onPress: () => Linking.openURL('https://varadhifood.com/refundpolicy/'),
+      isExternal: true,
+      url: 'https://varadhifood.com/refundpolicy/',
 
-    // },
+    },
 
     // 1. Account actions (high priority for signed-in/out status)
     customerId

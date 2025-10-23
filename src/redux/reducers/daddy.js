@@ -544,6 +544,9 @@ export const Dashboard = createSlice({
     removeCoupon: (state) => {
       state.appliedCoupon = null;
     },
+    updateServiceAvailable :(state,action)=>{
+      state.serviceAvailable=action.payload
+    }
 
   },
   extraReducers: builder => {
@@ -786,7 +789,8 @@ export const {
   setServiceLocations,
   setSelectedServiceLocation,
   applyCoupon,
-  removeCoupon
+  removeCoupon,
+  updateServiceAvailable
 } = Dashboard.actions;
 
 export default Dashboard.reducer;

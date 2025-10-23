@@ -61,10 +61,10 @@ const itemWidth = screenWidth / 6;
 const STICKY_HEADER_SCROLL_DISTANCE = 120;
 
 export default function UserHome({ navigation }) {
-  const { categories, subCategories, banners, restaurants, activeCategoryIndex, loading, addressList, userAddress,
-    serviceAvailable, homeRestaurnats } = useSelector(state => state.Dashboard);
+  const { categories, subCategories, banners, restaurants, activeCategoryIndex, loading, addressList, userAddress, serviceAvailable, homeRestaurnats } = useSelector(state => state.Dashboard);
   const { locationName } = useSelector(state => state.Auth);
   const { isNetworkConnected } = useSelector(state => state.address);
+  
   const flatListRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState(userAddress || "");
@@ -83,6 +83,10 @@ export default function UserHome({ navigation }) {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [selectedCategoryName, setSelectedCategoryName] = useState('Food');
+
+  // Add flag to track initial load
+  const hasInitiallyLoaded = useRef(false);
+  const scrollPositionRef = useRef(0);
 
   const stickyHeaderOpacity = scrollY.interpolate({
     inputRange: [0, STICKY_HEADER_SCROLL_DISTANCE - 20, STICKY_HEADER_SCROLL_DISTANCE],
@@ -109,7 +113,7 @@ export default function UserHome({ navigation }) {
 
   const getAddressFromCoordinates = async (latitude, longitude) => {
     try {
-      setErrorOccured(false)
+      setErrorOccured(false);
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyBjxoAFhr00pjmZ95SEJYoUL98A6iX8hQ4`,
       );
@@ -132,13 +136,11 @@ export default function UserHome({ navigation }) {
       timeout: 2000,
       maximumAge: 1000,
     });
-
     Geolocation.getCurrentPosition(
       async position => {
         const { latitude, longitude } = position.coords;
         const address = await getAddressFromCoordinates(latitude, longitude);
         dispatch(setLocation({ latitude, longitude }));
-
         const currentLocationAddress = {
           address_type: userAddress?.address_type || 'Home',
           full_address: address,
@@ -147,9 +149,7 @@ export default function UserHome({ navigation }) {
           name: userAddress?.name || '',
           contact: userAddress?.contact || '',
         };
-
-        if (!isNetworkConnected) return
-
+        if (!isNetworkConnected) return;
         dispatch(updateUserAddress(currentLocationAddress));
         setSelectedAddress(currentLocationAddress);
         setIsLoadingLocation(false);
@@ -176,6 +176,7 @@ export default function UserHome({ navigation }) {
         permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
       }
       if (!permission) return;
+      
       const status = await check(permission);
       if (status === RESULTS.GRANTED) {
         getCurrentLocation();
@@ -194,7 +195,7 @@ export default function UserHome({ navigation }) {
 
   const getCategoreis = async () => {
     try {
-      setErrorOccured(false)
+      setErrorOccured(false);
       dispatch(getCategories());
       dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
       dispatch(getBanners());
@@ -202,10 +203,11 @@ export default function UserHome({ navigation }) {
         dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex }));
       }
     } catch (error) {
-      setErrorOccured(true)
+      setErrorOccured(true);
     }
   };
 
+  // Only run on initial mount
   useEffect(() => {
     const initializeLocation = async () => {
       if (authLocation) {
@@ -216,7 +218,7 @@ export default function UserHome({ navigation }) {
           customer_latitude: authLocation.latitude.toString(),
           customer_longitude: authLocation.longitude.toString(),
         };
-        if (!isNetworkConnected) return
+        if (!isNetworkConnected) return;
         setSelectedAddress(currentAddress);
       } else if (userAddress) {
         setSelectedAddress(userAddress);
@@ -224,36 +226,35 @@ export default function UserHome({ navigation }) {
         requestLocationPermission();
       }
     };
+    
+    // Only run initialization once
+    if (!hasInitiallyLoaded.current) {
+      initializeLocation();
+      hasInitiallyLoaded.current = true;
+    }
+  }, []); // Empty dependency array
 
-    initializeLocation();
-  }, [userAddress, authLocation, requestLocationPermission]);
-
+  // Only fetch address list when screen focuses
   useFocusEffect(
     useCallback(() => {
       dispatch(getAddressList());
-    }, [activeCategoryIndex]),
+    }, [dispatch])
   );
 
   useEffect(() => {
-  if (categories && categories.length > 0 && !selectedCategoryName) {
-    const firstCategory = categories.find(cat => cat.id === activeCategoryIndex);
-    console.log(firstCategory,">>>>>>>>>>>>>>>>>>>>>>>>>>>First category");
-    if (firstCategory) {
-      setSelectedCategoryName(firstCategory.category_name);
+    if (categories && categories.length > 0 && !selectedCategoryName) {
+      const firstCategory = categories.find(cat => cat.id === activeCategoryIndex);
+      if (firstCategory) {
+        setSelectedCategoryName(firstCategory.category_name);
+      }
     }
-  }
-}, [categories, activeCategoryIndex]);
+  }, [categories, activeCategoryIndex]);
 
-  useFocusEffect(
-    useCallback(() => {
-      dispatch(setActiveCategoryIndex(1));
-    }, []),
-  );
-
+  // MODIFIED - Only check service availability on initial load
   useFocusEffect(
     useCallback(() => {
       const checkOnFocus = async () => {
-        if (authLocation) {
+        if (authLocation && !hasInitiallyLoaded.current) {
           await checkServiceAvailability();
         }
       };
@@ -269,6 +270,7 @@ export default function UserHome({ navigation }) {
     setSelectedCategoryName(category.category_name);
   };
 
+  // Banner auto-scroll
   useFocusEffect(
     useCallback(() => {
       let intervalId;
@@ -299,20 +301,21 @@ export default function UserHome({ navigation }) {
 
   const checkServiceAvailability = async () => {
     const abortController = new AbortController();
-
+    
     const checkAvailability = async () => {
       if (!authLocation || !mounted) return;
-
+      
       try {
-        setErrorOccured(false)
+        setErrorOccured(false);
         const response = await dispatch(checkAddressExistence({
           latitude: authLocation.latitude,
           longitude: authLocation.longitude
         })).unwrap();
-
+        
         if (mounted) {
           await dispatch(setLocationName(response.data[0].location_name));
           await dispatch(setLocationId(response.data[0].id));
+          
           if (response.data.length > 0) {
             const result = await dispatch(getCategories());
             dispatch(setOrderOfferAmount(result.payload?.data[0]?.order_offer_amount));
@@ -324,13 +327,15 @@ export default function UserHome({ navigation }) {
           }
         }
       } catch (error) {
-        setErrorOccured(true)
+        setErrorOccured(true);
         if (error.name !== 'AbortError' && mounted) {
+          // Handle error
         }
       }
     };
-
+    
     checkAvailability();
+    
     return () => {
       abortController.abort();
       setMounted(false);
@@ -338,7 +343,7 @@ export default function UserHome({ navigation }) {
   };
 
   useEffect(() => {
-    if (authLocation) {
+    if (authLocation && !hasInitiallyLoaded.current) {
       checkServiceAvailability();
     }
   }, [authLocation, serviceAvailable]);
@@ -354,8 +359,9 @@ export default function UserHome({ navigation }) {
   };
 
   const handleBannerPress = async (banner) => {
-    const resp = await dispatch(indiviadualShop({ shopId: banner?.shop_id }))
-    if (!resp.payload.data[0] || resp.payload.data[0] <= 0) return
+    const resp = await dispatch(indiviadualShop({ shopId: banner?.shop_id }));
+    if (!resp.payload.data[0] || resp.payload.data[0] <= 0) return;
+    
     if (banner?.shop_id && banner?.shop_id !== 0) {
       navigation.navigate('BannerRestaurantScreen', {
         shopId: banner?.shop_id,
@@ -368,18 +374,19 @@ export default function UserHome({ navigation }) {
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(async state => {
       if (state.isConnected && !isNetworkConnected) {
-        setInitialNetLoad(true)
-        await checkServiceAvailability()
+        setInitialNetLoad(true);
+        await checkServiceAvailability();
         await Promise.all([
           dispatch(getCategories()),
           dispatch(getBanners()),
           dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex })),
-          dispatch(getSubCategories({ categoryId: activeCategoryIndex }))
         ]);
+        dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
         await new Promise(resolve => setTimeout(resolve, 500));
-        setInitialNetLoad(false)
+        setInitialNetLoad(false);
       }
     });
+    
     return () => unsubscribe();
   }, [isNetworkConnected, activeCategoryIndex, dispatch]);
 
@@ -387,8 +394,7 @@ export default function UserHome({ navigation }) {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar backgroundColor={"#088B35"} translucent barStyle={'light-content'} />
-      
+      <StatusBar backgroundColor="#088B35" translucent barStyle="light-content" />
       {isNetworkConnected === null ? (
         <Skeleton />
       ) : !isNetworkConnected && !categories ? (
@@ -411,19 +417,17 @@ export default function UserHome({ navigation }) {
       ) : serviceAvailable ? (
         <View style={styles.container}>
           {/* Sticky Search Bar */}
-          <Animated.View 
+          <Animated.View
             style={[
               styles.stickySearchBar,
-              {
-                paddingTop: insets.top,
-                opacity: stickyHeaderOpacity,
-                transform: [{ translateY: stickyHeaderTranslateY }]
-              }
+              { paddingTop: insets.top },
+              { opacity: stickyHeaderOpacity },
+              { transform: [{ translateY: stickyHeaderTranslateY }] }
             ]}
-            pointerEvents={scrollY._value > STICKY_HEADER_SCROLL_DISTANCE ? 'auto' : 'none'}
+            pointerEvents={scrollY._value >= STICKY_HEADER_SCROLL_DISTANCE ? 'auto' : 'none'}
           >
-            <LinearGradient 
-              colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']} 
+            <LinearGradient
+              colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.stickyGradient}
@@ -448,7 +452,12 @@ export default function UserHome({ navigation }) {
             scrollEventThrottle={16}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: true }
+              { 
+                useNativeDriver: true,
+                listener: (event) => {
+                  scrollPositionRef.current = event.nativeEvent.contentOffset.y;
+                }
+              }
             )}
             refreshControl={
               <RefreshControl
@@ -458,8 +467,8 @@ export default function UserHome({ navigation }) {
               />
             }
           >
-            <LinearGradient 
-              colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']} 
+            <LinearGradient
+              colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.headerGradient}
@@ -480,13 +489,12 @@ export default function UserHome({ navigation }) {
                     </View>
                   </View>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Profile')}
                   style={styles.profileButton}
                 >
                   <Image
-                    source={require("../daddy/tabassets/dummy-profile.png")}
+                    source={require('../daddy/tabassets/dummy-profile.png')}
                     style={styles.profileAvatar}
                   />
                 </TouchableOpacity>
@@ -512,7 +520,7 @@ export default function UserHome({ navigation }) {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingTop: 0, paddingBottom: 30 }}
-                keyExtractor={item => item.id}
+                keyExtractor={(item, index) => `banner-${item.id || index}`}
                 renderItem={({ item }) => (
                   // <TouchableOpacity onPress={() => handleBannerPress(item)} style={styles.bannerContainer}>
                   <TouchableOpacity onPress={() => {}} style={styles.bannerContainer}>
@@ -528,17 +536,19 @@ export default function UserHome({ navigation }) {
 
             {/* Content area with curved top edge */}
             <View style={styles.contentContainer}>
+              {/* Category Header */}
               <View style={styles.categoryHeaderContainer}>
                 <Text style={styles.categoryHeaderTitle}>Category</Text>
                 <View style={styles.categoryHeaderLine} />
               </View>
 
+              {/* Categories */}
               {categories && (
                 <FlatList
                   data={categories}
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  keyExtractor={item => item.id.toString()}
+                  keyExtractor={(item, index) => `category-${item.id || index}`}
                   contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 15 }}
                   renderItem={({ item }) => (
                     <CategoryCard
@@ -551,18 +561,20 @@ export default function UserHome({ navigation }) {
                 />
               )}
 
-  <View style={styles.categoryHeaderContainer}>
-    <Text style={styles.categoryHeaderTitle}>{selectedCategoryName} Items</Text>
-    <View style={styles.categoryHeaderLine} />
-  </View>
+              {/* Subcategory Header */}
+              <View style={styles.categoryHeaderContainer}>
+                <Text style={styles.categoryHeaderTitle}>{selectedCategoryName} Items</Text>
+                <View style={styles.categoryHeaderLine} />
+              </View>
 
+              {/* SubCategories */}
               {subCategories && (
                 <View style={styles.subCategoriesContainer}>
                   <FlatList
                     data={subCategories}
                     numColumns={4}
                     scrollEnabled={false}
-                    keyExtractor={item => item.id.toString()}
+                    keyExtractor={(item, index) => `subcategory-${item.id || index}`}
                     columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 15 }}
                     contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 10 }}
                     renderItem={({ item }) => (
@@ -575,13 +587,16 @@ export default function UserHome({ navigation }) {
                         }}
                       />
                     )}
-                    ListEmptyComponent={()=><View style={{width:responsiveWidth(100),height:responsiveHeight(5),alignItems:"center",justifyContent:"center"}}>
-                      <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No items found</Text>
-                    </View>}
+                    ListEmptyComponent={() => (
+                      <View style={{ width: responsiveWidth(100), height: responsiveHeight(5), alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No items found</Text>
+                      </View>
+                    )}
                   />
                 </View>
               )}
 
+              {/* Popular Restaurants/Shops */}
               <View style={[commonStyles.row, { paddingHorizontal: 16, marginTop: 3 }]}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#2B2B2B' }}>
                   Popular {activeCategoryIndex === 1 ? "Restaurants" : "Shops"}
@@ -590,14 +605,14 @@ export default function UserHome({ navigation }) {
 
               <FlatList
                 data={popularRestaurants}
-                keyExtractor={item => item.id}
+                keyExtractor={(item, index) => `restaurant-${item.shop_id || item.id || index}`}
                 contentContainerStyle={{ padding: 10, paddingBottom: 40 }}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={false}
                 ListEmptyComponent={() => (
-                  <View style={{ alignItems: "center", justifyContent: "center", height: responsiveHeight(10), width: responsiveWidth(100) }}>
+                  <View style={{ alignItems: 'center', justifyContent: 'center', height: responsiveHeight(10), width: responsiveWidth(100) }}>
                     <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>
-                      No popular restaurants/Shops available
+                      No popular {activeCategoryIndex === 1 ? "restaurants" : "shops"} available
                     </Text>
                   </View>
                 )}
@@ -619,30 +634,27 @@ export default function UserHome({ navigation }) {
                     >
                       <View style={styles.restaurantContent}>
                         <View style={styles.restaurantImageContainer}>
-                          <Image
-                            source={item?.shop_image ? { uri: item.shop_image } : ''}
-                            style={styles.restaurantImage}
-                          />
+                          <Image source={{ uri: item?.shop_image }} style={styles.restaurantImage} />
+                          {isUnavailable && (
+                            <View style={styles.unavailableOverlay}>
+                              <Text style={[styles.unavailableText, { color: 'red' }]}>Currently Unavailable</Text>
+                            </View>
+                          )}
                         </View>
-                        {isUnavailable && (
-                          <View style={styles.unavailableOverlay}>
-                            <Text style={[styles.unavailableText, { color: "red" }]}>Currently Unavailable</Text>
-                          </View>
-                        )}
-
                         <View style={styles.restaurantTextContainer}>
                           <Text style={styles.restaurantName}>{item.shop_name}</Text>
                           <View style={styles.ratingRow}>
                             <StarIcon />
                             <Text style={styles.ratingText}>{item.shop_rating}</Text>
                             <Text style={styles.dot}>•</Text>
-                            <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
+                            <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
                               <Clock />
-                              <Text style={{ fontSize: 11, fontWeight: '400' }}>{calculateDeliveryTime(distance)}</Text>
+                              <Text style={{ fontSize: 11, fontWeight: '400' }}>
+                                {calculateDeliveryTime(distance)}
+                              </Text>
                             </View>
                           </View>
                           <Text style={styles.addressText}>{item.shop_address || 'Tilak Road • 3.0 km'}</Text>
-
                           {item.special_offer_name && (
                             <View style={styles.offerTag}>
                               <Text style={styles.offerText}>{item.special_offer_name}</Text>
@@ -659,7 +671,9 @@ export default function UserHome({ navigation }) {
         </View>
       ) : serviceAvailable === false ? (
         <ServiceUnavailableScreen />
-      ) : !categories && !errorOccured ? <Skeleton /> :
+      ) : !categories && !errorOccured ? (
+        <Skeleton />
+      ) : (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Something went wrong</Text>
           <TouchableOpacity
@@ -672,7 +686,7 @@ export default function UserHome({ navigation }) {
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
-      }
+      )}
     </View>
   );
 }
@@ -693,7 +707,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    backgroundColor:"#088B35"
+    backgroundColor: "#088B35"
   },
   stickyGradient: {
     paddingVertical: 8,

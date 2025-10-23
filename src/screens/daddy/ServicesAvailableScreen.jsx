@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { checkServiceAvailability, getServices } from '../../redux/reducers/daddy';
+import { checkServiceAvailability, getServices, getBanners, getCategories, getRestaurantsHome, getSubCategories, setActiveCategoryIndex, updateServiceAvailable  } from '../../redux/reducers/daddy';
 import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { setLocation, setLocationId, setLocationName } from '../../redux/reducers/auth';
@@ -44,10 +44,25 @@ const ServicesAvailableScreen = ({ navigation, route }) => {
     }
   }, [searchQuery, availableAreas]);
 
+      const getCategoreis = async () => {
+        try {
+          dispatch(setActiveCategoryIndex(1));
+          dispatch(getCategories());
+          dispatch(getSubCategories({categoryId: 1}));
+          dispatch(getBanners());
+          dispatch(getRestaurantsHome({categoryId: 1}));
+          dispatch(updateServiceAvailable(true))
+        } catch (error) {
+          console.log(error, '>>>>>>>>>>error on location selections');
+        }
+      };
+
   const handleAreaSelect = (area) => {
+    console.log(area,">>>>>>>>>>>>>>>>>>>>>>>>>>AREREREREREERER");
     dispatch(setLocation({ latitude: area.location_latitude, longitude: area.location_longitude }))
     dispatch(setLocationName(area.location_name))
     dispatch(setLocationId(area.id))
+     getCategoreis()
     navigation.navigate("BottomNavigation")
   };
 
