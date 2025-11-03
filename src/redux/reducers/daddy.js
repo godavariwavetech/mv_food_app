@@ -177,7 +177,7 @@ export const getBanners = createAsyncThunk(
 export const getRestaurants = createAsyncThunk(
   "getRestaurants",
   async (
-    { categoryId, subCatergoryId },
+    { categoryId, subCatergoryId,shopIds=0 },
     { getState, rejectWithValue, fulfillWithValue }
   ) => {
 
@@ -188,7 +188,7 @@ export const getRestaurants = createAsyncThunk(
       "location_id": locationId,
       "category_id": categoryId,
       "sub_category_id": subCatergoryId || 0,
-      "shop_id": 0
+      "shop_id":shopIds
     })
   
     if (response) {

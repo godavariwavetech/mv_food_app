@@ -445,7 +445,7 @@ const RestaurantScreen = ({ navigation, route }) => {
               <Text style={styles.itemName}>{item.item_name}</Text>
 
             </View>
-            <Text style={styles.itemdescription}>{item.item_description}</Text>
+            <Text style={styles.itemdescription} numberOfLines={2}>{item.item_description}</Text>
 
             {/* Optional Rating */}
             {/* 
@@ -542,10 +542,9 @@ const RestaurantScreen = ({ navigation, route }) => {
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
         bounces={true}
-        nestedScrollEnabled={true}
-      >
+        nestedScrollEnabled={true}>
         <ImageBackground
-          source={{ uri: route.params?.item?.shop_image }}
+          source={{uri: route.params?.item?.shop_image}}
           style={styles.imageBackground}>
           <View style={styles.imageOverlay}>
             <View style={styles.headerRow}>
@@ -558,14 +557,47 @@ const RestaurantScreen = ({ navigation, route }) => {
                 />
               </TouchableOpacity>
               <View style={styles.header}>
-                <Text style={styles.title}>{route.params?.item?.shop_name}</Text>
-                <Text style={styles.subtitle}>{calculateDeliveryTime(route.params?.item?.distance.toFixed(1))} | {route.params?.item?.distance.toFixed(1)} km | {route.params?.item?.shop_address}</Text>
+                <Text style={styles.title}>
+                  {route.params?.item?.shop_name}
+                </Text>
+                <View style={styles.headerRow}>
+                  <Text style={styles.subtitle}>
+                    {calculateDeliveryTime(
+                      route.params?.item?.distance.toFixed(1),
+                    )}{' '}
+                    | {route.params?.item?.distance.toFixed(1)} km
+                  </Text>
+{route?.params?.item?.minimum_order && (
+  <View style={styles.minimumOrderGradientContainer}>
+    <View style={styles.minimumOrderGradient}>
+      <MaterialCommunityIcons 
+        name="cart-outline" 
+        size={11} 
+        color="#0EAF50" 
+      />
+      <Text style={styles.minimumOrderGradientText}>
+        Min Order ₹{route?.params?.item?.minimum_order}
+      </Text>
+    </View>
+  </View>
+)}
+                </View>
                 {/* <View style={styles.ratingContainer}>
                   <Icon name="star" size={18} color="gold" />
                   <Text style={styles.rating}>{route.params?.item?.shop_rating}</Text>
                 </View> */}
-                <View style={{ backgroundColor: 'rgba(238, 235, 204, 0.20)', padding: 4, borderRadius: 4, width: 95 }}>
-                  <StarRating rating={route.params?.item?.shop_rating} width={15} gap={4} />
+                <View
+                  style={{
+                    backgroundColor: 'rgba(238, 235, 204, 0.20)',
+                    padding: 4,
+                    borderRadius: 4,
+                    width: 95,
+                  }}>
+                  <StarRating
+                    rating={route.params?.item?.shop_rating}
+                    width={15}
+                    gap={4}
+                  />
                 </View>
               </View>
               <View style={styles.headerIcons}>
@@ -601,8 +633,7 @@ const RestaurantScreen = ({ navigation, route }) => {
                 {searchQuery.length > 0 && (
                   <TouchableOpacity
                     style={styles.clearButton}
-                    onPress={() => setSearchQuery('')}
-                  >
+                    onPress={() => setSearchQuery('')}>
                     <MaterialIcons name="close" size={20} color="#666" />
                   </TouchableOpacity>
                 )}
@@ -611,9 +642,7 @@ const RestaurantScreen = ({ navigation, route }) => {
           </View>
         </ImageBackground>
 
-        <View>
-          {renderFilters()}
-        </View>
+        <View>{renderFilters()}</View>
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -623,7 +652,9 @@ const RestaurantScreen = ({ navigation, route }) => {
           <View style={styles.noItemsContainer}>
             <MaterialCommunityIcons name="food-off" size={50} color="#A3A3A3" />
             <Text style={styles.noItemsText}>No items found</Text>
-            <Text style={styles.noItemsSubText}>We couldn't find any items matching your search</Text>
+            <Text style={styles.noItemsSubText}>
+              We couldn't find any items matching your search
+            </Text>
           </View>
         ) : (
           <View style={styles.itemListContainer}>
@@ -633,38 +664,35 @@ const RestaurantScreen = ({ navigation, route }) => {
                 data={filteredData}
                 keyExtractor={(item, index) => `${item.id}_${index}`}
                 style={styles.itemList}
-                contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 160 : 150 }}
+                contentContainerStyle={{
+                  paddingBottom: Platform.OS === 'ios' ? 160 : 150,
+                }}
                 renderItem={renderItem}
                 scrollEnabled={false}
                 nestedScrollEnabled={true}
-                onScrollToIndexFailed={({ index, averageItemLength }) => {
+                onScrollToIndexFailed={({index, averageItemLength}) => {
                   flatListRef.current?.scrollToOffset({
                     offset: index * averageItemLength,
-                    animated: true
+                    animated: true,
                   });
                   setTimeout(() => {
-                    flatListRef.current?.scrollToIndex({ index, animated: true });
+                    flatListRef.current?.scrollToIndex({index, animated: true});
                   }, 100);
                 }}
               />
             </View>
-
           </View>
         )}
       </ScrollView>
 
-
-
-
       {cartCalculations.hasItems && (
-        <Animated.View
-          style={styles.cartSummary(translateY)}
-        >
+        <Animated.View style={styles.cartSummary(translateY)}>
           <TouchableOpacity
-            onPress={() => navigation.navigate("CartScreen", { isFromRestaurant: true })}
+            onPress={() =>
+              navigation.navigate('CartScreen', {isFromRestaurant: true})
+            }
             style={styles.cartSummaryButton}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             <View style={styles.cartSummaryContent}>
               <View style={styles.cartSummaryLeft}>
                 <View style={styles.cartItemCountContainer}>
@@ -673,9 +701,7 @@ const RestaurantScreen = ({ navigation, route }) => {
                   </Text>
                 </View>
                 <View style={styles.cartTextContainer}>
-                  <Text style={styles.cartSummaryText}>
-                    Items in cart
-                  </Text>
+                  <Text style={styles.cartSummaryText}>Items in cart</Text>
                   <Text style={styles.cartSummarySubText}>
                     ₹{cartCalculations.totalPrice}
                   </Text>
@@ -694,34 +720,31 @@ const RestaurantScreen = ({ navigation, route }) => {
         visible={showReplaceModal}
         transparent
         animationType="fade"
-        onRequestClose={handleCancelReplace}
-      >
+        onRequestClose={handleCancelReplace}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Replace Cart Items?</Text>
             <Text style={styles.modalText}>
-              Your cart contains items from a different restaurant. Would you like to replace them with items from {route.params?.item?.shop_name}?
+              Your cart contains items from a different restaurant. Would you
+              like to replace them with items from{' '}
+              {route.params?.item?.shop_name}?
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
-                onPress={handleCancelReplace}
-              >
+                onPress={handleCancelReplace}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleReplaceCart}
-              >
+                onPress={handleReplaceCart}>
                 <Text style={styles.confirmButtonText}>Replace</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
     </View>
-
   );
 };
 
@@ -1172,6 +1195,42 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(6, 94, 44, 0.1)',
     borderRadius: 8,
   },
+miniChip: {
+  backgroundColor: '#FFF3E0',
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  borderRadius: 4,
+  marginLeft: 6,
+},
+miniChipText: {
+  fontSize: 10,
+  fontWeight: '700',
+  color: '#F57C00',
+},
+minimumOrderGradientContainer: {
+  marginLeft: 6,
+  borderRadius: 10,
+  overflow: 'hidden',
+},
+minimumOrderGradient: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#E8F5E9', // Light green background
+  paddingHorizontal: 8,
+  paddingVertical: 3,
+  gap: 4,
+  borderWidth: 1,
+  borderColor: '#A5D6A7',
+},
+minimumOrderGradientText: {
+  fontSize: 11,
+  fontWeight: '700',
+  color: '#0EAF50',
+  letterSpacing: 0.2,
+},
+
+
+
 });
 
 export default RestaurantScreen;

@@ -40,6 +40,8 @@ import RestaurantScreen from './RestaurantScreen';
 import commonStyles from '../../commonstyles/CommonStyles';
 import StatusBarManager from '../../components/StatusBarManager';
 import RazorpayCheckout from 'react-native-razorpay';
+import MinimumOrderModal from '../../components/MinimumOrderModal';
+import { getActualDistance } from '../../services/googleDistanceService';
 
 
 const CheckoutScreen = ({ navigation, route }) => {
@@ -76,6 +78,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     totalCharge: 0,
   });
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showMinimumOrderModal, setShowMinimumOrderModal] = useState(false);
 
   const paymentMethods = ['COD'];
 
@@ -254,6 +257,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     minOrderPrice,
     gstRate = 18,
   ) {
+    console.log(distance,cartPrice,minOrderPrice,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>minOrderPrice");
     let deliveryCharge = reaturantDetails?.minimum_del_charge;
 
     if (distance >= Number(reaturantDetails?.minimum_km || 3)) {
@@ -283,8 +287,13 @@ const CheckoutScreen = ({ navigation, route }) => {
   }
 
 
-
   const handlePlaceOrder = async () => {
+      const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
+  
+  if (minimumOrderAmount > 0 && totalSellingPrice < minimumOrderAmount) {
+    setShowMinimumOrderModal(true);
+    return;
+  }
     try {
       setIsProcessingPayment(true);
 
@@ -438,6 +447,7 @@ const CheckoutScreen = ({ navigation, route }) => {
       Alert.alert('Unexpected Error', error?.message || 'Something went wrong. Please try again.');
     } finally {
       setIsProcessingPayment(false);
+      setIsProcessingPayment(false);
     }
   };
 
@@ -450,25 +460,25 @@ const CheckoutScreen = ({ navigation, route }) => {
     });
   };
 
-  useEffect(() => {
-    dispatch(getChargesList());
-  }, []);
+  const getDistances= async ()=>{
+      if (!selectedAddress && !reaturantDetails) return;
 
-  useEffect(() => {
-    caliculateTotalPrice();
-  }, [cartItems, appliedCoupon]);
+    const distance= await getActualDistance(
+       selectedAddress.customer_latitude,
+      selectedAddress.customer_longitude,
+      reaturantDetails.shop_latitude,
+      reaturantDetails.shop_longitude,
+    )
 
-  useEffect(() => {
-    if (!selectedAddress && !reaturantDetails) return;
     const value = haversineDistance(
       selectedAddress.customer_latitude,
       selectedAddress.customer_longitude,
       reaturantDetails.shop_latitude,
       reaturantDetails.shop_longitude,
     );
-    setDistance(value);
+    setDistance(distance.success?distance.distance:value);
     const charges = calculateDeliveryCharge(
-      distance,
+      distance.success?distance.distance:value,
       itemsTotalPrice,
       orderOfferAmount,
     );
@@ -479,6 +489,18 @@ const CheckoutScreen = ({ navigation, route }) => {
       + Number(charges.totalCharge)
       + Number(handlingCharges || 0)
     );
+  }
+
+  useEffect(() => {
+    dispatch(getChargesList());
+  }, []);
+
+  useEffect(() => {
+    caliculateTotalPrice();
+  }, [cartItems, appliedCoupon]);
+
+  useEffect(() => {
+    getDistances()
   }, [
     selectedAddress,
     reaturantDetails,
@@ -496,6 +518,8 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   }, [grandTotal, selectedPaymentMethod, paymentMethods]);
 
+
+  console.log(delivery,">>>>>>>>>>>>>>>>>>>>>>>>>>>DELIVERY");
   
 
   return (
@@ -854,6 +878,18 @@ const CheckoutScreen = ({ navigation, route }) => {
             </View>
           </View>
         </Modal>
+
+        <MinimumOrderModal
+  visible={showMinimumOrderModal}
+  onClose={() => setShowMinimumOrderModal(false)}
+  onAddItems={() => {
+    setShowMinimumOrderModal(false);
+    navigation.goBack(); // Go back to restaurant screen
+  }}
+  minimumAmount={Number(reaturantDetails?.minimum_order || 0)}
+  currentAmount={totalSellingPrice}
+  restaurantName={reaturantDetails?.shop_name}
+/>
 
       </View>
     </SafeAreaView>

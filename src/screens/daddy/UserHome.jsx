@@ -111,11 +111,13 @@ export default function UserHome({ navigation }) {
     loading.banners
   );
 
+  console.log(subCategories,">>>>>>>>>>>>>>>>>>>subCategories");
+
   const getAddressFromCoordinates = async (latitude, longitude) => {
     try {
       setErrorOccured(false);
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyBjxoAFhr00pjmZ95SEJYoUL98A6iX8hQ4`,
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyApeRJe3NFzGsTey20Xu8XEFrIxphxs4VM`,
       );
       const data = await response.json();
       if (data.results && data.results.length > 0) {
@@ -140,7 +142,7 @@ export default function UserHome({ navigation }) {
       async position => {
         const { latitude, longitude } = position.coords;
         const address = await getAddressFromCoordinates(latitude, longitude);
-        dispatch(setLocation({ latitude, longitude }));
+        await dispatch(setLocation({ latitude, longitude }));
         const currentLocationAddress = {
           address_type: userAddress?.address_type || 'Home',
           full_address: address,
@@ -153,6 +155,7 @@ export default function UserHome({ navigation }) {
         dispatch(updateUserAddress(currentLocationAddress));
         setSelectedAddress(currentLocationAddress);
         setIsLoadingLocation(false);
+          checkServiceAvailability({ latitude, longitude })
       },
       error => {
         console.error('Error getting location:', error);
@@ -299,10 +302,43 @@ export default function UserHome({ navigation }) {
     navigation.navigate('CategoriesScreen');
   };
 
-  const checkServiceAvailability = async () => {
+      console.log(authLocation,">>>>>>>>>>>>>>>>>>>>authLocation");
+
+  const checkServiceAvailability = async (paramAuth) => {
     const abortController = new AbortController();
-    
+    console.log(paramAuth,">>>>>>>>>>>>>>>>>>>>paramAuth");
     const checkAvailability = async () => {
+      if(paramAuth){
+      try {
+        setErrorOccured(false);
+        const response = await dispatch(checkAddressExistence({
+          latitude: paramAuth.latitude,
+          longitude: paramAuth.longitude
+        })).unwrap();
+        
+        if (mounted) {
+          await dispatch(setLocationName(response.data[0].location_name));
+          await dispatch(setLocationId(response.data[0].id));
+          
+          if (response.data.length > 0) {
+            const result = await dispatch(getCategories());
+            dispatch(setOrderOfferAmount(result.payload?.data[0]?.order_offer_amount));
+            dispatch(getBanners());
+            if (!restaurants || restaurants.length === 0) {
+              dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex }));
+            }
+            dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
+          }
+        }
+      } catch (error) {
+        setErrorOccured(true);
+        if (error.name !== 'AbortError' && mounted) {
+          // Handle error
+        }
+      }
+
+        return
+      }
       if (!authLocation || !mounted) return;
       
       try {

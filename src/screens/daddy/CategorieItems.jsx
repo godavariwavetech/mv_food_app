@@ -48,7 +48,8 @@ export default function CategorieItems({ navigation, route }) {
       setIsLoading(true);
       const getResponse = await dispatch(getRestaurants({
         categoryId: activeCategoryIndex,
-        subCatergoryId: activeSubCategory.sub_category_id
+        subCatergoryId: activeSubCategory.sub_category_id,
+        shopIds:activeSubCategory.shop_id
       }));
 
       setFilterData(getResponse.payload.data[1] || []);
@@ -99,6 +100,8 @@ export default function CategorieItems({ navigation, route }) {
  
     setFilteredRestaurants(filtered);
   }, [searchQuery, restaurants, activeFilters, filterData]);
+
+  console.log(filteredRestaurants,">>>>>>>>>>>>>>>FILTERED");
 
   const calculateDeliveryTime = (distance) => {
     if (distance < 3) {
