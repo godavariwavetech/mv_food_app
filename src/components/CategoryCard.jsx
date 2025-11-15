@@ -33,9 +33,9 @@ const CategoryCard = ({
         {/* Label Section */}
         <View style={[
           styles.labelSection,
-          { backgroundColor: isSelected ? '#079D39' : '#B2E7C4' }
+          { backgroundColor: isSelected ? '#079D39' : '#B2E7C4',paddingHorizontal:20 }
         ]}>
-          <Text style={[styles.labelText,{color:isSelected ? '#fff' : '#000'}]}>{title}</Text>
+          <Text style={[styles.labelText,{color:isSelected ? '#fff' : '#000',}]} numberOfLines={1}>{title}</Text>
           
           {isSelected && (
             <View style={styles.checkmark}>

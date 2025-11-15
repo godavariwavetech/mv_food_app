@@ -45,14 +45,14 @@ const AddAddressScreen = ({ navigation, route }) => {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [region, setRegion] = useState({
-    latitude: 17.0005,
-    longitude: 81.804,
+    latitude: 17.1238205,
+    longitude: 81.2959633,
     latitudeDelta: 0.005,
     longitudeDelta: 0.005,
   });
   const [markerPosition, setMarkerPosition] = useState({
-    latitude: 17.0005,
-    longitude: 81.804,
+    latitude: 17.1238205,
+  longitude: 81.2959633,
   });
   const mapRef = useRef(null);
   const lastUpdateTime = useRef(Date.now());

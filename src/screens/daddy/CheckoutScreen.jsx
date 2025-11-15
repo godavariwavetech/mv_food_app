@@ -79,6 +79,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   });
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showMinimumOrderModal, setShowMinimumOrderModal] = useState(false);
+  const [amountLoading,setAmountLoading] = useState(true)
 
   const paymentMethods = ['COD'];
 
@@ -306,7 +307,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         customer_mobile_number: selectedAddress?.customer_mobile_number,
         category_id: cartItems[0]?.category_id,
         sub_category_id: cartItems[0]?.sub_category_id,
-        admin_percentage: 10,
+        admin_percentage: Number(reaturantDetails?.admin_percentage || 0),
         item_count: cartItems?.reduce((sum, item) => sum + Number(item.quantity), 0),
         total_amount: totalSellingPrice,
         total_saving_amount: totalSavings,
@@ -357,6 +358,10 @@ const CheckoutScreen = ({ navigation, route }) => {
         })),
       };
 
+      console.log(payload,">>>>>>>>>>>>PAYLOADDDDDDDDDDD");
+
+      // return
+
       // 🔹 Case 1: COD
       if (selectedPaymentMethod === 'COD') {
         const responseCod = await dispatch(placeOrder({ orderDetails: payload }));
@@ -402,7 +407,7 @@ const CheckoutScreen = ({ navigation, route }) => {
           key: razorpayOrder.key_id,
           amount: razorpayOrder.amount,
           order_id: razorpayOrder.id,
-          name: 'Melocal',
+          name: 'Varadhi Foods',
           prefill: {
             email: selectedAddress?.customer_email || 'test@example.com',
             contact: selectedAddress?.customer_mobile_number,
@@ -463,6 +468,8 @@ const CheckoutScreen = ({ navigation, route }) => {
   const getDistances= async ()=>{
       if (!selectedAddress && !reaturantDetails) return;
 
+setAmountLoading(true)
+
     const distance= await getActualDistance(
        selectedAddress.customer_latitude,
       selectedAddress.customer_longitude,
@@ -489,6 +496,9 @@ const CheckoutScreen = ({ navigation, route }) => {
       + Number(charges.totalCharge)
       + Number(handlingCharges || 0)
     );
+    setTimeout(() => {
+      setAmountLoading(false)
+    }, 500);
   }
 
   useEffect(() => {
@@ -807,8 +817,8 @@ const CheckoutScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={styles.placeOrderButton}
             onPress={handlePlaceOrder}
-            disabled={isProcessingPayment}>
-            {isProcessingPayment ? (
+            disabled={isProcessingPayment || amountLoading}>
+            {(isProcessingPayment || amountLoading) ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <View style={styles.placeOrderContent}>

@@ -30,8 +30,8 @@ import {
 import commonStyles from '../../commonstyles/CommonStyles';
 
 const DEFAULT_REGION = {
-  latitude: 16.9979679,
-  longitude: 81.797932,
+  latitude: 17.1238205,
+  longitude: 81.2959633,
   latitudeDelta: 0.0922,
   longitudeDelta: 0.0421,
 };

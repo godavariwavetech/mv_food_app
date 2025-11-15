@@ -292,6 +292,9 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     });
   }, []);
 
+
+  console.log(orderDetails,">>>>>>>>>>>>>ORDERDATA");
+
   // Define allowed tracking statuses
   const TRACKING_STATUSES = [0, 1, 2, 8, 3];
 

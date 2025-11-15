@@ -25,7 +25,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import Feather from 'react-native-vector-icons/Feather';
 import Octicons from 'react-native-vector-icons/Octicons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 // import { logout } from '../../redux/reducers/daddy';
 import CustomModal from '../../components/CustomModal';
@@ -123,6 +123,15 @@ const ProfileScreen = () => {
     setLogoutModalVisible(false);
     dispatch(actionLogout());
     dispatch(clearCart());
+    navigation.dispatch(
+  CommonActions.reset({
+    index: 0, // Specifies the active route index in the new stack
+    routes: [
+      { name: 'Login' }, // The 'Home' screen is now the only screen in the stack
+      // You could add more routes here, e.g., { name: 'Profile' }
+    ],
+  })
+);
   };
 
   const handleCheckForUpdate = async () => {
@@ -449,7 +458,7 @@ const ProfileScreen = () => {
         message={
           showUpdateModal
             ? 'A new version is available. Please update now!'
-            : "You're using the latest version of ChilBro"
+            : "You're using the latest version of Varadhi Foods"
         }
         confirmText="OK"
         onConfirm={() => setUpdateModalVisible(false)}
@@ -470,7 +479,7 @@ const ProfileScreen = () => {
       <CustomModal
         visible={showUpdateModal}
         title="Update Available"
-        message="A new version of ChilBro is available. Please update to continue using all features."
+        message="A new version of Varadhi Foods is available. Please update to continue using all features."
         confirmText="Update Now"
         onConfirm={handleUpdate}
         onCancel={() => setShowUpdateModal(false)}
