@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
   TextInput,
   Image,
-  ScrollView,
   TouchableOpacity,
   StatusBar,
   FlatList,
@@ -60,6 +59,57 @@ const screenWidth = Dimensions.get('window').width;
 const itemWidth = screenWidth / 6;
 const STICKY_HEADER_SCROLL_DISTANCE = 120;
 
+// Memoized Restaurant Item Component
+const RestaurantItem = React.memo(({ item, calculateDeliveryTime, navigation, isUnavailable }) => (
+  <TouchableOpacity
+    style={[styles.restaurantCard, isUnavailable && styles.unavailableCard]}
+    onPress={() => {
+      if (!isUnavailable) {
+        navigation.navigate('RestaurantScreen', {
+          shopId: item.shop_id,
+          shopItem: item.shop_items_tb_nm,
+          item,
+        });
+      }
+    }}
+  >
+    <View style={styles.restaurantContent}>
+      <View style={styles.restaurantImageContainer}>
+        <Image 
+          source={{ uri: item?.shop_image }} 
+          style={styles.restaurantImage} 
+          resizeMethod="resize" 
+        />
+        {isUnavailable && (
+          <View style={styles.unavailableOverlay}>
+            <Text style={[styles.unavailableText, { color: 'red' }]}>Currently Unavailable</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.restaurantTextContainer}>
+        <Text style={styles.restaurantName}>{item.shop_name}</Text>
+        <View style={styles.ratingRow}>
+          <StarIcon />
+          <Text style={styles.ratingText}>{item.shop_rating}</Text>
+          <Text style={styles.dot}>•</Text>
+          <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
+            <Clock />
+            <Text style={{ fontSize: 11, fontWeight: '400' }}>
+              {calculateDeliveryTime(item.distance)}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.addressText}>{item.shop_address || 'Tilak Road • 3.0 km'}</Text>
+        {item.special_offer_name && (
+          <View style={styles.offerTag}>
+            <Text style={styles.offerText}>{item.special_offer_name}</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  </TouchableOpacity>
+));
+
 export default function UserHome({ navigation }) {
   const { categories, subCategories, banners, restaurants, activeCategoryIndex, loading, addressList, userAddress, serviceAvailable, homeRestaurnats } = useSelector(state => state.Dashboard);
   const { locationName } = useSelector(state => state.Auth);
@@ -84,7 +134,6 @@ export default function UserHome({ navigation }) {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [selectedCategoryName, setSelectedCategoryName] = useState('Food');
 
-  // Add flag to track initial load
   const hasInitiallyLoaded = useRef(false);
   const scrollPositionRef = useRef(0);
 
@@ -110,8 +159,6 @@ export default function UserHome({ navigation }) {
     loading.categories ||
     loading.banners
   );
-
-  console.log(subCategories,">>>>>>>>>>>>>>>>>>>subCategories");
 
   const getAddressFromCoordinates = async (latitude, longitude) => {
     try {
@@ -210,7 +257,6 @@ export default function UserHome({ navigation }) {
     }
   };
 
-  // Only run on initial mount
   useEffect(() => {
     const initializeLocation = async () => {
       if (authLocation) {
@@ -230,14 +276,12 @@ export default function UserHome({ navigation }) {
       }
     };
     
-    // Only run initialization once
     if (!hasInitiallyLoaded.current) {
       initializeLocation();
       hasInitiallyLoaded.current = true;
     }
-  }, []); // Empty dependency array
+  }, []); 
 
-  // Only fetch address list when screen focuses
   useFocusEffect(
     useCallback(() => {
       dispatch(getAddressList());
@@ -253,7 +297,6 @@ export default function UserHome({ navigation }) {
     }
   }, [categories, activeCategoryIndex]);
 
-  // MODIFIED - Only check service availability on initial load
   useFocusEffect(
     useCallback(() => {
       const checkOnFocus = async () => {
@@ -273,7 +316,6 @@ export default function UserHome({ navigation }) {
     setSelectedCategoryName(category.category_name);
   };
 
-  // Banner auto-scroll
   useFocusEffect(
     useCallback(() => {
       let intervalId;
@@ -302,43 +344,37 @@ export default function UserHome({ navigation }) {
     navigation.navigate('CategoriesScreen');
   };
 
-      console.log(authLocation,">>>>>>>>>>>>>>>>>>>>authLocation");
-
   const checkServiceAvailability = async (paramAuth) => {
     const abortController = new AbortController();
-    console.log(paramAuth,">>>>>>>>>>>>>>>>>>>>paramAuth");
     const checkAvailability = async () => {
       if(paramAuth){
-      try {
-        setErrorOccured(false);
-        const response = await dispatch(checkAddressExistence({
-          latitude: paramAuth.latitude,
-          longitude: paramAuth.longitude
-        })).unwrap();
-        
-        if (mounted) {
-          await dispatch(setLocationName(response.data[0].location_name));
-          await dispatch(setLocationId(response.data[0].id));
+        try {
+          setErrorOccured(false);
+          const response = await dispatch(checkAddressExistence({
+            latitude: paramAuth.latitude,
+            longitude: paramAuth.longitude
+          })).unwrap();
           
-          if (response.data.length > 0) {
-            const result = await dispatch(getCategories());
-            dispatch(setOrderOfferAmount(result.payload?.data[0]?.order_offer_amount));
-            dispatch(getBanners());
-            if (!restaurants || restaurants.length === 0) {
-              dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex }));
+          if (mounted) {
+            await dispatch(setLocationName(response.data[0].location_name));
+            await dispatch(setLocationId(response.data[0].id));
+            
+            if (response.data.length > 0) {
+              const result = await dispatch(getCategories());
+              dispatch(setOrderOfferAmount(result.payload?.data[0]?.order_offer_amount));
+              dispatch(getBanners());
+              if (!restaurants || restaurants.length === 0) {
+                dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex }));
+              }
+              dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
             }
-            dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
           }
+        } catch (error) {
+          setErrorOccured(true);
         }
-      } catch (error) {
-        setErrorOccured(true);
-        if (error.name !== 'AbortError' && mounted) {
-          // Handle error
-        }
+        return;
       }
 
-        return
-      }
       if (!authLocation || !mounted) return;
       
       try {
@@ -364,9 +400,6 @@ export default function UserHome({ navigation }) {
         }
       } catch (error) {
         setErrorOccured(true);
-        if (error.name !== 'AbortError' && mounted) {
-          // Handle error
-        }
       }
     };
     
@@ -428,6 +461,169 @@ export default function UserHome({ navigation }) {
 
   const popularRestaurants = homeRestaurnats && homeRestaurnats.filter(restaurant => Number(restaurant.shop_rating) >= 4.5);
 
+  // --- RENDER HEADER FUNCTION ---
+  const renderHeader = useCallback(() => {
+    // 1. Slice data to only show 2 rows (4 columns * 2 rows = 8 items)
+    const displayedSubCategories = subCategories ? subCategories.slice(0, 8) : [];
+
+    return (
+      <View>
+        <LinearGradient
+          colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("SelectServiceFromLocation", { selectedAddress })}
+              style={styles.locationContainer}
+            >
+              <Icon name="location-on" size={24} color="#fff" />
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.locationTitle}>
+                    {locationName ? locationName : 'Select Location'}
+                  </Text>
+                  <Icon name="keyboard-arrow-down" size={20} color="#fff" style={{ marginLeft: 4 }} />
+                </View>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Profile')}
+              style={styles.profileButton}
+            >
+              <Image
+                source={require('../daddy/tabassets/dummy-profile.png')}
+                style={styles.profileAvatar}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <Icon name="search" size={24} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search"
+              placeholderTextColor="#999"
+              value={searchQuery}
+              onChangeText={handleSearch}
+              onFocus={() => navigation.navigate('CategoriesScreen')}
+            />
+          </View>
+
+          <FlatList
+            ref={flatListRef}
+            data={banners}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingTop: 0, paddingBottom: 30 }}
+            keyExtractor={(item, index) => `banner-${item.id || index}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => {}} style={styles.bannerContainer}>
+                <Image
+                  source={{ uri: item.banner_image }}
+                  style={styles.bannerImage}
+                  resizeMode="stretch"
+                />
+              </TouchableOpacity>
+            )}
+          />
+        </LinearGradient>
+
+        <View style={styles.contentContainer}>
+          <View style={styles.categoryHeaderContainer}>
+            <Text style={styles.categoryHeaderTitle}>Category</Text>
+            <View style={styles.categoryHeaderLine} />
+          </View>
+
+          {categories && (
+            <FlatList
+              data={categories}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `category-${item.id || index}`}
+              contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 15 }}
+              renderItem={({ item }) => (
+                <CategoryCard
+                  title={item.category_name}
+                  imageSource={{ uri: item.category_image }}
+                  isSelected={item.id === activeCategoryIndex}
+                  onPress={() => handleSubCategories(item)}
+                />
+              )}
+            />
+          )}
+
+          <View style={styles.categoryHeaderContainer}>
+            <Text style={styles.categoryHeaderTitle}>{selectedCategoryName} Items</Text>
+            <View style={styles.categoryHeaderLine} />
+          </View>
+
+          {/* 2. SubCategories Grid with Limit and View More Button */}
+          {subCategories && (
+            <View style={styles.subCategoriesContainer}>
+              <FlatList
+                data={displayedSubCategories} // Use sliced data here
+                numColumns={4}
+                scrollEnabled={false}
+                keyExtractor={(item, index) => `subcategory-${item.id || index}`}
+                columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 15 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 10 }}
+                renderItem={({ item }) => (
+                  <SubCategoryCard
+                    title={item.sub_category_name}
+                    imageSource={{ uri: item.sub_category_image }}
+                    onPress={() => {
+                      dispatch(setsubCategory(item));
+                      navigation.navigate('CategorieItems');
+                    }}
+                  />
+                )}
+                ListEmptyComponent={() => (
+                  <View style={{ width: responsiveWidth(100), height: responsiveHeight(5), alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No items found</Text>
+                  </View>
+                )}
+              />
+
+              {/* View More Button - Navigates to 'Categories' Tab */}
+              {subCategories.length > 8 && (
+                <TouchableOpacity 
+                  style={styles.viewMoreContainer}
+                  onPress={() => navigation.navigate('Categories')} // Ensure this matches your Tab route name
+                >
+                  <Text style={styles.viewMoreText}>View More</Text>
+                  <Icon name="keyboard-arrow-right" size={20} color="#088B35" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          <View style={[commonStyles.row, { paddingHorizontal: 16, marginTop: 3, marginBottom: 10 }]}>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#2B2B2B' }}>
+              Popular {activeCategoryIndex === 1 ? "Restaurants" : "Shops"}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }, [banners, categories, subCategories, activeCategoryIndex, locationName, selectedCategoryName, searchQuery, selectedAddress, insets.top, navigation]);
+
+  const renderRestaurantItem = useCallback(({ item }) => {
+    const isUnavailable = item.shop_active_status === "1";
+    return (
+      <View style={{ paddingHorizontal: 10, marginBottom: 16 }}>
+        <RestaurantItem 
+          item={item} 
+          isUnavailable={isUnavailable} 
+          calculateDeliveryTime={calculateDeliveryTime}
+          navigation={navigation}
+        />
+      </View>
+    );
+  }, [navigation]);
+
   return (
     <View style={styles.mainContainer}>
       <StatusBar backgroundColor="#088B35" translucent barStyle="light-content" />
@@ -444,7 +640,7 @@ export default function UserHome({ navigation }) {
           <MaterialIcons name="error-outline" size={40} color={colors.red} />
           <Text style={styles.errorText}>Network Error</Text>
           <Text style={styles.errorSubText}>Failed to connect to the server</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={checkServiceAvailability}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => checkServiceAvailability()}>
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -452,7 +648,6 @@ export default function UserHome({ navigation }) {
         <Skeleton />
       ) : serviceAvailable ? (
         <View style={styles.container}>
-          {/* Sticky Search Bar */}
           <Animated.View
             style={[
               styles.stickySearchBar,
@@ -482,8 +677,17 @@ export default function UserHome({ navigation }) {
             </LinearGradient>
           </Animated.View>
 
-          {/* Main Scrollable Content */}
-          <Animated.ScrollView
+          <Animated.FlatList
+            data={popularRestaurants}
+            keyExtractor={(item, index) => `restaurant-${item.shop_id || item.id || index}`}
+            ListHeaderComponent={renderHeader}
+            renderItem={renderRestaurantItem}
+            
+            removeClippedSubviews={true}
+            initialNumToRender={5}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onScroll={Animated.event(
@@ -502,208 +706,15 @@ export default function UserHome({ navigation }) {
                 colors={['#088B35']}
               />
             }
-          >
-            <LinearGradient
-              colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.headerGradient}
-            >
-              {/* Location Section */}
-              <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("SelectServiceFromLocation", { selectedAddress })}
-                  style={styles.locationContainer}
-                >
-                  <Icon name="location-on" size={24} color="#fff" />
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={styles.locationTitle}>
-                        {locationName ? locationName : 'Select Location'}
-                      </Text>
-                      <Icon name="keyboard-arrow-down" size={20} color="#fff" style={{ marginLeft: 4 }} />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Profile')}
-                  style={styles.profileButton}
-                >
-                  <Image
-                    source={require('../daddy/tabassets/dummy-profile.png')}
-                    style={styles.profileAvatar}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Search Bar */}
-              <View style={styles.searchContainer}>
-                <Icon name="search" size={24} color="#999" />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search"
-                  placeholderTextColor="#999"
-                  value={searchQuery}
-                  onChangeText={handleSearch}
-                  onFocus={() => navigation.navigate('CategoriesScreen')}
-                />
-              </View>
-
-              {/* Banner Section */}
-              <FlatList
-                ref={flatListRef}
-                data={banners}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingTop: 0, paddingBottom: 30 }}
-                keyExtractor={(item, index) => `banner-${item.id || index}`}
-                renderItem={({ item }) => (
-                  // <TouchableOpacity onPress={() => handleBannerPress(item)} style={styles.bannerContainer}>
-                  <TouchableOpacity onPress={() => {}} style={styles.bannerContainer}>
-                    <Image
-                      source={{ uri: item.banner_image }}
-                      style={styles.bannerImage}
-                      resizeMode="stretch"
-                    />
-                  </TouchableOpacity>
-                )}
-              />
-            </LinearGradient>
-
-            {/* Content area with curved top edge */}
-            <View style={styles.contentContainer}>
-              {/* Category Header */}
-              <View style={styles.categoryHeaderContainer}>
-                <Text style={styles.categoryHeaderTitle}>Category</Text>
-                <View style={styles.categoryHeaderLine} />
-              </View>
-
-              {/* Categories */}
-              {categories && (
-                <FlatList
-                  data={categories}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item, index) => `category-${item.id || index}`}
-                  contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 15 }}
-                  renderItem={({ item }) => (
-                    <CategoryCard
-                      title={item.category_name}
-                      imageSource={{ uri: item.category_image }}
-                      isSelected={item.id === activeCategoryIndex}
-                      onPress={() => handleSubCategories(item)}
-                    />
-                  )}
-                />
-              )}
-
-              {/* Subcategory Header */}
-              <View style={styles.categoryHeaderContainer}>
-                <Text style={styles.categoryHeaderTitle}>{selectedCategoryName} Items</Text>
-                <View style={styles.categoryHeaderLine} />
-              </View>
-
-              {/* SubCategories */}
-              {subCategories && (
-                <View style={styles.subCategoriesContainer}>
-                  <FlatList
-                    data={subCategories}
-                    numColumns={4}
-                    scrollEnabled={false}
-                    keyExtractor={(item, index) => `subcategory-${item.id || index}`}
-                    columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 15 }}
-                    contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 10 }}
-                    renderItem={({ item }) => (
-                      <SubCategoryCard
-                        title={item.sub_category_name}
-                        imageSource={{ uri: item.sub_category_image }}
-                        onPress={() => {
-                          dispatch(setsubCategory(item));
-                          navigation.navigate('CategorieItems');
-                        }}
-                      />
-                    )}
-                    ListEmptyComponent={() => (
-                      <View style={{ width: responsiveWidth(100), height: responsiveHeight(5), alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No items found</Text>
-                      </View>
-                    )}
-                  />
-                </View>
-              )}
-
-              {/* Popular Restaurants/Shops */}
-              <View style={[commonStyles.row, { paddingHorizontal: 16, marginTop: 3 }]}>
-                <Text style={{ fontSize: 18, fontWeight: '600', color: '#2B2B2B' }}>
-                  Popular {activeCategoryIndex === 1 ? "Restaurants" : "Shops"}
+            ListEmptyComponent={() => (
+              <View style={{ alignItems: 'center', justifyContent: 'center', height: responsiveHeight(10), width: responsiveWidth(100) }}>
+                <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>
+                  No popular {activeCategoryIndex === 1 ? "restaurants" : "shops"} available
                 </Text>
               </View>
-
-              <FlatList
-                data={popularRestaurants}
-                keyExtractor={(item, index) => `restaurant-${item.shop_id || item.id || index}`}
-                contentContainerStyle={{ padding: 10, paddingBottom: 40 }}
-                showsVerticalScrollIndicator={false}
-                scrollEnabled={false}
-                ListEmptyComponent={() => (
-                  <View style={{ alignItems: 'center', justifyContent: 'center', height: responsiveHeight(10), width: responsiveWidth(100) }}>
-                    <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>
-                      No popular {activeCategoryIndex === 1 ? "restaurants" : "shops"} available
-                    </Text>
-                  </View>
-                )}
-                renderItem={({ item }) => {
-                  const isUnavailable = item.shop_active_status === "1";
-                  const distance = item.distance;
-                  return (
-                    <TouchableOpacity
-                      style={[styles.restaurantCard, isUnavailable && styles.unavailableCard]}
-                      onPress={() => {
-                        if (!isUnavailable) {
-                          navigation.navigate('RestaurantScreen', {
-                            shopId: item.shop_id,
-                            shopItem: item.shop_items_tb_nm,
-                            item,
-                          });
-                        }
-                      }}
-                    >
-                      <View style={styles.restaurantContent}>
-                        <View style={styles.restaurantImageContainer}>
-                          <Image source={{ uri: item?.shop_image }} style={styles.restaurantImage} />
-                          {isUnavailable && (
-                            <View style={styles.unavailableOverlay}>
-                              <Text style={[styles.unavailableText, { color: 'red' }]}>Currently Unavailable</Text>
-                            </View>
-                          )}
-                        </View>
-                        <View style={styles.restaurantTextContainer}>
-                          <Text style={styles.restaurantName}>{item.shop_name}</Text>
-                          <View style={styles.ratingRow}>
-                            <StarIcon />
-                            <Text style={styles.ratingText}>{item.shop_rating}</Text>
-                            <Text style={styles.dot}>•</Text>
-                            <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
-                              <Clock />
-                              <Text style={{ fontSize: 11, fontWeight: '400' }}>
-                                {calculateDeliveryTime(distance)}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text style={styles.addressText}>{item.shop_address || 'Tilak Road • 3.0 km'}</Text>
-                          {item.special_offer_name && (
-                            <View style={styles.offerTag}>
-                              <Text style={styles.offerText}>{item.special_offer_name}</Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            </View>
-          </Animated.ScrollView>
+            )}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          />
         </View>
       ) : serviceAvailable === false ? (
         <ServiceUnavailableScreen />
@@ -856,6 +867,21 @@ const styles = StyleSheet.create({
   subCategoriesContainer: {
     backgroundColor: '#fff',
     marginVertical: 10,
+    paddingHorizontal:10
+  },
+  viewMoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  viewMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#088B35',
+    marginRight: 4,
   },
   restaurantCard: {
     marginBottom: 16,
