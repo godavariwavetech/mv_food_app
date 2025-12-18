@@ -72,6 +72,8 @@ const CategoriesScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (!allCategories) return;
 
+    console.log(allCategories,">>>>>>>>>>>>>>>>>>>allCategories");
+
     const groupedData = allCategories.reduce((acc, item) => {
       const { category_id, category_name, ...subCategory } = item;
       if (!acc[category_id]) {
@@ -149,6 +151,9 @@ const CategoriesScreen = ({ navigation, route }) => {
   }, [searchQuery, categories, globalSearchResults]); // Single dependency array
 
   const handleNavigation = async (item, subItem) => {
+
+    console.log(item, subItem,"item, subItem>>>>>>>>>>>>");
+    // return
 
     await dispatch(setActiveCategoryIndex(item.category_id));
     dispatch(setsubCategory(subItem));

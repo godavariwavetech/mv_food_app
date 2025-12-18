@@ -397,7 +397,10 @@ const CheckoutScreen = ({ navigation, route }) => {
     );
   }, [selectedAddress, reaturantDetails]);
 
+  console.log(calculatedDistance,">>>>>>>>>>>>>>>>>>>>>>calculatedDistance");
+
   const deliveryCharges = useMemo(() => {
+    console.log(distance,">>>>>>>>>>>>>>>>>>>>>.distancedistancedistancedistance");
     if (!reaturantDetails || !chargesList?.length) return { baseCharge: 0, gstAmount: 0, totalCharge: 0 };
     return calculateDeliveryCharge(
       distance,
@@ -425,6 +428,10 @@ const CheckoutScreen = ({ navigation, route }) => {
             reaturantDetails.shop_latitude,
             reaturantDetails.shop_longitude,
           );
+          console.log(response,"++++++++++++++++RESPOSNSNSSNSN FROM GOOGLE", selectedAddress.customer_latitude,
+            selectedAddress.customer_longitude,
+            reaturantDetails.shop_latitude,
+            reaturantDetails.shop_longitude,);
 
           if (response.success && response.distance) {
             setDistance(response.distance);

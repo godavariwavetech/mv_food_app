@@ -62,6 +62,8 @@ export default function CategorieItems({ navigation, route }) {
     }
   }
 
+  console.log(activeSubCategory,">>>>>>>>>>>>>>>>activeSubCategory");
+
   useFocusEffect(useCallback(() => {
     getFilters()
   }, [activeSubCategory]))

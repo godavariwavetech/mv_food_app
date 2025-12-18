@@ -18,7 +18,11 @@ const OnboardingScreen = ({onNext}) => {
         <Ionicons name="arrow-forward-circle" size={24} color="#08B341" />
       </TouchableOpacity> */}
       <View style={styles.imgContainer}>
-        <OnboardingLogo1 />
+        {/* <OnboardingLogo1 /> */}
+            <Image
+                source={require('./tabassets/onBoard1.png')}
+                style={styles.characterImage}
+              />
       </View>
 
       <ImageBackground
@@ -141,5 +145,12 @@ const styles = StyleSheet.create({
     marginTop: responsiveHeight(0.3),
     // width:58,height:58,
     // alignItems:'center',justifyContent:'center',
+  },
+    characterImage: {
+    width: responsiveWidth(80),
+    height: responsiveHeight(45),
+    marginTop: responsiveHeight(10),
+    resizeMode: 'contain',
+    transform:[{translateY:30}]
   },
 });

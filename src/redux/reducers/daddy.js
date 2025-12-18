@@ -298,6 +298,8 @@ export const getAllCategories = createAsyncThunk(
     { getState, rejectWithValue, fulfillWithValue }
   ) => {
     const response = await api.post(endpoints.GET_ALL_CATEGORIES)
+
+    console.log(response,">>>>>>>>>>>>>>>>api category responce");
     if (response) {
       if (response.data) {
         return fulfillWithValue(response.data);
