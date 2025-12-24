@@ -115,9 +115,9 @@ const CategoriesScreen = ({ navigation, route }) => {
     const localFiltered = route.params?.isFromHome
       ? []
       : categories.map(category => {
-        const categoryMatches = category.category_name.toLowerCase().includes(searchQuery.toLowerCase());
-        const subCategoryMatches = category.sub_categories.filter(sub =>
-          sub.sub_category_name.toLowerCase().includes(searchQuery.toLowerCase())
+        const categoryMatches = category?.category_name?.toLowerCase()?.includes(searchQuery?.toLowerCase());
+        const subCategoryMatches = category?.sub_categories?.filter(sub =>
+          sub.sub_category_name?.toLowerCase()?.includes(searchQuery?.toLowerCase())
         );
 
         return (categoryMatches || subCategoryMatches.length > 0) ? {
