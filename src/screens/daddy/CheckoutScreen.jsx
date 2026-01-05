@@ -7,7 +7,6 @@ import {
   ScrollView,
   Image,
   FlatList,
-  StatusBar,
   Modal,
   ActivityIndicator,
   SafeAreaView,
@@ -25,7 +24,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   addToCart,
   removeFromCart,
-  // removeCoupon,
   placeOrder,
   generateOrderId,
   updateOrderStatus,
@@ -36,7 +34,6 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { getChargesList } from '../../redux/reducers/addressSlice';
 import { haversineDistance } from './distanceCalculator';
 import { removeCoupon } from '../../redux/reducers/coupons';
-import RestaurantScreen from './RestaurantScreen';
 import commonStyles from '../../commonstyles/CommonStyles';
 import StatusBarManager from '../../components/StatusBarManager';
 import RazorpayCheckout from 'react-native-razorpay';
@@ -59,11 +56,8 @@ const CheckoutScreen = ({ navigation, route }) => {
   } = useSelector(state => state.Auth);
   const dispatch = useDispatch();
 
-  console.log("cartItems", cartItems)
-
   const handlingCharges = chargesList?.[0]?.handling_charges || 0;
   const [clearCartConfirmVisible, setClearCartConfirmVisible] = useState(false);
-  const [paymentMenuVisible, setPaymentMenuVisible] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [totalSellingPrice, setTotalSellingPrice] = useState(0);
@@ -79,11 +73,16 @@ const CheckoutScreen = ({ navigation, route }) => {
   });
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showMinimumOrderModal, setShowMinimumOrderModal] = useState(false);
-  const [amountLoading,setAmountLoading] = useState(true)
+  const [amountLoading, setAmountLoading] = useState(true);
 
-  const paymentMethods = ['COD'];
-
-  const buttonRef = useRef(null);
+  // --- FREE DELIVERY LOGIC START ---
+  const maxFreeDeliveryLimit = Number(reaturantDetails?.max_free_delivery_cost || 0);
+  // Calculate how much more is needed (based on total selling price of items)
+  const amountNeededForFreeDelivery = maxFreeDeliveryLimit - totalSellingPrice;
+  // Determine eligibility
+  const isFreeDeliveryEligible = maxFreeDeliveryLimit > 0 && amountNeededForFreeDelivery <= 0;
+  const isFreeDeliveryAvailable = maxFreeDeliveryLimit > 0;
+  // --- FREE DELIVERY LOGIC END ---
 
   const addItem = item => {
     dispatch(addToCart(item));
@@ -102,7 +101,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   }, [cartItems.length]);
 
-  
+
   const caliculateTotalPrice = useCallback(() => {
     const totals = cartItems.reduce(
       (acc, item, index) => {
@@ -187,6 +186,18 @@ const CheckoutScreen = ({ navigation, route }) => {
     minOrderPrice,
     gstRate = 18,
   ) => {
+    // Check if the restaurant has a max_free_delivery_cost set
+    const maxFreeDeliveryLimit = Number(reaturantDetails?.max_free_delivery_cost || 0);
+
+    // If the limit exists (> 0) and the order amount (cartPrice) is crossing it
+    if (maxFreeDeliveryLimit > 0 && cartPrice > maxFreeDeliveryLimit) {
+      return {
+        baseCharge: 0,
+        gstAmount: 0,
+        totalCharge: "0.00",
+      };
+    }
+
     let deliveryCharge = reaturantDetails?.minimum_del_charge || 0;
 
     if (distance >= Number(reaturantDetails?.minimum_km || 3)) {
@@ -196,11 +207,9 @@ const CheckoutScreen = ({ navigation, route }) => {
     if (cartPrice < minOrderPrice) {
       deliveryCharge += 10;
     }
-    
+
     let gstAmount = 0;
     let totalDeliveryCharge = deliveryCharge + gstAmount;
-
-    console.log(deliveryCharge,distance,">>>>>>>>>>>>>>>>>>>>.distance");
 
     return {
       baseCharge: deliveryCharge,
@@ -208,14 +217,14 @@ const CheckoutScreen = ({ navigation, route }) => {
       totalCharge: totalDeliveryCharge.toFixed(2),
     };
   }, [reaturantDetails]);
- 
+
   const handlePlaceOrder = async () => {
-         const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
-  
-  if (minimumOrderAmount > 0 && totalSellingPrice < minimumOrderAmount) {
-    setShowMinimumOrderModal(true);
-    return;
-  }
+    const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
+
+    if (minimumOrderAmount > 0 && totalSellingPrice < minimumOrderAmount) {
+      setShowMinimumOrderModal(true);
+      return;
+    }
     if (!selectedPaymentMethod) {
       Alert.alert('Select Payment', 'Please choose a payment method to continue.');
       return;
@@ -281,9 +290,7 @@ const CheckoutScreen = ({ navigation, route }) => {
           shop_id: item.shop_id,
           filter_one: item.filter_one,
         })),
-      }; 
-
-      console.log("admin chargesssssssssssssssssssssssssss", payload)
+      };
 
       // 🔹 Case 1: COD
       if (selectedPaymentMethod === 'COD') {
@@ -300,7 +307,6 @@ const CheckoutScreen = ({ navigation, route }) => {
 
       // 🔹 Case 2: Razorpay Flow
       if (selectedPaymentMethod === 'Pay Online') {
-        // Step 1: Generate Razorpay Order ID
         const razorpayOrderResponse = await dispatch(generateOrderId({ orderAmount: grandTotal }));
         const razorpayOrder = razorpayOrderResponse?.payload;
 
@@ -309,7 +315,6 @@ const CheckoutScreen = ({ navigation, route }) => {
           return;
         }
 
-        // Step 2: Create Pending Order in DB
         const pendingOrder = await dispatch(placeOrder({
           orderDetails: {
             ...payload,
@@ -323,7 +328,6 @@ const CheckoutScreen = ({ navigation, route }) => {
           return;
         }
 
-        // Step 3: Open Razorpay Checkout
         const options = {
           description: 'Order Payment',
           currency: razorpayOrder.currency || 'INR',
@@ -341,7 +345,6 @@ const CheckoutScreen = ({ navigation, route }) => {
 
         try {
           const razorpayResult = await RazorpayCheckout.open(options);
-          // { razorpay_payment_id, razorpay_order_id, razorpay_signature }
 
           const verifyRes = await dispatch(updateOrderStatus({
             paymentId: razorpayResult?.razorpay_payment_id,
@@ -358,13 +361,10 @@ const CheckoutScreen = ({ navigation, route }) => {
           navigation.replace('OrderSuccess', { response: pendingOrder.payload });
 
         } catch (error) {
-
-
           await dispatch(updateOrderStatus({
             orderId: pendingOrder.payload.order_id,
             status: "failed"
           }));
-
           Alert.alert("Payment Cancelled", "Transaction was not completed.");
         }
       }
@@ -397,17 +397,15 @@ const CheckoutScreen = ({ navigation, route }) => {
     );
   }, [selectedAddress, reaturantDetails]);
 
-  console.log(calculatedDistance,">>>>>>>>>>>>>>>>>>>>>>calculatedDistance");
 
   const deliveryCharges = useMemo(() => {
-    console.log(distance,">>>>>>>>>>>>>>>>>>>>>.distancedistancedistancedistance");
     if (!reaturantDetails || !chargesList?.length) return { baseCharge: 0, gstAmount: 0, totalCharge: 0 };
     return calculateDeliveryCharge(
       distance,
       itemsTotalPrice,
       orderOfferAmount,
     );
-  }, [distance, itemsTotalPrice, orderOfferAmount, calculateDeliveryCharge, reaturantDetails, chargesList]); // <-- Dependency array updated to 'distance'
+  }, [distance, itemsTotalPrice, orderOfferAmount, calculateDeliveryCharge, reaturantDetails, chargesList]);
 
   const calculatedGrandTotal = useMemo(() => {
     return totalSellingPrice
@@ -415,9 +413,11 @@ const CheckoutScreen = ({ navigation, route }) => {
       + Number(deliveryCharges.totalCharge)
       + Number(handlingCharges || 0);
   }, [totalSellingPrice, couponDiscount, deliveryCharges.totalCharge, handlingCharges]);
+
   useEffect(() => {
     setDistance(calculatedDistance);
   }, [calculatedDistance]);
+
   useEffect(() => {
     const fetchActualDistance = async () => {
       if (selectedAddress && reaturantDetails) {
@@ -428,15 +428,8 @@ const CheckoutScreen = ({ navigation, route }) => {
             reaturantDetails.shop_latitude,
             reaturantDetails.shop_longitude,
           );
-          console.log(response,"++++++++++++++++RESPOSNSNSSNSN FROM GOOGLE", selectedAddress.customer_latitude,
-            selectedAddress.customer_longitude,
-            reaturantDetails.shop_latitude,
-            reaturantDetails.shop_longitude,);
-
           if (response.success && response.distance) {
             setDistance(response.distance);
-          } else {
-            console.warn('Could not fetch actual driving distance:', response.error);
           }
         } catch (error) {
           console.error('Error fetching actual distance:', error);
@@ -445,7 +438,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     };
 
     fetchActualDistance();
-  
+
   }, [selectedAddress, reaturantDetails]);
 
   useEffect(() => {
@@ -463,14 +456,6 @@ const CheckoutScreen = ({ navigation, route }) => {
   useEffect(() => {
     caliculateTotalPrice();
   }, [cartItems, appliedCoupon]);
-
-  // useEffect(() => {
-  //   if (grandTotal > 700 && selectedPaymentMethod === "COD") {
-  //     setSelectedPaymentMethod("Pay Online");
-  //   }
-  // }, [grandTotal, selectedPaymentMethod]);
-
-
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -492,21 +477,55 @@ const CheckoutScreen = ({ navigation, route }) => {
 
         {/* Savings Banner */}
         <ScrollView style={[styles.content, { marginBottom: responsiveHeight(25) }]}>
-           {totalSavings!="" && (
-          <View style={styles.savingsBanner}>
-            <MaterialCommunityIcons
-              name="brightness-percent"
-              color={commonStyles.btn2Color}
-              size={15}
-            />
-            {totalSavings && (
-              <Text style={styles.savingsText}>
-                {' '}
-                ₹{totalSavings} saved from this order
+          {totalSavings != "" && (
+            <View style={styles.savingsBanner}>
+              <MaterialCommunityIcons
+                name="brightness-percent"
+                color={commonStyles.btn2Color}
+                size={15}
+              />
+              {totalSavings && (
+                <Text style={styles.savingsText}>
+                  {' '}
+                  ₹{totalSavings} saved from this order
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* FREE DELIVERY PROGRESS BAR */}
+          {isFreeDeliveryAvailable && (
+            <View style={{
+              marginHorizontal: responsiveWidth(5),
+              marginVertical: 10,
+              padding: 12,
+              backgroundColor: isFreeDeliveryEligible ? '#E7FFD3' : '#FFF5E5',
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: isFreeDeliveryEligible ? '#08B341' : '#FFCB18',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8
+            }}>
+              <MaterialCommunityIcons
+                name={isFreeDeliveryEligible ? "check-decagram" : "truck-delivery-outline"}
+                size={22}
+                color={isFreeDeliveryEligible ? '#08B341' : '#F5A623'}
+              />
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: isFreeDeliveryEligible ? '#08B341' : '#525252'
+              }}>
+                {isFreeDeliveryEligible
+                  ? "🎉 You've unlocked Free Delivery!"
+                  : `Add items worth ₹${amountNeededForFreeDelivery.toFixed(2)} for Free Delivery!`
+                }
               </Text>
-            )}
-          </View>
-           )}
+            </View>
+          )}
+
           {/* Cart Items */}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", margin: 10, paddingTop: 10 }}>
             <Text style={styles.checkoutSectionTitle}>Cart Items</Text>
@@ -624,9 +643,7 @@ const CheckoutScreen = ({ navigation, route }) => {
               <Text style={styles.billLabel}>Coupon Discount</Text>
               <Text style={styles.savingsValue}>₹ {couponDiscount.toFixed(2)}</Text>
             </View>}
-            {/* {appliedCoupon && (
-              <Text style={styles.couponCode}>{appliedCoupon?.coupon_name}</Text>
-            )} */}
+            
             {appliedCoupon && (
               <View style={styles.couponRow}>
                 <Text style={styles.couponCode}>{appliedCoupon?.coupon_name}</Text>
@@ -645,30 +662,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                 ₹ {(itemsTotalPrice || totalSellingPrice - couponDiscount).toFixed(2)}
               </Text>
             </View>
-            {/* <View
-            style={[
-              styles.dottedLineContainer,
-              {
-                marginVertical: 10,
-                marginTop: 0,
-                width: responsiveWidth(80),
-                overflow: 'hidden',
-              },
-            ]}>
-            {Array(20)
-              .fill(0)
-              .map((_, index) => (
-                <View key={index} style={styles.dot} />
-              ))}
-          </View> */}
-
-            {/* <View style={styles.billRow}>
-            <Text style={styles.billLabel}>GST</Text>
-            <Text style={styles.gstValue}>
-              ₹{' '}
-              {delivery.gstAmount.toFixed(2)}
-            </Text>
-          </View> */}
+           
             <View
               style={[
                 styles.dottedLineContainer,
@@ -685,15 +679,30 @@ const CheckoutScreen = ({ navigation, route }) => {
                   <View key={index} style={styles.dot} />
                 ))}
             </View>
-            {/* Delivery Charges */}
-            {delivery?.totalCharge > 0 && (
-              <View style={styles.billRow}>
-                <Text style={styles.billLabel}>Delivery Charges</Text>
-                <Text style={styles.billValue}>
-                  ₹ {delivery.totalCharge}
+            
+            {/* Delivery Charges - UPDATED */}
+            <View style={styles.billRow}>
+              <Text style={styles.billLabel}>Delivery Charges</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                {/* If free delivery is eligible, show the old price crossed out */}
+                {isFreeDeliveryEligible && (
+                  <Text style={[styles.billValue, { 
+                    textDecorationLine: 'line-through', 
+                    color: '#999', 
+                    marginRight: 8, 
+                    fontSize: 13 
+                  }]}>
+                    {/* Calculate what it would have been */}
+                    ₹ {((Number(distance) - Number(reaturantDetails?.minimum_km || 3)) * (reaturantDetails?.per_km_chargers || 10) + (reaturantDetails?.minimum_del_charge || 0)).toFixed(2)}
+                  </Text>
+                )}
+                
+                {/* Show the actual charge (0 or the calculated amount) */}
+                <Text style={[styles.billValue, isFreeDeliveryEligible && { color: '#08B341', fontWeight: '700' }]}>
+                  {Number(delivery.totalCharge) === 0 ? "FREE" : `₹ ${delivery.totalCharge}`}
                 </Text>
               </View>
-            )}
+            </View>
 
             {/* Handling Charges */}
             {handlingCharges > 0 && (
@@ -760,10 +769,8 @@ const CheckoutScreen = ({ navigation, route }) => {
                 style={[
                   styles.paymentMethodButton,
                   selectedPaymentMethod === 'COD' && styles.paymentMethodButtonSelected,
-                  // Number(grandTotal) > 700 && styles.paymentMethodButtonDisabled
                 ]}
                 onPress={() => setSelectedPaymentMethod('COD')}
-                // disabled={isProcessingPayment || Number(grandTotal) > 700}
                 disabled={isProcessingPayment}
                 >
                 <MaterialIcons 
@@ -780,13 +787,9 @@ const CheckoutScreen = ({ navigation, route }) => {
                 <Text style={[
                   styles.paymentMethodButtonText,
                   selectedPaymentMethod === 'COD' && styles.paymentMethodButtonTextSelected,
-                  // Number(grandTotal) > 700 && styles.paymentMethodButtonTextDisabled
                 ]}>
                   COD
                 </Text>
-                {/* {Number(grandTotal) > 700 && (
-                  <Text style={styles.codLimitText}>Not available above ₹700</Text>
-                )} */}
               </TouchableOpacity>
             </View>
           </View>
@@ -996,14 +999,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     marginBottom: responsiveHeight(2),
-    // shadowColor: '#000',
-    // shadowOffset: {
-    //   width: 0,
-    //   height: 2,
-    // },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 4,
-    // elevation: 3,
   },
   cardTitle: {
     fontSize: 16,
@@ -1017,8 +1012,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 15,
     gap: 10,
-    // padding: 10,
-    // paddingVertical: 15,
   },
   addressDetails: {
     flex: 1,
@@ -1064,14 +1057,6 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1,
     borderColor: commonStyles.btn2Color,
-    // shadowColor: '#000',
-    // shadowOffset: {
-    //   width: 0,
-    //   height: 2,
-    // },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 4,
-    // elevation: 3,
   },
   couponText: {
     flex: 1,
@@ -1088,14 +1073,6 @@ const styles = StyleSheet.create({
     width: responsiveWidth(90),
     alignSelf: 'center',
     borderColor: commonStyles.btn2Color,
-    // shadowColor: '#000',
-    // shadowOffset: {
-    //   width: 0,
-    //   height: 2,
-    // },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 4,
-    // elevation: 3,
   },
   billRow: {
     flexDirection: 'row',
@@ -1137,8 +1114,6 @@ const styles = StyleSheet.create({
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    // borderTopWidth: 1,
-    // borderTopColor: '#E0E0E0',
     paddingTop: 15,
   },
   totalLabel: {
@@ -1367,12 +1342,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   address: {
-    marginHorizontal: responsiveWidth(1),
-    borderWidth: 1,
-    borderColor: commonStyles.btn2Color,
-    borderRadius: 8,
-  },
-  address: {
     padding: 15,
     borderRadius: 8,
     borderWidth: 1,
@@ -1394,7 +1363,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: "left"
   },
-
   couponRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1402,7 +1370,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
 
   },
-
   removeCouponText: {
     color: '#FF4D4F',
     fontSize: 14,
@@ -1414,27 +1381,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-
   checkoutClearCartButton: {
     backgroundColor: '#FF4D4F',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 6,
   },
-
   checkoutClearCartButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
-
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-
   modalContent: {
     width: '80%',
     backgroundColor: 'white',
@@ -1442,35 +1405,28 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
   },
-
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
   },
-
   modalMessage: {
     fontSize: 14,
     color: '#555',
     textAlign: 'center',
   },
-
   modalButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 6,
     marginHorizontal: 10,
   },
-
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-
-
-
 });
 
 export default CheckoutScreen;
