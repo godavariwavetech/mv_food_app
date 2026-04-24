@@ -690,65 +690,65 @@ export const Dashboard = createSlice({
     });
 
     builder.addCase(getAddressList.pending, (state, action) => {
-      state.loading = true;
+      state.loading.addressCheck = true;
       state.message = null;
     });
     builder.addCase(getAddressList.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
       state.message = null;
       state.addressList = action.payload.data
     });
     builder.addCase(getAddressList.rejected, (state, action) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
       state.message = 'Please try again!';
     });
 
     builder.addCase(setAddressList.pending, (state, action) => {
-      state.loading = true;
+      state.loading.addressCheck = true;
       state.message = null;
     });
     builder.addCase(setAddressList.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
       state.message = null;
     });
     builder.addCase(setAddressList.rejected, (state, action) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
       state.message = 'Please try again!';
     });
 
     builder.addCase(placeOrder.pending, (state, action) => {
-      state.loading = true;
+      state.loading.addressCheck = true;
       state.message = null;
     });
     builder.addCase(placeOrder.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
       state.message = null;
     });
     builder.addCase(placeOrder.rejected, (state, action) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
       state.message = 'Please try again!';
     });
 
     builder.addCase(checkServiceAvailability.pending, (state) => {
-      state.loading = true;
+      state.loading.addressCheck = true;
     });
     builder.addCase(checkServiceAvailability.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
       state.serviceAvailable = action.payload.available;
     });
     builder.addCase(checkServiceAvailability.rejected, (state) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
     });
 
     builder.addCase(getAvailableAreas.pending, (state) => {
-      state.loading = true;
+      state.loading.addressCheck = true;
     });
     builder.addCase(getAvailableAreas.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
       state.availableAreas = action.payload;
     });
     builder.addCase(getAvailableAreas.rejected, (state) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
     });
 
     builder.addCase(updateUserLocation.fulfilled, (state, action) => {
@@ -756,25 +756,25 @@ export const Dashboard = createSlice({
     });
 
     builder.addCase(getServices.pending, (state) => {
-      state.loading = true;
+      state.loading.addressCheck = true;
     });
     builder.addCase(getServices.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
       state.availableAreas = action.payload.data;
     });
     builder.addCase(getServices.rejected, (state) => {
-      state.loading = false;
+      state.loading.addressCheck = false;
     });
 
     builder.addCase(getRestaurantsHome.pending, (state) => {
-      state.loading = true;
+      state.loading.restaurants = true;
     });
     builder.addCase(getRestaurantsHome.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.restaurants = false;
       state.homeRestaurnats = action.payload.data[0];
     });
     builder.addCase(getRestaurantsHome.rejected, (state) => {
-      state.loading = false;
+      state.loading.restaurants = false;
     });
   },
 });

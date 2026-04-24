@@ -440,7 +440,7 @@ export default function Register({ navigation, route }) {
       />
       {loading && (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#08B341" />
+          <ActivityIndicator size="large" color="#FC6011" />
         </View>
       )}
     </Pressable>
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   loginButton: {
-    backgroundColor: '#08B341',
+    backgroundColor: '#FC6011',
     paddingVertical: 14,
     borderRadius: 6,
     alignItems: 'center',
@@ -536,11 +536,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#08B341',
+    borderColor: '#FC6011',
     width: '100%',
   },
   skipText: {
-    color: '#08B341',
+    color: '#FC6011',
     fontSize: 16,
     fontWeight: '600',
   },

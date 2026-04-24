@@ -541,7 +541,7 @@ const AddAddressScreen = ({ navigation, route }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}>
-          <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
+          <FontAwesome6 name="arrow-left-long" size={20} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>
           {route.params?.address ? 'Edit Address' : 'Add Address'}
@@ -909,13 +909,12 @@ const styles = StyleSheet.create({
     paddingBottom: 30
   },
   header: {
-    backgroundColor: commonStyles.btn2Color,
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: responsiveWidth(6),
     paddingTop: responsiveHeight(6),
     paddingBottom: 15,
-    backgroundColor: commonStyles.btn2Color,
+    backgroundColor: "#fff",
     gap: 10
   },
   backButton: {
@@ -924,7 +923,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#000',
   },
   mapContainer: {
     flex: 1,

@@ -6,7 +6,7 @@ const commonStyles = StyleSheet.create({
   bgColor: '#FFFDF4',
   mainColor: '#FFBF2D',
   btnColor: '#857300',
-  btn2Color: '#08B341',
+  btn2Color: '#FC6011',
   yellowColor: '#FD0',
 
   arrowBtnColor: '#FE4A31',

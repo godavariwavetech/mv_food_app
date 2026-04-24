@@ -4,7 +4,14 @@ import {endpoints} from '../../config/config';
 
 const initialState = {
   message: null,
-  loading: false,
+  loading: {
+    login: false,
+    verifyMobile: false,
+    verifyOTP: false,
+    otpVerification: false,
+    categories: false,
+    deleteAccount: false,
+  },
   token: null,
   userRole: 1,
   optCode: '',
@@ -189,11 +196,11 @@ export const AuthSlice = createSlice({
   },
   extraReducers: builder => {
     builder.addCase(loginAction.pending, (state, action) => {
-      state.loading = true;
+      state.loading.login = true;
       state.message = null;
     });
     builder.addCase(loginAction.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.login = false;
       state.message = null;
       if (action.payload.token) {
         state.token = action.payload.token;
@@ -202,16 +209,16 @@ export const AuthSlice = createSlice({
       }
     });
     builder.addCase(loginAction.rejected, (state, action) => {
-      state.loading = false;
+      state.loading.login = false;
       state.message = 'Please try again!';
     });
 
     builder.addCase(verifyMobile.pending, (state, action) => {
-      state.loading = true;
+      state.loading.verifyMobile = true;
       state.message = null;
     });
     builder.addCase(verifyMobile.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.verifyMobile = false;
       state.message = null;
      
       if (action.payload?.data[0]?.mobile) {
@@ -219,24 +226,24 @@ export const AuthSlice = createSlice({
       }
     });
     builder.addCase(verifyMobile.rejected, (state, action) => {
-      state.loading = false;
+      state.loading.verifyMobile = false;
       state.message = 'Please try again!';
     });
 
     // Customer Mobile Verification
     builder.addCase(verifyCustomerMobile.pending, (state, action) => {
-      state.loading = true;
+      state.loading.verifyMobile = true;
       state.message = null;
     });
     builder.addCase(verifyCustomerMobile.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading.verifyMobile = false;
       state.message = null;
       // if (action.payload?.data?.[0]?.customer_mobile_number) {
       //   state.mobileNumber = action.payload.data[0].customer_mobile_number;
       // }
     });
     builder.addCase(verifyCustomerMobile.rejected, (state, action) => {
-      state.loading = false;
+      state.loading.verifyMobile = false;
       state.message = action.payload || 'Please try again!';
     });
 

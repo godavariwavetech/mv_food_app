@@ -310,7 +310,7 @@ export default function OTPVerification({ navigation, route }) {
         <View style={{ height: 70, marginTop: responsiveHeight(3) }}>
           {timer !== 0 && <Text style={{ color: "#3D3D3D", fontSize: 18, fontWeight: "700", textAlign: "center" }}>Resend OTP in {timer}s </Text>}
           <TouchableOpacity disabled={timer != 0} onPress={resendOtpHandler}>
-            <Text style={{ fontSize: 14, color: timer == 0 ? '#08B341' : "#8F8F8F", fontWeight: "700", textAlign: "center", marginTop: responsiveHeight(1) }}>Resend OTP</Text>
+            <Text style={{ fontSize: 14, color: timer == 0 ? '#FC6011' : "#8F8F8F", fontWeight: "700", textAlign: "center", marginTop: responsiveHeight(1) }}>Resend OTP</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={handleVerifyOtp} style={styles.loginButton}>
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   loginButton: {
-    backgroundColor: '#08B341',
+    backgroundColor: '#FC6011',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',

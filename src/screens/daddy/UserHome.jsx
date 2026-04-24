@@ -1,29 +1,34 @@
-import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  TextInput,
+  StyleSheet,
+  ScrollView,
   Image,
   TouchableOpacity,
+  Dimensions,
+  SafeAreaView,
   StatusBar,
-  FlatList,
-  StyleSheet,
+  TextInput,
   Platform,
   RefreshControl,
-  Dimensions,
   Animated
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import {
-  responsiveFontSize,
-  responsiveHeight,
-  responsiveWidth,
-} from 'react-native-responsive-dimensions';
-import Clock from './tabassets/Clock';
-import { Shadow } from 'react-native-shadow-2';
-import ShopSection from './builder/ShopSection';
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, RadialGradient, Stop, Rect } from 'react-native-svg';
+
+// --- API & Redux Imports ---
 import { useDispatch, useSelector } from 'react-redux';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import Geolocation from 'react-native-geolocation-service';
+import NetInfo from '@react-native-community/netinfo';
+import Permissions, { PERMISSIONS, RESULTS, check, request } from 'react-native-permissions';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+// --- Redux Actions ---
 import {
   getBanners,
   getCategories,
@@ -35,130 +40,188 @@ import {
   checkAddressExistence,
   getRestaurantsHome,
 } from '../../redux/reducers/daddy';
-import { useFocusEffect, useIsFocused } from '@react-navigation/native';
-import Geolocation from 'react-native-geolocation-service';
 import { setLocation, setLocationId, setLocationName, setOrderOfferAmount } from '../../redux/reducers/auth';
-import ServiceUnavailableScreen from './ServiceUnavailableScreen';
-import NetInfo from '@react-native-community/netinfo';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Skeleton from './Skeleton';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
-import Permissions, { PERMISSIONS, RESULTS, check, request } from 'react-native-permissions';
-import SimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons';
-import StarIcon from './svg/StarIcon';
-import commonStyles from '../../commonstyles/CommonStyles';
-import { colors } from '../../config/theme';
 import { indiviadualShop } from '../../redux/reducers/addressSlice';
+
+// --- Components ---
+import Skeleton from './Skeleton';
+import ServiceUnavailableScreen from './ServiceUnavailableScreen';
+import { colors } from '../../config/theme';
 import StatusBarManager from '../../components/StatusBarManager';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import CategoryCard from '../../components/CategoryCard';
-import SubCategoryCard from '../../components/SubCategoryCard';
 
-const screenWidth = Dimensions.get('window').width;
-const itemWidth = screenWidth / 6;
-const STICKY_HEADER_SCROLL_DISTANCE = 120;
+const { width } = Dimensions.get('window');
+const SVG_ASPECT_RATIO = 241 / 393;
+const SVG_HEIGHT = width * SVG_ASPECT_RATIO;
+const TAB_CUTOUT_HEIGHT = 66.5 * (width / 393); 
+const CONTENT_WIDTH = width - 32; 
 
-// Memoized Restaurant Item Component
-const RestaurantItem = React.memo(({ item, calculateDeliveryTime, navigation, isUnavailable }) => (
-  <TouchableOpacity
-    style={[styles.restaurantCard, isUnavailable && styles.unavailableCard]}
-    onPress={() => {
-      if (!isUnavailable) {
-        navigation.navigate('RestaurantScreen', {
-          shopId: item.shop_id,
-          shopItem: item.shop_items_tb_nm,
-          item,
-        });
-      }
-    }}
-  >
-    <View style={styles.restaurantContent}>
-      <View style={styles.restaurantImageContainer}>
-        <Image 
-          source={{ uri: item?.shop_image }} 
-          style={styles.restaurantImage} 
-          resizeMethod="resize" 
-        />
-        {isUnavailable && (
-          <View style={styles.unavailableOverlay}>
-            <Text style={[styles.unavailableText, { color: 'red' }]}>Currently Unavailable</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.restaurantTextContainer}>
-        <Text style={styles.restaurantName}>{item.shop_name}</Text>
-        <View style={styles.ratingRow}>
-          <StarIcon />
-          <Text style={styles.ratingText}>{item.shop_rating}</Text>
-          <Text style={styles.dot}>•</Text>
-          <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
-            <Clock />
-            <Text style={{ fontSize: 11, fontWeight: '400' }}>
-              {calculateDeliveryTime(item.distance)}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.addressText}>{item.shop_address || 'Tilak Road • 3.0 km'}</Text>
-        {item.special_offer_name && (
-          <View style={styles.offerTag}>
-            <Text style={styles.offerText}>{item.special_offer_name}</Text>
-          </View>
-        )}
-      </View>
-    </View>
-  </TouchableOpacity>
-));
+// Static Assets
+const PROFILE_URL = 'https://i.pravatar.cc/150?img=11';
+const VEG_TAB_ICON = 'https://cdn-icons-png.flaticon.com/512/3194/3194591.png';
+const SNACK_TAB_ICON = 'https://cdn-icons-png.flaticon.com/512/2515/2515183.png';
 
+// ==========================================
+// SVG BACKGROUND COMPONENTS
+// ==========================================
+const CategoryRadialBackground = () => (
+  <Svg width="84" height="84" viewBox="0 0 84 84" style={styles.absoluteCategoryBg}>
+    <Defs>
+      <RadialGradient id="catGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+        <Stop offset="0%" stopColor="#EDFFEA" />
+        <Stop offset="83.65%" stopColor="#EBFFE8" />
+        <Stop offset="100%" stopColor="#E0FFDC" />
+      </RadialGradient>
+    </Defs>
+    <Rect width="84" height="84" rx="16" fill="url(#catGrad)" />
+  </Svg>
+);
+
+const VegActiveBackground = () => (
+  <View style={styles.svgWrapper}>
+    <Svg width="100%" height="100%" viewBox="0 0 393 241" fill="none" style={styles.absoluteSvg}>
+      <Path d="M0 67H189.603C194.045 67 197.954 64.0703 199.201 59.8073L212.615 13.9468C214.859 6.2734 221.896 1 229.891 1H346.645C354.998 1 362.254 6.74707 364.166 14.8786L374.613 59.2897C375.675 63.8072 379.706 67 384.347 67H393V239.5H0V67Z" fill="url(#snacks_inactive_fill)"/>
+      <Path d="M229.892 0.5C221.675 0.5 214.442 5.92009 212.135 13.8066L198.721 59.667C197.536 63.7167 193.823 66.4998 189.604 66.5H-0.5V240H393.5V66.5H384.347C379.938 66.4999 376.109 63.4663 375.1 59.1748L364.653 14.7637C362.687 6.40648 355.23 0.5 346.645 0.5H229.892Z" stroke="url(#snacks_inactive_stroke)" strokeOpacity="0.4"/>
+      <Defs>
+        <SvgLinearGradient id="snacks_inactive_fill" x1="196.5" y1="1" x2="198" y2="62.5" gradientUnits="userSpaceOnUse">
+          <Stop stopColor="#C3FEBC"/>
+          <Stop offset="0.201923" stopColor="#CFFFC9" stopOpacity="0.850962"/>
+          <Stop offset="1" stopColor="#CFFFC9" stopOpacity="0"/>
+        </SvgLinearGradient>
+        <SvgLinearGradient id="snacks_inactive_stroke" x1="334.75" y1="-9.11883" x2="145.75" y2="231.108" gradientUnits="userSpaceOnUse">
+          <Stop stopColor="#8BC783"/>
+          <Stop offset="0.6875" stopColor="white" stopOpacity="0"/>
+        </SvgLinearGradient>
+      </Defs>
+    </Svg>
+    <Svg width="100%" height="100%" viewBox="0 0 393 241" fill="none" style={styles.absoluteSvg}>
+      <Path d="M163.108 0.5C171.325 0.5 178.558 5.92009 180.865 13.8066L194.279 59.667C195.464 63.7167 199.177 66.4998 203.396 66.5H393.5V240H-0.5V66.5H8.65332C13.0619 66.4999 16.891 63.4663 17.9004 59.1748L28.3467 14.7637C30.3126 6.40648 37.7701 0.5 46.3555 0.5H163.108Z" fill="url(#veg_active_fill)" fillOpacity="0.4" stroke="url(#veg_active_stroke)"/>
+      <Defs>
+        <SvgLinearGradient id="veg_active_fill" x1="196.5" y1="2.5" x2="196.5" y2="239.5" gradientUnits="userSpaceOnUse">
+          <Stop offset="0.0001" stopColor="#66E954"/>
+          <Stop offset="0.9999" stopColor="#74D767" stopOpacity="0.56"/>
+        </SvgLinearGradient>
+        <SvgLinearGradient id="veg_active_stroke" x1="-3.63527e-07" y1="115.99" x2="393" y2="126.01" gradientUnits="userSpaceOnUse">
+          <Stop stopColor="#107D00"/>
+          <Stop offset="1" stopColor="#C5FFBD"/>
+        </SvgLinearGradient>
+      </Defs>
+    </Svg>
+  </View>
+);
+
+const SnacksActiveBackground = () => (
+  <View style={styles.svgWrapper}>
+    <Svg width="100%" height="100%" viewBox="0 0 393 241" fill="none" style={styles.absoluteSvg}>
+      <Path d="M163.108 0.5C171.325 0.5 178.558 5.92009 180.865 13.8066L194.279 59.667C195.464 63.7167 199.177 66.4998 203.396 66.5H393.5V240H-0.5V66.5H8.65332C13.0619 66.4999 16.891 63.4663 17.9004 59.1748L28.3467 14.7637C30.3126 6.40648 37.7701 0.5 46.3555 0.5H163.108Z" stroke="url(#veg_inactive_stroke_new)" strokeOpacity="0.3"/>
+      <Defs>
+        <SvgLinearGradient id="veg_inactive_stroke_new" x1="58.2502" y1="-9.11883" x2="247.25" y2="231.108" gradientUnits="userSpaceOnUse">
+          <Stop stopColor="#FC6011"/>
+          <Stop offset="0.6875" stopColor="white" stopOpacity="0"/>
+        </SvgLinearGradient>
+      </Defs>
+    </Svg>
+    <Svg width="100%" height="100%" viewBox="0 0 393 241" fill="none" style={[styles.absoluteSvg, { transform: [{ scaleX: -1 }] }]}>
+      <Path d="M163.108 0.5C171.325 0.5 178.558 5.92009 180.865 13.8066L194.279 59.667C195.464 63.7167 199.177 66.4998 203.396 66.5H393.5V240H-0.5V66.5H8.65332C13.0619 66.4999 16.891 63.4663 17.9004 59.1748L28.3467 14.7637C30.3126 6.40648 37.7701 0.5 46.3555 0.5H163.108Z" fill="url(#snacks_active_fill_new)" stroke="url(#snacks_active_stroke_new)"/>
+      <Defs>
+        <SvgLinearGradient id="snacks_active_fill_new" x1="196.5" y1="0" x2="196.5" y2="238.5" gradientUnits="userSpaceOnUse">
+          <Stop offset="0.0064" stopColor="rgba(251, 155, 106, 0.4)"/>
+          <Stop offset="0.9999" stopColor="rgba(255, 220, 145, 0)"/>
+        </SvgLinearGradient>
+        <SvgLinearGradient id="snacks_active_stroke_new" x1="-3.63527e-07" y1="115.99" x2="393" y2="126.01" gradientUnits="userSpaceOnUse">
+          <Stop stopColor="#FC6011"/>
+          <Stop offset="1" stopColor="rgba(255, 220, 145, 0)"/>
+        </SvgLinearGradient>
+      </Defs>
+    </Svg>
+  </View>
+);
+
+// ==========================================
+// MAIN COMPONENT
+// ==========================================
 export default function UserHome({ navigation }) {
-  const { categories, subCategories, banners, restaurants, activeCategoryIndex, loading, addressList, userAddress, serviceAvailable, homeRestaurnats } = useSelector(state => state.Dashboard);
+  const dispatch = useDispatch();
+  const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
+
+  // --- REDUX STATE ---
+  const { categories, subCategories, banners, restaurants, activeCategoryIndex, loading, userAddress, serviceAvailable, homeRestaurnats } = useSelector(state => state.Dashboard);
   const { locationName } = useSelector(state => state.Auth);
+  const authLocation = useSelector(state => state.Auth.location);
   const { isNetworkConnected } = useSelector(state => state.address);
-  
-  const flatListRef = useRef(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // --- LOCAL STATE ---
+  const [activeTab, setActiveTab] = useState('veg');
+  const [activeBanner, setActiveBanner] = useState(0); 
   const [selectedAddress, setSelectedAddress] = useState(userAddress || "");
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const dispatch = useDispatch();
-  const authLocation = useSelector(state => state.Auth.location);
-  const [mounted, setMounted] = useState(true);
-  const isFocused = useIsFocused();
   const [initialNetLoad, setInitialNetLoad] = useState(false);
   const [serviceCheckFailed, setServiceCheckFailed] = useState(false);
   const [errorOccured, setErrorOccured] = useState(false);
+  const [mounted, setMounted] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // --- REFS ---
+  const bannerScrollRef = useRef(null);
+  const activeBannerRef = useRef(activeBanner);
   const networkStatusRef = useRef(isNetworkConnected);
-  const numColumns = 6;
-  const insets = useSafeAreaInsets();
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const [selectedCategoryName, setSelectedCategoryName] = useState('Food');
-
   const hasInitiallyLoaded = useRef(false);
-  const scrollPositionRef = useRef(0);
 
-  const stickyHeaderOpacity = scrollY.interpolate({
-    inputRange: [0, STICKY_HEADER_SCROLL_DISTANCE - 20, STICKY_HEADER_SCROLL_DISTANCE],
-    outputRange: [0, 0, 1],
+  // --- ANIMATION STATE ---
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const stickyOpacity = scrollY.interpolate({
+    inputRange: [100, 150],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  const stickyTranslateY = scrollY.interpolate({
+    inputRange: [100, 150],
+    outputRange: [-20, 0],
     extrapolate: 'clamp',
   });
 
-  const stickyHeaderTranslateY = scrollY.interpolate({
-    inputRange: [0, STICKY_HEADER_SCROLL_DISTANCE],
-    outputRange: [-100, 0],
-    extrapolate: 'clamp',
-  });
+  // --- DERIVED UI PROPS ---
+  const activeColor = activeTab === 'veg' ? '#107D00' : '#D46327';
+  const inactiveColor = activeTab === 'veg' ? '#65A35D' : '#E8A27A'; 
+  const headerGradientColors = activeTab === 'veg' 
+    ? ['#CEFFC7', '#D4FFCE', 'rgba(206, 255, 199, 0)'] 
+    : ['rgba(251, 155, 106, 0.3)', 'rgba(255, 220, 145, 0.2)', 'rgba(255, 220, 145, 0)'];
 
+  const popularRestaurants = homeRestaurnats && homeRestaurnats.filter(restaurant => Number(restaurant.shop_rating) >= 4.5);
+  const isLoading = (loading.addressCheck || isLoadingLocation || loading.categories || loading.banners);
+
+  // ==========================================
+  // FUNCTIONS & HOOKS
+  // ==========================================
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    // You can add more global search logic here if needed
+  };
   useEffect(() => {
     networkStatusRef.current = isNetworkConnected;
   }, [isNetworkConnected]);
 
-  const isLoading = (
-    loading.addressCheck ||
-    isLoadingLocation ||
-    loading.categories ||
-    loading.banners
-  );
+  useEffect(() => {
+    activeBannerRef.current = activeBanner;
+  }, [activeBanner]);
+
+  const handleScroll = (event) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const currentIndex = Math.round(scrollPosition / CONTENT_WIDTH);
+    setActiveBanner(currentIndex);
+  };
+
+  useEffect(() => {
+    if (!banners || banners.length === 0) return;
+    const interval = setInterval(() => {
+      let nextIndex = activeBannerRef.current + 1;
+      if (nextIndex >= banners.length) nextIndex = 0; 
+      bannerScrollRef.current?.scrollTo({ x: nextIndex * CONTENT_WIDTH, animated: true });
+      setActiveBanner(nextIndex);
+    }, 3000); 
+    return () => clearInterval(interval);
+  }, [banners]);
 
   const getAddressFromCoordinates = async (latitude, longitude) => {
     try {
@@ -167,9 +230,7 @@ export default function UserHome({ navigation }) {
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyApeRJe3NFzGsTey20Xu8XEFrIxphxs4VM`,
       );
       const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        return data.results[0].formatted_address;
-      }
+      if (data.results && data.results.length > 0) return data.results[0].formatted_address;
       return 'Address not found';
     } catch (error) {
       console.error('Error getting address:', error);
@@ -180,11 +241,7 @@ export default function UserHome({ navigation }) {
 
   const getCurrentLocation = useCallback(() => {
     setIsLoadingLocation(true);
-    Geolocation.setRNConfiguration({
-      enableHighAccuracy: false,
-      timeout: 2000,
-      maximumAge: 1000,
-    });
+    Geolocation.setRNConfiguration({ enableHighAccuracy: false, timeout: 2000, maximumAge: 1000 });
     Geolocation.getCurrentPosition(
       async position => {
         const { latitude, longitude } = position.coords;
@@ -202,31 +259,21 @@ export default function UserHome({ navigation }) {
         dispatch(updateUserAddress(currentLocationAddress));
         setSelectedAddress(currentLocationAddress);
         setIsLoadingLocation(false);
-          checkServiceAvailability({ latitude, longitude })
+        checkServiceAvailability({ latitude, longitude });
       },
       error => {
         console.error('Error getting location:', error);
         setIsLoadingLocation(false);
         networkStatusRef.current && navigation.replace('ServicesAvailable', { permissionDenied: true });
       },
-      {
-        enableHighAccuracy: false,
-        timeout: 20000,
-        maximumAge: 1000,
-      }
+      { enableHighAccuracy: false, timeout: 20000, maximumAge: 1000 }
     );
-  }, [dispatch, userAddress]);
+  }, [dispatch, userAddress, isNetworkConnected, navigation]);
 
   const requestLocationPermission = useCallback(async () => {
     try {
-      let permission;
-      if (Platform.OS === 'ios') {
-        permission = PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
-      } else if (Platform.OS === 'android') {
-        permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
-      }
+      let permission = Platform.OS === 'ios' ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
       if (!permission) return;
-      
       const status = await check(permission);
       if (status === RESULTS.GRANTED) {
         getCurrentLocation();
@@ -275,7 +322,6 @@ export default function UserHome({ navigation }) {
         requestLocationPermission();
       }
     };
-    
     if (!hasInitiallyLoaded.current) {
       initializeLocation();
       hasInitiallyLoaded.current = true;
@@ -288,77 +334,16 @@ export default function UserHome({ navigation }) {
     }, [dispatch])
   );
 
-  useEffect(() => {
-    if (categories && categories.length > 0 && !selectedCategoryName) {
-      const firstCategory = categories.find(cat => cat.id === activeCategoryIndex);
-      if (firstCategory) {
-        setSelectedCategoryName(firstCategory.category_name);
-      }
-    }
-  }, [categories, activeCategoryIndex]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const checkOnFocus = async () => {
-        if (authLocation && !hasInitiallyLoaded.current) {
-          await checkServiceAvailability();
-        }
-      };
-      checkOnFocus();
-    }, [authLocation])
-  );
-
-  const handleSubCategories = category => {
-    dispatch(setActiveCategoryIndex(category.id));
-    dispatch(getSubCategories({ categoryId: category.id }));
-    dispatch(getRestaurantsHome({ categoryId: category.id }));
-    dispatch(setOrderOfferAmount(category.order_offer_amount));
-    setSelectedCategoryName(category.category_name);
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      let intervalId;
-      if (isFocused && banners?.length > 0) {
-        intervalId = setInterval(() => {
-          const newIndex = currentIndex < banners.length - 1 ? currentIndex + 1 : 0;
-          flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
-          setCurrentIndex(newIndex);
-        }, 3000);
-      }
-      return () => {
-        clearInterval(intervalId);
-      };
-    }, [currentIndex, banners, isFocused])
-  );
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    getCategoreis();
-    setRefreshing(false);
-    dispatch(setActiveCategoryIndex(1));
-  }, []);
-
-  const handleSearch = (text) => {
-    setSearchQuery(text);
-    navigation.navigate('CategoriesScreen');
-  };
-
   const checkServiceAvailability = async (paramAuth) => {
     const abortController = new AbortController();
     const checkAvailability = async () => {
       if(paramAuth){
         try {
           setErrorOccured(false);
-          const response = await dispatch(checkAddressExistence({
-            latitude: paramAuth.latitude,
-            longitude: paramAuth.longitude
-          })).unwrap();
-          
-          if (mounted) {
+          const response = await dispatch(checkAddressExistence({ latitude: paramAuth.latitude, longitude: paramAuth.longitude })).unwrap();
+          if (mounted && response.data && response.data.length > 0) {
             await dispatch(setLocationName(response.data[0].location_name));
             await dispatch(setLocationId(response.data[0].id));
-            
             if (response.data.length > 0) {
               const result = await dispatch(getCategories());
               dispatch(setOrderOfferAmount(result.payload?.data[0]?.order_offer_amount));
@@ -376,18 +361,12 @@ export default function UserHome({ navigation }) {
       }
 
       if (!authLocation || !mounted) return;
-      
       try {
         setErrorOccured(false);
-        const response = await dispatch(checkAddressExistence({
-          latitude: authLocation.latitude,
-          longitude: authLocation.longitude
-        })).unwrap();
-        
-        if (mounted) {
+        const response = await dispatch(checkAddressExistence({ latitude: authLocation.latitude, longitude: authLocation.longitude })).unwrap();
+        if (mounted && response.data && response.data.length > 0) {
           await dispatch(setLocationName(response.data[0].location_name));
           await dispatch(setLocationId(response.data[0].id));
-          
           if (response.data.length > 0) {
             const result = await dispatch(getCategories());
             dispatch(setOrderOfferAmount(result.payload?.data[0]?.order_offer_amount));
@@ -402,13 +381,8 @@ export default function UserHome({ navigation }) {
         setErrorOccured(true);
       }
     };
-    
     checkAvailability();
-    
-    return () => {
-      abortController.abort();
-      setMounted(false);
-    };
+    return () => { abortController.abort(); setMounted(false); };
   };
 
   useEffect(() => {
@@ -416,29 +390,6 @@ export default function UserHome({ navigation }) {
       checkServiceAvailability();
     }
   }, [authLocation, serviceAvailable]);
-
-  const calculateDeliveryTime = (distance) => {
-    if (distance < 3) {
-      return '15-20 mins';
-    } else if (distance < 5) {
-      return '20-30 mins';
-    } else {
-      return '30-45 mins';
-    }
-  };
-
-  const handleBannerPress = async (banner) => {
-    const resp = await dispatch(indiviadualShop({ shopId: banner?.shop_id }));
-    if (!resp.payload.data[0] || resp.payload.data[0] <= 0) return;
-    
-    if (banner?.shop_id && banner?.shop_id !== 0) {
-      navigation.navigate('BannerRestaurantScreen', {
-        shopId: banner?.shop_id,
-        shopItem: banner?.item_id,
-        highlightItemId: 0
-      });
-    }
-  };
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(async state => {
@@ -455,187 +406,69 @@ export default function UserHome({ navigation }) {
         setInitialNetLoad(false);
       }
     });
-    
     return () => unsubscribe();
   }, [isNetworkConnected, activeCategoryIndex, dispatch]);
 
-  const popularRestaurants = homeRestaurnats && homeRestaurnats.filter(restaurant => Number(restaurant.shop_rating) >= 4.5);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    getCategoreis();
+    setRefreshing(false);
+  }, []);
 
-  // --- RENDER HEADER FUNCTION ---
-  const renderHeader = useCallback(() => {
-    // 1. Slice data to only show 2 rows (4 columns * 2 rows = 8 items)
-    const displayedSubCategories = subCategories ? subCategories.slice(0, 8) : [];
+  const calculateDeliveryTime = (distance) => {
+    if (distance < 3) return '15-20 mins';
+    else if (distance < 5) return '20-30 mins';
+    else return '30-45 mins';
+  };
 
+  const handleBannerPress = async (banner) => {
+    const resp = await dispatch(indiviadualShop({ shopId: banner?.shop_id }));
+    if (!resp.payload.data[0] || resp.payload.data[0] <= 0) return;
+    if (banner?.shop_id && banner?.shop_id !== 0) {
+      navigation.navigate('BannerRestaurantScreen', { shopId: banner?.shop_id, shopItem: banner?.item_id, highlightItemId: 0 });
+    }
+  };
+
+  const handleTabToggle = (tabStr) => {
+    setActiveTab(tabStr);
+    const targetCategory = tabStr === 'veg' ? categories?.[0] : categories?.[1];
+    if (targetCategory) {
+      dispatch(setActiveCategoryIndex(targetCategory.id));
+      dispatch(getSubCategories({ categoryId: targetCategory.id }));
+      dispatch(getRestaurantsHome({ categoryId: targetCategory.id }));
+      dispatch(setOrderOfferAmount(targetCategory.order_offer_amount));
+    }
+  };
+
+  // ==========================================
+  // RENDER CONDITIONS
+  // ==========================================
+  if (isNetworkConnected === null || isLoading || initialNetLoad) {
     return (
-      <View>
-        <LinearGradient
-          colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.headerGradient}
-        >
-          <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("SelectServiceFromLocation", { selectedAddress })}
-              style={styles.locationContainer}
-            >
-              <Icon name="location-on" size={24} color="#fff" />
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.locationTitle}>
-                    {locationName ? locationName : 'Select Location'}
-                  </Text>
-                  <Icon name="keyboard-arrow-down" size={20} color="#fff" style={{ marginLeft: 4 }} />
-                </View>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Profile')}
-              style={styles.profileButton}
-            >
-              <Image
-                source={require('../daddy/tabassets/dummy-profile.png')}
-                style={styles.profileAvatar}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.searchContainer}>
-            <Icon name="search" size={24} color="#999" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search"
-              placeholderTextColor="#999"
-              value={searchQuery}
-              onChangeText={handleSearch}
-              onFocus={() => navigation.navigate('CategoriesScreen')}
-            />
-          </View>
-
-          <FlatList
-            ref={flatListRef}
-            data={banners}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingTop: 0, paddingBottom: 30 }}
-            keyExtractor={(item, index) => `banner-${item.id || index}`}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => {}} style={styles.bannerContainer}>
-                <Image
-                  source={{ uri: item.banner_image }}
-                  style={styles.bannerImage}
-                  resizeMode="stretch"
-                />
-              </TouchableOpacity>
-            )}
-          />
-        </LinearGradient>
-
-        <View style={styles.contentContainer}>
-          <View style={styles.categoryHeaderContainer}>
-            <Text style={styles.categoryHeaderTitle}>Category</Text>
-            <View style={styles.categoryHeaderLine} />
-          </View>
-
-          {categories && (
-            <FlatList
-              data={categories}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item, index) => `category-${item.id || index}`}
-              contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 15 }}
-              renderItem={({ item }) => (
-                <CategoryCard
-                  title={item.category_name}
-                  imageSource={{ uri: item.category_image }}
-                  isSelected={item.id === activeCategoryIndex}
-                  onPress={() => handleSubCategories(item)}
-                />
-              )}
-            />
-          )}
-
-          <View style={styles.categoryHeaderContainer}>
-            <Text style={styles.categoryHeaderTitle}>{selectedCategoryName} Items</Text>
-            <View style={styles.categoryHeaderLine} />
-          </View>
-
-          {/* 2. SubCategories Grid with Limit and View More Button */}
-          {subCategories && (
-            <View style={styles.subCategoriesContainer}>
-              <FlatList
-                data={displayedSubCategories} // Use sliced data here
-                numColumns={4}
-                scrollEnabled={false}
-                keyExtractor={(item, index) => `subcategory-${item.id || index}`}
-                columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 15 }}
-                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 10 }}
-                renderItem={({ item }) => (
-                  <SubCategoryCard
-                    title={item.sub_category_name}
-                    imageSource={{ uri: item.sub_category_image }}
-                    onPress={() => {
-                      dispatch(setsubCategory(item));
-                      navigation.navigate('CategorieItems');
-                    }}
-                  />
-                )}
-                ListEmptyComponent={() => (
-                  <View style={{ width: responsiveWidth(100), height: responsiveHeight(5), alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No items found</Text>
-                  </View>
-                )}
-              />
-
-              {/* View More Button - Navigates to 'Categories' Tab */}
-              {subCategories.length > 8 && (
-                <TouchableOpacity 
-                  style={styles.viewMoreContainer}
-                  onPress={() => navigation.navigate('Categories')} // Ensure this matches your Tab route name
-                >
-                  <Text style={styles.viewMoreText}>View More</Text>
-                  <Icon name="keyboard-arrow-right" size={20} color="#088B35" />
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-
-          <View style={[commonStyles.row, { paddingHorizontal: 16, marginTop: 3, marginBottom: 10 }]}>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#2B2B2B' }}>
-              Popular {activeCategoryIndex === 1 ? "Restaurants" : "Shops"}
-            </Text>
-          </View>
-        </View>
-      </View>
-    );
-  }, [banners, categories, subCategories, activeCategoryIndex, locationName, selectedCategoryName, searchQuery, selectedAddress, insets.top, navigation]);
-
-  const renderRestaurantItem = useCallback(({ item }) => {
-    const isUnavailable = item.shop_active_status === "1";
-    return (
-      <View style={{ paddingHorizontal: 10, marginBottom: 16 }}>
-        <RestaurantItem 
-          item={item} 
-          isUnavailable={isUnavailable} 
-          calculateDeliveryTime={calculateDeliveryTime}
-          navigation={navigation}
-        />
-      </View>
-    );
-  }, [navigation]);
-
-  return (
-    <View style={styles.mainContainer}>
-      <StatusBar backgroundColor="#088B35" translucent barStyle="light-content" />
-      {isNetworkConnected === null ? (
+      <View style={styles.mainWrapper}>
+        <StatusBar backgroundColor="#088B35" translucent barStyle="light-content" />
         <Skeleton />
-      ) : !isNetworkConnected && !categories ? (
+      </View>
+    );
+  }
+
+  if (!isNetworkConnected && !categories) {
+    return (
+      <View style={styles.mainWrapper}>
+        <StatusBar backgroundColor="#088B35" translucent barStyle="light-content" />
         <View style={styles.offlineContainer}>
           <MaterialCommunityIcons name="wifi-off" size={40} color={colors.gray} />
           <Text style={styles.offlineText}>No internet connection available</Text>
           <Text style={styles.offlineSubText}>Please check your network settings</Text>
         </View>
-      ) : serviceCheckFailed && !isLoading ? (
+      </View>
+    );
+  }
+
+  if (serviceCheckFailed && !isLoading) {
+    return (
+      <View style={styles.mainWrapper}>
+        <StatusBar backgroundColor="#088B35" translucent barStyle="light-content" />
         <View style={styles.errorContainer}>
           <MaterialIcons name="error-outline" size={40} color={colors.red} />
           <Text style={styles.errorText}>Network Error</Text>
@@ -644,383 +477,426 @@ export default function UserHome({ navigation }) {
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
-      ) : isLoading || initialNetLoad ? (
+      </View>
+    );
+  }
+
+  if (serviceAvailable === false) {
+    return <ServiceUnavailableScreen />;
+  }
+
+  if (!categories && !errorOccured) {
+    return (
+      <View style={styles.mainWrapper}>
+        <StatusBar backgroundColor="#088B35" translucent barStyle="light-content" />
         <Skeleton />
-      ) : serviceAvailable ? (
-        <View style={styles.container}>
-          <Animated.View
-            style={[
-              styles.stickySearchBar,
-              { paddingTop: insets.top },
-              { opacity: stickyHeaderOpacity },
-              { transform: [{ translateY: stickyHeaderTranslateY }] }
-            ]}
-            pointerEvents={scrollY._value >= STICKY_HEADER_SCROLL_DISTANCE ? 'auto' : 'none'}
-          >
-            <LinearGradient
-              colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.stickyGradient}
-            >
-              <View style={styles.stickySearchContainer}>
+      </View>
+    );
+  }
+
+  // ==========================================
+  // MAIN UI RENDER
+  // ==========================================
+  return (
+    <View style={styles.mainWrapper}>
+      <StatusBarManager screenName="home" />
+      
+      <LinearGradient
+        colors={headerGradientColors}
+        locations={[0, 0.774, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.rectangle10}
+      />
+
+      {/* Sticky Search Bar */}
+      <Animated.View
+        style={[
+          styles.stickySearchBar,
+          {
+            opacity: stickyOpacity,
+            transform: [{ translateY: stickyTranslateY }],
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={activeTab === 'veg' ? ['#088B35', '#08B341'] : ['#FC6011', '#FF9F6A']}
+          style={[styles.stickySearchGradient, { paddingTop: insets.top + 5 }]}
+        >
+          <View style={styles.searchContainerSticky}>
+            <Icon name="search" size={24} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for items..."
+              placeholderTextColor="#999"
+              value={searchQuery}
+              onChangeText={handleSearch}
+              onFocus={() => navigation.navigate('CategoriesScreen')}
+            />
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      <SafeAreaView style={styles.safeArea}>
+        <Animated.ScrollView 
+          style={styles.scrollView} 
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#088B35']} />}
+        >
+          
+          <View style={styles.headerContainer}>
+            <TouchableOpacity onPress={() => navigation.navigate('SelectServiceFromLocation', { selectedAddress })} style={styles.locationWrapper}>
+              <View style={styles.homeLabelRow}>
+                <Text style={[styles.homeLabel, { color: activeColor }]}>{locationName || 'Location'}</Text>
+                <Icon name="keyboard-arrow-down" size={20} color={activeColor} style={{ marginLeft: 4 }} />
+              </View>
+              <Text style={[styles.addressText, { color: activeColor }]} numberOfLines={1}>
+                {selectedAddress?.full_address || 'Select your location'}
+              </Text>
+            </TouchableOpacity>
+            
+            <View style={styles.headerIcons}>
+              <TouchableOpacity style={styles.iconButton}>
+                <View style={styles.notificationDot} />
+                <Text style={styles.bellIcon}>🔔</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+                <Image source={{ uri: PROFILE_URL }} style={styles.profilePic} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.tabsAndContentContainer}>
+            
+            {activeTab === 'veg' ? <VegActiveBackground /> : <SnacksActiveBackground />}
+
+            <View style={styles.tabsRow}>
+              <TouchableOpacity 
+                style={styles.tabButton} 
+                onPress={() => handleTabToggle('veg')}
+                activeOpacity={0.8}
+              >
+                <Image source={{ uri: VEG_TAB_ICON }} style={styles.tabIcon} />
+                <Text style={[styles.tabText, { color: activeTab === 'veg' ? activeColor : inactiveColor, fontWeight: activeTab === 'veg' ? '700' : '500' }]}>
+                  Vegetables & Fruits
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.tabButton} 
+                onPress={() => handleTabToggle('snacks')}
+                activeOpacity={0.8}
+              >
+                <Image source={{ uri: SNACK_TAB_ICON }} style={styles.tabIcon} />
+                <Text style={[styles.tabText, { color: activeTab === 'snacks' ? activeColor : inactiveColor, fontWeight: activeTab === 'snacks' ? '700' : '500' }]}>
+                  Snacks
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.mainContent}>
+              
+              {/* Search Bar in Header */}
+              <View style={styles.searchContainerHeader}>
                 <Icon name="search" size={24} color="#999" />
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Search"
+                  placeholder="Search for items..."
                   placeholderTextColor="#999"
                   value={searchQuery}
                   onChangeText={handleSearch}
                   onFocus={() => navigation.navigate('CategoriesScreen')}
                 />
               </View>
-            </LinearGradient>
-          </Animated.View>
 
-          <Animated.FlatList
-            data={popularRestaurants}
-            keyExtractor={(item, index) => `restaurant-${item.shop_id || item.id || index}`}
-            ListHeaderComponent={renderHeader}
-            renderItem={renderRestaurantItem}
-            
-            removeClippedSubviews={true}
-            initialNumToRender={5}
-            maxToRenderPerBatch={5}
-            windowSize={5}
-            
-            showsVerticalScrollIndicator={false}
-            scrollEventThrottle={16}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { 
-                useNativeDriver: true,
-                listener: (event) => {
-                  scrollPositionRef.current = event.nativeEvent.contentOffset.y;
-                }
-              }
-            )}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={['#088B35']}
-              />
-            }
-            ListEmptyComponent={() => (
-              <View style={{ alignItems: 'center', justifyContent: 'center', height: responsiveHeight(10), width: responsiveWidth(100) }}>
-                <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>
-                  No popular {activeCategoryIndex === 1 ? "restaurants" : "shops"} available
-                </Text>
+              {/* DYNAMIC BANNER CAROUSEL WITH FALLBACK */}
+              <View style={styles.carouselWrapper}>
+                {banners && banners.length > 0 ? (
+                  <ScrollView
+                    ref={bannerScrollRef}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                  >
+                    {banners.map((item, index) => (
+                      <TouchableOpacity key={index} style={styles.bannerItem} onPress={() => handleBannerPress(item)} activeOpacity={0.9}>
+                        <Image source={{ uri: item.banner_image }} style={styles.bannerImage} />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                ) : (
+                  <View style={styles.bannerItem}>
+                    <Image source={{ uri: activeTab === 'veg' ? 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80' : 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80' }} style={styles.bannerImage} />
+                    <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }]}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'SF Pro Display', fontWeight: '700' }}>Welcome to {locationName || 'Our Store'}</Text>
+                      <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'SF Pro Display', fontWeight: '500', marginTop: 4 }}>Amazing offers coming soon!</Text>
+                    </View>
+                  </View>
+                )}
               </View>
-            )}
-            contentContainerStyle={{ paddingBottom: 40 }}
-          />
-        </View>
-      ) : serviceAvailable === false ? (
-        <ServiceUnavailableScreen />
-      ) : !categories && !errorOccured ? (
-        <Skeleton />
-      ) : (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Something went wrong</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => {
-              checkServiceAvailability();
-              getCategoreis();
-            }}
-          >
-            <Text style={styles.retryText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+
+              {/* DYNAMIC PAGINATION DOTS */}
+              <View style={styles.paginationContainer}>
+                {banners && banners.length > 0 ? (
+                  banners.map((_, index) => {
+                    if (index === activeBanner) {
+                      return (
+                        <View key={index} style={styles.activeDotTrack}>
+                          <View style={styles.activeDotIndicator} />
+                        </View>
+                      );
+                    }
+                    return <View key={index} style={styles.inactiveDot} />;
+                  })
+                ) : (
+                  <View style={{ height: 6 }} />
+                )}
+              </View>
+
+              {/* DYNAMIC SUBCATEGORIES GRID */}
+              {subCategories && subCategories.length > 0 && (
+                <View style={styles.categoriesSection}>
+                  <Text style={styles.categoriesTitle}>Categories</Text>
+                  
+                  <View style={styles.categoriesGrid}>
+                    {subCategories.slice(0, 8).map((item, index) => (
+                      <TouchableOpacity 
+                        key={index} 
+                        style={styles.categoryItemContainer}
+                        onPress={() => { dispatch(setsubCategory(item)); navigation.navigate('CategorieItems'); }}
+                      >
+                        <View style={styles.categoryImageWrapper}>
+                          <CategoryRadialBackground />
+                          <Image source={{ uri: item.sub_category_image }} style={styles.categoryImageOverlay} />
+                        </View>
+                        <Text style={styles.categoryText} numberOfLines={2}>{item.sub_category_name}</Text>
+                      </TouchableOpacity>
+                    ))}
+
+                    {/* View More Button - Navigates to 'Categories' Tab */}
+                    {subCategories.length > 8 && (
+                      <TouchableOpacity 
+                        style={styles.viewMoreContainer}
+                        onPress={() => navigation.navigate('Categories')}
+                      >
+                        <View style={styles.viewMoreCircle}>
+                          <Icon name="keyboard-arrow-right" size={30} color="#088B35" />
+                        </View>
+                        <Text style={styles.viewMoreText}>View More</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* DYNAMIC FRESH PICKS (POPULAR RESTAURANTS) */}
+              <View style={styles.picksSectionContainer}>
+                <View style={styles.picksHeaderRow}>
+                  <Text style={styles.picksSectionTitle}>Fresh Picks Near You</Text>
+                  <View style={styles.picksSectionLine} />
+                </View>
+                
+                {popularRestaurants?.length > 0 ? (
+                  popularRestaurants.map((item, index) => {
+                    const isUnavailable = item.shop_active_status === '1';
+                    return (
+                      <React.Fragment key={`restaurant-${item.shop_id || index}`}>
+                        <TouchableOpacity 
+                          style={[styles.storeCard, isUnavailable && { opacity: 0.5 }]}
+                          onPress={() => navigation.navigate('RestaurantScreen', { shopId: item.shop_id, shopItem: item.shop_items_tb_nm, item })}
+                        >
+                          <Image source={{ uri: item?.shop_image }} style={styles.storeImage} />
+                          
+                          <View style={styles.storeContentArea}>
+                            <View style={styles.storeInfoColumn}>
+                              <View style={styles.storeNameWrap}>
+                                <Text style={styles.storeName} numberOfLines={1}>{item.shop_name}</Text>
+                                <Text style={styles.storeType} numberOfLines={1}>{item.shop_address || 'Supermarket'}</Text>
+                              </View>
+                              <Text style={styles.deliveryTime}>• Delivery in {calculateDeliveryTime(item.distance)}</Text>
+                              <View style={styles.ratingBadge}>
+                                <Text style={styles.ratingText}>{item.shop_rating}</Text>
+                                <Text style={styles.starIcon}>★</Text>
+                              </View>
+                            </View>
+                            <TouchableOpacity style={styles.menuIconContainer}>
+                              <View style={styles.menuCircle}>
+                                <View style={styles.menuDot} /><View style={styles.menuDot} /><View style={styles.menuDot} />
+                              </View>
+                            </TouchableOpacity>
+                          </View>
+                        </TouchableOpacity>
+
+                        {index !== popularRestaurants.length - 1 && <View style={styles.dashedSeparator} />}
+                      </React.Fragment>
+                    );
+                  })
+                ) : (
+                  <View style={{ alignItems: 'center', justifyContent: 'center', height: 100 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No fresh picks available right now</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.bottomSpacer} />
+            </View>
+          </View>
+        </Animated.ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
 
+// ==========================================
+// STYLES
+// ==========================================
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingBottom: Platform.OS === 'ios' ? 85 : 60,
+  mainWrapper: { flex: 1, backgroundColor: '#FFFFFF' },
+  safeArea: { flex: 1 },
+  scrollView: { flex: 1 },
+  rectangle10: { position: 'absolute', width: width, height: 270, top: 0, left: 0, zIndex: 0 },
+  headerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 40, marginBottom: 20, zIndex: 2 },
+  locationWrapper: { flex: 1, marginRight: 20 },
+  homeLabelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  homeLabel: { fontSize: 18, fontFamily: 'SF Pro Display', fontWeight: '800' },
+  addressText: { fontSize: 12, fontFamily: 'SF Pro Display', fontWeight: '500' },
+  headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconButton: { width: 36, height: 36, backgroundColor: '#FFFFFF', borderRadius: 18, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
+  notificationDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, backgroundColor: '#E7432D', borderRadius: 4, zIndex: 2 },
+  bellIcon: { fontSize: 16 },
+  profilePic: { width: 36, height: 36, borderRadius: 18 },
+  tabsAndContentContainer: { position: 'relative', width: width, minHeight: 500 },
+  svgWrapper: { position: 'absolute', top: 0, left: 0, width: width, height: SVG_HEIGHT, zIndex: 1 },
+  absoluteSvg: { position: 'absolute', top: 0, left: 0 },
+  tabsRow: { flexDirection: 'row', width: width, height: TAB_CUTOUT_HEIGHT, zIndex: 2 },
+  tabButton: { flex: 1, height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4 },
+  tabIcon: { width: 24, height: 24, resizeMode: 'contain', marginBottom: 2 },
+  tabText: { fontSize: 11, fontFamily: 'SF Pro Display', textAlign: 'center' },
+  mainContent: { paddingTop: 10, zIndex: 2 },
+  carouselWrapper: { width: CONTENT_WIDTH, height: 140, alignSelf: 'center', marginTop: 16, marginBottom: 16, borderRadius: 16, elevation: 3, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 5, shadowOffset: { width: 0, height: 3 }, backgroundColor: '#FFF' },
+  bannerItem: { width: CONTENT_WIDTH, height: 140, borderRadius: 16, overflow: 'hidden' },
+  bannerImage: { width: '100%', height: '100%', resizeMode: 'stretch' },
+  paginationContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5.24, marginBottom: 24 },
+  activeDotTrack: { width: 37, height: 6, backgroundColor: '#D6D6D6', borderRadius: 3, overflow: 'hidden' },
+  activeDotIndicator: { position: 'absolute', left: 0, top: 0, width: 24.1, height: 6, backgroundColor: '#292D32', borderRadius: 3 },
+  inactiveDot: { width: 6, height: 6, backgroundColor: '#D6D6D6', borderRadius: 3 },
+  categoriesSection: { width: CONTENT_WIDTH, alignSelf: 'center', flexDirection: 'column', alignItems: 'flex-start', gap: 12, marginBottom: 30 },
+  categoriesTitle: { fontFamily: 'SF Pro Display', fontStyle: 'normal', fontWeight: '700', fontSize: 20, lineHeight: 24, color: '#000000' },
+  categoriesGridRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 5 },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '100%',
   },
-  container: {
+  viewMoreContainer: {
+    width: 84,
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  viewMoreCircle: {
+    width: 84,
+    height: 84,
+    borderRadius: 16,
+    backgroundColor: '#EDFFEA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#088B35',
+    borderStyle: 'dashed',
+  },
+  viewMoreText: {
+    fontFamily: 'SF Pro Display',
+    fontWeight: '600',
+    fontSize: 12,
+    color: '#088B35',
+  },
+  categoryItemContainer: { flexDirection: 'column', alignItems: 'center', width: 84, marginBottom: 15 },
+  categoryImageWrapper: { width: 84, height: 84, borderRadius: 16, position: 'relative', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  absoluteCategoryBg: { position: 'absolute', left: 0, top: 0 },
+  categoryImageOverlay: { width: 50, height: 50, resizeMode: 'contain', zIndex: 2 },
+  categoryText: { width: 84, fontFamily: 'SF Pro Display', fontStyle: 'normal', fontWeight: '400', fontSize: 12, lineHeight: 14, textAlign: 'center', color: '#000000' },
+  picksSectionContainer: { width: CONTENT_WIDTH, alignSelf: 'center', flexDirection: 'column', gap: 8, marginBottom: 24 },
+  picksHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
+  picksSectionTitle: { fontFamily: 'Poppins', fontWeight: '700', fontSize: 16, lineHeight: 24, color: '#000000' },
+  picksSectionLine: { flex: 1, height: 1, backgroundColor: '#D0D0D0' },
+  storeCard: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 12, alignItems: 'center', gap: 12, height: 116 },
+  storeImage: { width: 140, height: 116, borderRadius: 16, backgroundColor: '#f0f0f0' },
+  storeContentArea: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', height: 111 },
+  storeInfoColumn: { flex: 1, flexDirection: 'column', justifyContent: 'center', paddingVertical: 10, gap: 8 },
+  storeNameWrap: { flexDirection: 'column', gap: 4 },
+  storeName: { fontFamily: 'Gilroy-Bold', fontWeight: '400', fontSize: 16, lineHeight: 20, color: '#000000' },
+  storeType: { fontFamily: 'Gilroy-Medium', fontSize: 12, lineHeight: 15, color: '#676767' },
+  deliveryTime: { fontFamily: 'Gilroy-SemiBold', fontSize: 14, lineHeight: 17, color: '#07772F' },
+  ratingBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#07772F', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 4, gap: 4 },
+  ratingText: { fontFamily: 'Gilroy-Bold', fontSize: 12, lineHeight: 14, color: '#FFFFFF' },
+  starIcon: { fontSize: 10, color: '#FFFFFF', marginTop: -1 },
+  dashedSeparator: { width: '100%', height: 1, borderWidth: 1, borderColor: '#D8D8D8', borderStyle: 'dashed', marginVertical: 4 },
+  menuIconContainer: { padding: 8, justifyContent: 'center', alignItems: 'center' },
+  menuCircle: { width: 20, height: 20, borderRadius: 10, borderWidth: 0.5, borderColor: '#A3A3A3', backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 2 },
+  menuDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#000000' },
+  bottomSpacer: { height: 100 },
+  offlineContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, backgroundColor: '#f5f5f5' },
+  offlineText: { fontSize: 18, fontWeight: 'bold', color: '#333', marginTop: 20 },
+  offlineSubText: { fontSize: 14, color: '#666', marginTop: 10 },
+  errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, backgroundColor: '#f5f5f5' },
+  errorText: { fontSize: 18, fontWeight: 'bold', color: colors.red, marginTop: 20 },
+  errorSubText: { fontSize: 14, color: '#666', marginTop: 10 },
+  retryButton: { marginTop: 20, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#088B35', borderRadius: 8 },
+  retryText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  
+  // Search Styles
+  searchContainerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    paddingHorizontal: 12,
+    height: 50,
+    marginTop: 10,
+    marginBottom: 5,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  searchContainerSticky: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    paddingHorizontal: 12,
+    height: 45,
+    marginBottom: 10,
+  },
+  searchInput: {
     flex: 1,
-    backgroundColor: '#fff',
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 0,
   },
   stickySearchBar: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 1000,
-    backgroundColor: "#088B35"
+    zIndex: 100,
   },
-  stickyGradient: {
-    paddingVertical: 8,
-  },
-  stickySearchContainer: {
-    marginHorizontal: responsiveWidth(4),
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 50,
-    paddingHorizontal: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  headerGradient: {
-    paddingBottom: 0,
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: responsiveWidth(4),
-    paddingBottom: 12,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  locationTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  profileButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  profileAvatar: {
+  stickySearchGradient: {
     width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  searchContainer: {
-    marginHorizontal: responsiveWidth(4),
-    marginTop: 8,
-    marginBottom: 10,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 50,
-    paddingHorizontal: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  searchInput: {
-    fontSize: 15,
-    fontWeight: '400',
-    color: '#000',
-    flex: 1,
-    marginLeft: 10,
-  },
-  bannerContainer: {
-    width: responsiveWidth(85),
-    height: 120,
-    marginHorizontal: responsiveWidth(4),
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-  },
-  contentContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    marginTop: -20,
-    paddingTop: 15,
-  },
-  categoryHeaderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    marginBottom: 5,
-  },
-  categoryHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginRight: 10,
-  },
-  categoryHeaderLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#CCCCCC',
-  },
-  subCategoriesContainer: {
-    backgroundColor: '#fff',
-    marginVertical: 10,
-    paddingHorizontal:10
-  },
-  viewMoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    marginTop: 5,
-    marginBottom: 5,
-  },
-  viewMoreText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#088B35',
-    marginRight: 4,
-  },
-  restaurantCard: {
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-    padding: 10,
-  },
-  restaurantContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    position: 'relative',
-  },
-  restaurantImageContainer: {
-    width: 90,
-    height: 90,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginRight: 12,
-  },
-  restaurantImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  restaurantTextContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  restaurantName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  ratingText: {
-    fontSize: 12,
-    marginLeft: 4,
-    color: '#000',
-  },
-  dot: {
-    marginHorizontal: 4,
-    fontSize: 12,
-    color: '#888',
-  },
-  addressText: {
-    fontSize: 12,
-    color: '#777',
-    marginTop: 2,
-  },
-  offerTag: {
-    backgroundColor: '#DAF4E3',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginTop: 6,
-    alignSelf: 'flex-start',
-  },
-  offerText: {
-    fontSize: 10,
-    color: '#08B341',
-    fontWeight: '600',
-  },
-  unavailableCard: {
-    opacity: 0.6,
-    backgroundColor: '#f0f0f0',
-  },
-  unavailableOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-    borderRadius: 15,
-  },
-  unavailableText: {
-    color: '#D9534F',
-    fontWeight: '700',
-    fontSize: 14,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  offlineContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  offlineText: {
-    fontSize: 18,
-    color: '#333',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  offlineSubText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  errorText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: 'grey',
-    marginBottom: 20,
-  },
-  errorSubText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#065E2C',
-    padding: 15,
-    borderRadius: 8,
-    marginTop: 20,
-  },
-  retryText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    paddingBottom: 5,
   },
 });

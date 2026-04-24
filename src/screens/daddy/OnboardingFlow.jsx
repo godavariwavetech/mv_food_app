@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activeDot: {
-    backgroundColor: '#08B341',
+    backgroundColor: '#FC6011',
     width: 10,
     height: 10,
     borderRadius: 5,
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   skipText: {
-    color: '#08B341',
+    color: '#FC6011',
     fontWeight: 'bold',
   },
 });

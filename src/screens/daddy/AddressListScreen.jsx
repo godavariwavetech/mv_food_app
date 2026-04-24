@@ -213,7 +213,7 @@ const AddressListScreen = ({ navigation, route }) => {
 
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
+          <FontAwesome6 name="arrow-left-long" size={20} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>Address List</Text>
       </View>
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    backgroundColor: commonStyles.btn2Color,
+    backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: responsiveWidth(6),
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#000',
     textAlign: "left"
 
   },

@@ -364,7 +364,7 @@ const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       {/* <LinearGradient colors={['#FD0', '#F7F2F2']} style={styles.gradientContainer}> */}
-      <LinearGradient colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
+      <LinearGradient colors={['#088B35', '#FC6011', '#8AD9A4', '#8AD9A4']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
         <View
           style={{
             flexDirection: 'row',

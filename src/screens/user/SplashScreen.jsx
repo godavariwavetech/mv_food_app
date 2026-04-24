@@ -34,7 +34,7 @@ export default SplashScreen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#08B341',
+    backgroundColor: '#FC6011',
     position: 'relative'
   },
   imgContainer: {

@@ -502,7 +502,7 @@ const CheckoutScreen = ({ navigation, route }) => {
               backgroundColor: isFreeDeliveryEligible ? '#E7FFD3' : '#FFF5E5',
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: isFreeDeliveryEligible ? '#08B341' : '#FFCB18',
+              borderColor: isFreeDeliveryEligible ? '#FC6011' : '#FFCB18',
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
@@ -511,12 +511,12 @@ const CheckoutScreen = ({ navigation, route }) => {
               <MaterialCommunityIcons
                 name={isFreeDeliveryEligible ? "check-decagram" : "truck-delivery-outline"}
                 size={22}
-                color={isFreeDeliveryEligible ? '#08B341' : '#F5A623'}
+                color={isFreeDeliveryEligible ? '#FC6011' : '#F5A623'}
               />
               <Text style={{
                 fontSize: 14,
                 fontWeight: '600',
-                color: isFreeDeliveryEligible ? '#08B341' : '#525252'
+                color: isFreeDeliveryEligible ? '#FC6011' : '#525252'
               }}>
                 {isFreeDeliveryEligible
                   ? "🎉 You've unlocked Free Delivery!"
@@ -698,7 +698,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                 )}
                 
                 {/* Show the actual charge (0 or the calculated amount) */}
-                <Text style={[styles.billValue, isFreeDeliveryEligible && { color: '#08B341', fontWeight: '700' }]}>
+                <Text style={[styles.billValue, isFreeDeliveryEligible && { color: '#FC6011', fontWeight: '700' }]}>
                   {Number(delivery.totalCharge) === 0 ? "FREE" : `₹ ${delivery.totalCharge}`}
                 </Text>
               </View>
