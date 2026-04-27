@@ -75,7 +75,7 @@ const MenuItemCard = ({ item, cartItem, onAdd, onIncrement, onDecrement }) => {
         
         {/* Title & Veg/Non-Veg Icon */}
         <View style={styles.titleRow}>
-          <Text style={styles.itemTitle} numberOfLines={2}>{itemName}</Text>
+          <Text style={styles.itemTitle} numberOfLines={1}>{itemName}</Text>
           
           <View style={[styles.vegIconBorder, { borderColor: isVeg ? '#0EAF50' : '#CD2A2A' }]}>
             <View style={[styles.vegIconDot, { backgroundColor: isVeg ? '#0EAF50' : '#CD2A2A' }]} />
@@ -595,7 +595,7 @@ const RestaurantScreen = ({ navigation, route }) => {
               keyExtractor={(item, index) => `${item.id}_${index}`}
               style={styles.itemList}
               contentContainerStyle={{
-                paddingHorizontal: 12, // Adjusted for perfect grid balance
+                paddingHorizontal: 16, // Adjusted for perfect grid balance
                 paddingBottom: Platform.OS === 'ios' ? 160 : 150,
               }}
               renderItem={renderItem}
@@ -770,7 +770,7 @@ itemList: { flex: 1, marginTop: 10 },
   // FIGMA ITEM CARD UI
   // =====================================
   cardContainer: {
-    width: 183,
+    width: responsiveWidth(44),
     height: 247,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -808,13 +808,13 @@ itemList: { flex: 1, marginTop: 10 },
     overflow: 'hidden'
   },
   itemImage: {
-    width: 159,
+    width: responsiveWidth(39),
     height: 136,
     borderRadius: 12,
     backgroundColor: '#F5F5F5',
   },
   contentArea: {
-    width: 159,
+    width: responsiveWidth(39),
     marginTop: 12, 
     flexDirection: 'column',
     gap: 8,

@@ -13,29 +13,27 @@ const OnboardingScreen = ({onNext}) => {
   const navigation = useNavigation();
   return (
     <SafeAreaView style={styles.container}>
-      {/* <TouchableOpacity style={styles.skipButton} onPress={() => navigation.replace('Register')}>
-        <Text style={styles.skipText}>Skip</Text>
-        <Ionicons name="arrow-forward-circle" size={24} color="#FC6011" />
-      </TouchableOpacity> */}
+
+      <Image
+        source={require('./tabassets/onBoardBack.png')}
+        style={styles.backgroundCircles}
+      />
+
       <View style={styles.imgContainer}>
-        {/* <OnboardingLogo1 /> */}
-            <Image
-                source={require('./tabassets/onBoard1.png')}
-                style={styles.characterImage}
-              />
+        <Image
+          source={require('./tabassets/onBoard1.png')}
+          style={styles.characterImage}
+        />
       </View>
 
       <ImageBackground
-        source={require('./tabassets/your-onboarding-image.png')}
+        source={require('./tabassets/onBoard1B.png')}
         style={styles.textImageBackground}
-        imageStyle={{ resizeMode: 'contain' }}
-      >
-
+        imageStyle={{resizeMode: 'contain'}}>
         <TouchableOpacity style={styles.nextButton} onPress={onNext}>
-          <AntDesign name="arrowright" size={25} color="#FC6011" />
+          <AntDesign name="arrowright" size={25} color="#fff" />
         </TouchableOpacity>
       </ImageBackground>
-      {/* </View> */}
     </SafeAreaView>
   );
 };
@@ -139,8 +137,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   nextButton: {
-    backgroundColor: "#fff",
-    padding: 16,
+    backgroundColor: "#139400",
+    padding: 18,
     borderRadius: 50,
     marginTop: responsiveHeight(0.3),
     // width:58,height:58,
@@ -152,5 +150,13 @@ const styles = StyleSheet.create({
     marginTop: responsiveHeight(10),
     resizeMode: 'contain',
     transform:[{translateY:30}]
+  },
+    backgroundCircles: {
+    position: 'absolute',
+    top: responsiveHeight(5),
+    left: 0,
+    width: responsiveWidth(100),
+    height: responsiveHeight(50),
+    opacity: 0.5,
   },
 });

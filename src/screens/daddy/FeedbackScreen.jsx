@@ -8,8 +8,7 @@ import { useDispatch } from 'react-redux';
 import { submitAppReview } from '../../redux/reducers/reviews';
 import CustomModal from '../../components/CustomModal';
 import commonStyles from '../../commonstyles/CommonStyles';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FeedbackScreen = ({ navigation }) => {
   const [rating, setRating] = useState(0);
@@ -17,6 +16,7 @@ const FeedbackScreen = ({ navigation }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
+
   const handleSubmit = async () => {
     try {
       await dispatch(submitAppReview({rating, comment}));
@@ -28,11 +28,14 @@ const FeedbackScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* <StatusBar backgroundColor={commonStyles.btn2Color} barStyle={'light-content'} /> */}
-      <LinearGradient colors={['#088B35','#8AD9A4']} style={[styles.gradientContainer, { paddingTop: insets.top }]}>
-        <View style={styles.headerContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <LinearGradient
+        colors={['#EE6F00', '#C24501']}
+        style={[styles.headerGradient, { paddingTop: insets.top + 10 }]}
+      >
+        <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
+            <FontAwesome6 name="arrow-left-long" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Feedback</Text>
         </View>
@@ -96,24 +99,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  gradientContainer: {
-   paddingVertical: responsiveHeight(2),
-  //  paddingTop: 40
+  headerGradient: {
+    width: '100%',
+    paddingBottom: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  headerContainer: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: responsiveWidth(5),
-    // paddingBottom: responsiveHeight(3),
-    paddingTop:responsiveHeight(1)
+    paddingHorizontal: 16,
   },
   backButton: {
-    marginRight: responsiveWidth(5),
+    padding: 5,
   },
   headerTitle: {
-    color: '#fff',
-    fontSize: 20,
+    fontFamily: 'SF Pro',
     fontWeight: '700',
+    fontSize: 18,
+    color: '#FFFFFF',
+    marginLeft: 8,
   },
   content: {
     flex: 1,
@@ -167,4 +172,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FeedbackScreen; 
+export default FeedbackScreen;

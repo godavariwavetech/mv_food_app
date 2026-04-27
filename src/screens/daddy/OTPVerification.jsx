@@ -314,11 +314,7 @@ export default function OTPVerification({ navigation, route }) {
           </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={handleVerifyOtp} style={styles.loginButton}>
-          {loader ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.loginText}>Verify</Text>
-          )}
+          <Text style={styles.loginText}>Verify</Text>
         </TouchableOpacity>
       </View>
     </Pressable>

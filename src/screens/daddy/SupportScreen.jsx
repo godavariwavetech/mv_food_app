@@ -43,11 +43,14 @@ const SupportScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* <StatusBar backgroundColor={commonStyles.btn2Color} barStyle={'light-content'} translucent /> */}
-      <LinearGradient colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}  style={[styles.gradientContainer, { paddingTop: insets.top }]}>
-        <View style={styles.headerContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <LinearGradient
+        colors={['#EE6F00', '#C24501']}
+        style={[styles.headerGradient, { paddingTop: insets.top + 10 }]}
+      >
+        <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <FontAwesome6 name="arrow-left-long" size={20} color="#fff" />
+            <FontAwesome6 name="arrow-left-long" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Support</Text>
         </View>
@@ -80,26 +83,28 @@ const SupportScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#fff',
+    backgroundColor: '#fff',
   },
-  gradientContainer: {
-    // paddingTop: 10,
-    paddingVertical: responsiveHeight(2),
+  headerGradient: {
+    width: '100%',
+    paddingBottom: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  headerContainer: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: responsiveWidth(5),
-    // paddingBottom: responsiveHeight(3),
-    paddingTop:responsiveHeight(1)
+    paddingHorizontal: 16,
   },
   backButton: {
-    marginRight: responsiveWidth(5),
+    padding: 5,
   },
   headerTitle: {
-    color: '#fff',
-    fontSize: 20,
+    fontFamily: 'SF Pro',
     fontWeight: '700',
+    fontSize: 18,
+    color: '#FFFFFF',
+    marginLeft: 8,
   },
   content: {
     flex: 1,

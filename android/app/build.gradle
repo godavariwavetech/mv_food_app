@@ -78,9 +78,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.varadhifoods"
+    namespace "com.freshgrab"
     defaultConfig {
-        applicationId "com.varadhifoods"
+        applicationId "com.freshgrab"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 16

@@ -19,7 +19,7 @@ const OnboardingFlow = () => {
   const slides = [
     { key: 'one', component: OnboardingScreen },
     { key: 'two', component: OnboardingScreen2 },
-    { key: 'three', component: OnboardingScreen3 },
+    // { key: 'three', component: OnboardingScreen3 },
   ];
 
   // Function to handle programmatic scrolling for the 'Next' button
@@ -47,9 +47,11 @@ const OnboardingFlow = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Skip button for convenience */}
-      <TouchableOpacity style={styles.skipButton} onPress={() => navigation.replace('Register')}>
-        <Text style={styles.skipText}>Skip</Text>
-      </TouchableOpacity>
+      {currentIndex === 0 && (
+        <TouchableOpacity style={styles.skipButton} onPress={() => navigation.replace('Register')}>
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
+      )}
 
       <ScrollView
         ref={scrollViewRef}

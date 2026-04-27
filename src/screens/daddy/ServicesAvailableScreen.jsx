@@ -75,6 +75,9 @@ const ServicesAvailableScreen = ({ navigation, route }) => {
     }
   };
 
+
+  console.log(filteredAreas,">>>>>>>>>>>>>>>>>>>>>>>filteredAreas");
+
   return (
     <SafeAreaView style={styles.container}>
       {/* <StatusBar backgroundColor={"transparent"} translucent barStyle={"light-content"} /> */}
@@ -100,9 +103,6 @@ const ServicesAvailableScreen = ({ navigation, route }) => {
           <MaterialIcons name="search" size={24} color={colors.green} />
         </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color={colors.green} style={styles.loader} />
-        ) : (
           <FlatList
             refreshControl={
               <RefreshControl
@@ -143,7 +143,6 @@ const ServicesAvailableScreen = ({ navigation, route }) => {
               </View>
             }
           />
-        )}
       </View>
     </SafeAreaView>
   );

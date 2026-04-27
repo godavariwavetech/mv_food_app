@@ -1,21 +1,41 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import commonStyles from '../../commonstyles/CommonStyles';
+import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDispatch, useSelector } from 'react-redux';
+import { getChargesList } from '../../redux/reducers/addressSlice';
 
 const RefundPolicyScreen = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const dispatch = useDispatch();
+  const { chargesList } = useSelector(state => state.address);
+  const contactInfo = chargesList?.[0];
+
+  useEffect(() => {
+    if (!chargesList) {
+      dispatch(getChargesList());
+    }
+  }, []);
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <FontAwesome6 name="arrow-left-long" size={20} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Refund Policy</Text>
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <LinearGradient
+        colors={['#EE6F00', '#C24501']}
+        style={[styles.headerGradient, { paddingTop: insets.top + 10 }]}
+      >
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <FontAwesome6 name="arrow-left-long" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Refund Policy</Text>
+        </View>
+      </LinearGradient>
       <ScrollView style={{padding: 20}}>
         <Text style={styles.effectiveDate}>Effective Date: 20/05/2025</Text>
         
@@ -23,7 +43,7 @@ const RefundPolicyScreen = () => {
         <Text style={styles.content}>
           • Orders can only be canceled before the restaurant starts preparing your food{"\n"}
           • Check order status in the app for cancellation availability{"\n"}
-          • Food Trail reserves the right to cancel orders in special cases (full refund issued)
+          • Fresh Grab reserves the right to cancel orders in special cases (full refund issued)
         </Text>
 
         <View style={styles.separator} />
@@ -60,13 +80,13 @@ const RefundPolicyScreen = () => {
         <Text style={styles.sectionTitle}>5. Contact Us</Text>
         <Text style={[styles.content,{marginBottom:responsiveHeight(10)}]}>
           For refund-related queries:{"\n"}
-          <TouchableOpacity onPress={() => Linking.openURL('mailto:foodtrailpro@gmail.com')}>
-            <Text style={[styles.link, styles.bold]}>Email: foodtrailpro@gmail.com</Text>
+          <TouchableOpacity onPress={() => contactInfo?.mail_id && Linking.openURL(`mailto:${contactInfo.mail_id}`)}>
+            <Text style={[styles.link, styles.bold]}>Email: {contactInfo?.mail_id || 'foodtrailpro@gmail.com'}</Text>
           </TouchableOpacity>{"\n"}
-          <TouchableOpacity onPress={() => Linking.openURL('tel:8688104157')}>
-            <Text style={[styles.link, styles.bold]}>Phone: 8688104157</Text>
+          <TouchableOpacity onPress={() => contactInfo?.contact_number && Linking.openURL(`tel:${contactInfo.contact_number}`)}>
+            <Text style={[styles.link, styles.bold]}>Phone: {contactInfo?.contact_number || '8688104157'}</Text>
           </TouchableOpacity>{"\n"}
-          <Text style={[styles.link, styles.bold]}>Address: Tadepalligudem, 534101.</Text>
+          <Text style={[styles.link, styles.bold]}>Address: Rajahmundry, 533101.</Text>
         </Text>
       </ScrollView>
     </View>
@@ -79,23 +99,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingBottom:20
   },
-  header: { 
-    backgroundColor: commonStyles.yellowColor,
-    height: responsiveHeight(15),
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingBottom: responsiveHeight(3),
-    paddingLeft: responsiveWidth(5),
-    gap:6
+  headerGradient: {
+    width: '100%',
+    paddingBottom: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   backButton: {
-    width: responsiveWidth(7)
+    padding: 5,
   },
-  title: { 
-    fontSize: 16, 
-    fontWeight: '600', 
-    color: '#000',
-    textAlign: "left" 
+  headerTitle: {
+    fontFamily: 'SF Pro',
+    fontWeight: '700',
+    fontSize: 18,
+    color: '#FFFFFF',
+    marginLeft: 8,
   },
   effectiveDate: {
     fontSize: 14,
@@ -134,4 +157,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default RefundPolicyScreen; 
+export default RefundPolicyScreen;

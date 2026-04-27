@@ -334,7 +334,7 @@ const CheckoutScreen = ({ navigation, route }) => {
           key: razorpayOrder.key_id,
           amount: razorpayOrder.amount,
           order_id: razorpayOrder.id,
-          name: 'Varadhi Foods',
+          name: 'Fresh Grab',
           prefill: {
             email: selectedAddress?.customer_email || 'test@example.com',
             contact: selectedAddress?.customer_mobile_number,

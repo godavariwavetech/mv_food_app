@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider } from 'react-redux';
-import { store } from './src/redux/store';
+import { store, persistorStore } from './src/redux/store';
+import { PersistGate } from 'redux-persist/integration/react';
 import AppNavigation from './src/navigation/AppNavigation';
 import SplashScreen from 'react-native-splash-screen';
 import { getFCMToken } from './src/services/NotificationsService';
@@ -24,13 +25,16 @@ const NetworkStatusBanner = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    NetInfo.fetch().then(state => {
+      dispatch(setIsNetworkConnected(state.isConnected));
+    });
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
       dispatch(setIsNetworkConnected(state.isConnected));
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -117,23 +121,25 @@ const App = () => {
 
   return (
     <Provider store={store}>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          {/* <SafeAreaView style={{ flex: 1 }}>  */}
-            <NetworkStatusBanner />
-            {/* <OnboardingScreen3  /> */}
-            <AppNavigation />
-            <CustomModal
-              visible={showUpdateModal}
-              title="Update Available"
-              message="A new version of the app is available. Please update to continue using all features."
-              confirmText="Update Now"
-              onConfirm={handleUpdate}
-              cancelText=''
-            />
-          {/* </SafeAreaView> */}
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <PersistGate loading={null} persistor={persistorStore}>
+        <SafeAreaProvider>
+          <NavigationContainer>
+            {/* <SafeAreaView style={{ flex: 1 }}>  */}
+              <NetworkStatusBanner />
+              {/* <OnboardingScreen3  /> */}
+              <AppNavigation />
+              <CustomModal
+                visible={showUpdateModal}
+                title="Update Available"
+                message="A new version of the app is available. Please update to continue using all features."
+                confirmText="Update Now"
+                onConfirm={handleUpdate}
+                cancelText=''
+              />
+            {/* </SafeAreaView> */}
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </PersistGate>
     </Provider>
   );
 };

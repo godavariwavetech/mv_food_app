@@ -26,7 +26,8 @@ import commonStyles from '../../commonstyles/CommonStyles';
 
 export default function CategorieItems({ navigation, route }) {
   const dispatch = useDispatch()
-  const { restaurants, activeCategoryIndex, activeSubCategory } = useSelector(state => state.Dashboard)
+  const { restaurants, categories, activeCategoryIndex, activeSubCategory } = useSelector(state => state.Dashboard)
+  const isVeg = activeCategoryIndex === categories?.[0]?.id;
   const [filterData, setFilterData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -266,7 +267,7 @@ export default function CategorieItems({ navigation, route }) {
    
       <View style={styles.main}>
         <LinearGradient
-          colors={['#088B35', '#FC6011', '#8AD9A4', '#8AD9A4']} 
+          colors={isVeg ? ['#088B35', '#107D00', '#8AD9A4'] : ['#FC6011', '#D46327', '#FFB787']} 
           style={styles.gradientContainer}>
           <View style={styles.headerContent}>
             <View style={styles.headerLeft}>
@@ -288,7 +289,7 @@ export default function CategorieItems({ navigation, route }) {
             <View style={styles.inputWrapper}>
               <TextInput
                 placeholderTextColor="#666666"
-                placeholder="Search restaurants..."
+                placeholder="Search restaurants.."
                 style={styles.searchInput}
                 value={searchQuery}
                 onChangeText={handleSearch}

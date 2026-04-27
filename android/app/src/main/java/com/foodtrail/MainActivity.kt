@@ -1,4 +1,4 @@
-package com.varadhifoods
+package com.freshgrab
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

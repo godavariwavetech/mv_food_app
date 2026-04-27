@@ -27,7 +27,7 @@ const OnboardingScreen2 = ({ onNext }) => {
 
       {/* Background decorative circles */}
       <Image
-        source={require("./tabassets/onBoardBack.png")}
+        source={require("./tabassets/onBoardBack2.png")}
         style={styles.backgroundCircles}
       />
 
@@ -58,7 +58,7 @@ const OnboardingScreen2 = ({ onNext }) => {
               <TouchableOpacity
         style={styles.nextButton}
         onPress={onNext}>
-        <AntDesign name="arrowright" size={28} color="#00C152" />
+        <AntDesign name="arrowright" size={28} color="#fff" />
       </TouchableOpacity>
       </ImageBackground>
 
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     maxWidth: '90%',
   },
   nextButton: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FC6011",
     padding: 16,
     borderRadius: 50,
     marginTop: responsiveHeight(0.3),

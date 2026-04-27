@@ -1,59 +1,21 @@
 {
   "project_info": {
-    "project_number": "936864353739",
-    "project_id": "varadhifoods",
-    "storage_bucket": "varadhifoods.firebasestorage.app"
+    "project_number": "657289331350",
+    "project_id": "freshgrab-22703",
+    "storage_bucket": "freshgrab-22703.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:936864353739:android:e6a846fb4b1717fab2ba4e",
+        "mobilesdk_app_id": "1:657289331350:android:d88cd52922d8dc676738b7",
         "android_client_info": {
-          "package_name": "com.varadhifood"
+          "package_name": "com.freshgrab"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCfLeUcg3a_pQJWR1IvEB_q3eN7BFei5iw"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:936864353739:android:1c6de2f218fda01ab2ba4e",
-        "android_client_info": {
-          "package_name": "com.varadhifoods"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCfLeUcg3a_pQJWR1IvEB_q3eN7BFei5iw"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:936864353739:android:6cca295d63d3250fb2ba4e",
-        "android_client_info": {
-          "package_name": "com.varadhipartner"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCfLeUcg3a_pQJWR1IvEB_q3eN7BFei5iw"
+          "current_key": "AIzaSyBq2vhjWo5EqbNHZhLD4xd-DuH6RVKafFA"
         }
       ],
       "services": {

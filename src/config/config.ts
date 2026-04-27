@@ -1,4 +1,4 @@
-export const baseURL = "https://varadhifood.com:2636/"; 
+export const baseURL = "https://freshgrab.co.in:2601"; 
 
 //2630
 
@@ -40,5 +40,7 @@ export const endpoints = {
   GET_SEARCH_SHOP_LIST:"public_app/getsearchshoplist",
   GET_SINGLE_SHOP_DETAILS:"public_app/getsingleshopdetails",
   GET_SEARCH_SUB_CATEGORIES:"public_app/getsearchsubcategoriesshoplist",
-  GET_SEARCH_CATEGORIES:"public_app/getsearchcategoriesshoplist"
+  GET_SEARCH_CATEGORIES:"public_app/getsearchcategoriesshoplist",
+  GET_PROFILE: 'public_app/getprofile',
+  UPDATE_PROFILE: 'public_app/updateprofile'
 };

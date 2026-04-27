@@ -64,7 +64,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useSelector } from 'react-redux';
-import RentalNavigation from './RentalNavigation';
+import MainNavigation from './MainNavigation';
 import LoginScreen from '../screens/daddy/LoginScreen';
 import Register from '../screens/daddy/Register';
 import OTPVerification from '../screens/daddy/OTPVerification';
@@ -89,10 +89,9 @@ import OnboardingFlow from '../screens/daddy/OnboardingFlow';
 const Stack = createStackNavigator();
 
 const AuthNavigation = () => {
-  const { isLogged } = useSelector(state => state.Auth);
   return (
     <Stack.Navigator
-      screenOptions={{ headerShown: false }}
+      screenOptions={{headerShown: false}}
       initialRouteName={'Splashscreen'}>
       <Stack.Screen name="Splashscreen" component={SplashScreen} />
       <Stack.Screen name="LoginScreen" component={LoginScreen} />
@@ -101,10 +100,10 @@ const AuthNavigation = () => {
       <Stack.Screen name="OnBoardingScreen2" component={OnboardingScreen2} />
       <Stack.Screen name="OTPVerification" component={OTPVerification} />
       <Stack.Screen
-  name="Onboarding"
-  component={OnboardingFlow}
-  options={{ headerShown: false }}
-/>
+        name="Onboarding"
+        component={OnboardingFlow}
+        options={{headerShown: false}}
+      />
 
       <Stack.Screen
         name="ServiceLocations"
@@ -118,35 +117,13 @@ const AuthNavigation = () => {
         name="ServiceUnavailable"
         component={ServiceUnavailableScreen}
       />
-
-      {/* food trial */}
-      {/* <Stack.Screen name="SetLocationScreen" component={SetLocationScreen} />
-      <Stack.Screen name="HomeScreen" component={HomeScreen} />
-      <Stack.Screen name='CategoriesScreen' component={CategoriesScreen} />
-      <Stack.Screen name='RestaurantsScreen' component={RestaurantsScreen} />
-
-      <Stack.Screen name='OnboardingScreen2' component={OnboardingScreen2} />
-      <Stack.Screen name='OnboardingScreen3' component={OnboardingScreen3} /> */}
-
-
     </Stack.Navigator>
   );
 };
 
-const MainNavigation = ({ userRole }) => {
-  {
-    switch (userRole) {
-      case 2:
-        return <RentalNavigation />;
-      default:
-        return <></>;
-    }
-  }
-};
-
 const AppNavigation = () => {
-  const { token, userRole } = useSelector(state => state.Auth);
-  return token ? <MainNavigation userRole={2} /> : <AuthNavigation />;
+  const { token } = useSelector(state => state.Auth);
+  return token ? <MainNavigation /> : <AuthNavigation />;
 };
 
 export default AppNavigation;

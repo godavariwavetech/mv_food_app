@@ -11,6 +11,7 @@ const initialState = {
     otpVerification: false,
     categories: false,
     deleteAccount: false,
+    updateProfile: false,
   },
   token: null,
   userRole: 1,
@@ -24,7 +25,51 @@ const initialState = {
   shouldNavigate: false,
   orderOfferAmount: 0,
   reaturantDetails: null,
+  profile: null,
 };
+
+export const getProfile = createAsyncThunk(
+  'getProfile',
+  async (_, {getState, rejectWithValue, fulfillWithValue}) => {
+    const {customerId} = getState().Auth;
+    console.log(customerId,">>>>>>>>>>>>CUSTOMERRR ID");
+    const response = await api.post(endpoints.GET_PROFILE, {
+      "customer_id": customerId
+    });
+    console.log(response,">>>>>>>>>>>>>>>>>>>>>>>>>>>getProfile");
+    if (response) {
+      if (response.data) {
+        return fulfillWithValue(response.data);
+      } else {
+        return rejectWithValue('Something went wrong!');
+      }
+    }
+  },
+);
+
+export const updateProfile = createAsyncThunk(
+  'updateProfile',
+  async (profileData, {getState, rejectWithValue, fulfillWithValue}) => {
+    const {customerId} = getState().Auth;
+    const payload = {
+      ...profileData,
+      "user_id": profileData.user_id || customerId
+    };
+    console.log("updateProfile Payload:", payload);
+    try {
+      const response = await api.post(endpoints.UPDATE_PROFILE, payload);
+      if (response) {
+        if (response.data) {
+          return fulfillWithValue(response.data);
+        } else {
+          return rejectWithValue('Something went wrong!');
+        }
+      }
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Something went wrong!');
+    }
+  },
+);
 
 export const verifyMobile = createAsyncThunk(
   'verifyMobile',
@@ -162,6 +207,7 @@ export const AuthSlice = createSlice({
     actionLogout: state => {
       state.token = null;
       state.customerId = null;
+      state.profile = null;
     },
     actionLogin: state => {
       state.token = 'sample token';
@@ -170,7 +216,15 @@ export const AuthSlice = createSlice({
       state.mobileNumber = action.payload;
     },
     setInitial: state => {
-      (state.loading = false), (state.message = null);
+      (state.loading = {
+        login: false,
+        verifyMobile: false,
+        verifyOTP: false,
+        otpVerification: false,
+        categories: false,
+        deleteAccount: false,
+        updateProfile: false,
+      }), (state.message = null);
     },
     setLocation: (state, action) => {
       state.location = action.payload;
@@ -193,6 +247,9 @@ export const AuthSlice = createSlice({
     setOrderOfferAmount: (state, action) => {
       state.orderOfferAmount = action.payload;
     },
+    setCustomerId: (state, action) => {
+      state.customerId = action.payload;
+    },
   },
   extraReducers: builder => {
     builder.addCase(loginAction.pending, (state, action) => {
@@ -206,6 +263,11 @@ export const AuthSlice = createSlice({
         state.token = action.payload.token;
         state.isLogged = true;
         state.shouldNavigate = true;
+        if (action.payload.data?.[0]?.customer_id) {
+          state.customerId = action.payload.data[0].customer_id;
+        } else if (action.payload.customer_id) {
+          state.customerId = action.payload.customer_id;
+        }
       }
     });
     builder.addCase(loginAction.rejected, (state, action) => {
@@ -258,6 +320,11 @@ export const AuthSlice = createSlice({
       if (action.payload?.token) {
         state.token = action.payload.token;
         state.isLogged = true;
+        if (action.payload.data?.[0]?.customer_id) {
+          state.customerId = action.payload.data[0].customer_id;
+        } else if (action.payload.customer_id) {
+          state.customerId = action.payload.customer_id;
+        }
       }
     });
     builder.addCase(verifyCustomerOTP.rejected, (state, action) => {
@@ -278,6 +345,36 @@ export const AuthSlice = createSlice({
       state.loading.categories = false;
       state.message = 'Please try again!';
     });
+
+    builder.addCase(getProfile.pending, (state, action) => {
+      state.loading.categories = true;
+      state.message = null;
+    });
+    builder.addCase(getProfile.fulfilled, (state, action) => {
+      state.loading.categories = false;
+      state.message = null;
+      if (action.payload?.data?.[0]) {
+        state.profile = action.payload.data[0];
+        state.customerId = action.payload.data[0].customer_id;
+      }
+    });
+    builder.addCase(getProfile.rejected, (state, action) => {
+      state.loading.categories = false;
+      state.message = 'Please try again!';
+    });
+
+    builder.addCase(updateProfile.pending, (state, action) => {
+      state.loading.updateProfile = true;
+      state.message = null;
+    });
+    builder.addCase(updateProfile.fulfilled, (state, action) => {
+      state.loading.updateProfile = false;
+      state.message = 'Profile updated successfully!';
+    });
+    builder.addCase(updateProfile.rejected, (state, action) => {
+      state.loading.updateProfile = false;
+      state.message = 'Failed to update profile!';
+    });
   },
 });
 
@@ -292,6 +389,7 @@ export const {
   clearNavigationFlag,
   setRestaurnatDetails,
   setOrderOfferAmount,
+  setCustomerId,
 } = AuthSlice.actions;
 
 export default AuthSlice.reducer;

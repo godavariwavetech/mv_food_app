@@ -1,31 +1,39 @@
-import { SafeAreaView, StyleSheet, View, Image, StatusBar } from 'react-native'
+import { SafeAreaView, StyleSheet, View, Image, StatusBar, Dimensions } from 'react-native'
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setInitial } from '../../redux/reducers/auth'
+
+const { width } = Dimensions.get('window');
 
 const SplashScreen = ({ navigation }) => {
   const { token } = useSelector((state) => state.Auth);
   const { rehydrated } = useSelector(state => state.Auth._persist);
   const dispatch = useDispatch()
+
   useEffect(() => {
     dispatch(setInitial())
     if (rehydrated) {
+      // Increased the timeout slightly from 500 to 1500 
+      // so the user actually has time to see the new logo
       setTimeout(() => {
         if (!token) {
           navigation.replace('Onboarding');
         }
-      }, 500);
+      }, 1500);
     }
   }, [token, rehydrated]);
 
-
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
       <View style={styles.imgContainer}>
-        <Image source={require('../daddy/tabassets/varadhiSplash.png')} style={{height: 500, width: 300,resizeMode:"contain"}} />
+        <Image 
+          // Points to your newly added logo in the assets folder
+          source={require('../../assets/logo.png')} 
+          style={styles.logo} 
+        />
       </View>
     </SafeAreaView>
-
   )
 }
 
@@ -34,7 +42,7 @@ export default SplashScreen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FC6011',
+    backgroundColor: '#FFFFFF', // Changed to white to match the logo perfectly
     position: 'relative'
   },
   imgContainer: {
@@ -42,35 +50,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  imgWrapper: {
-    position: 'relative'
-  },
   logo: {
-    position: "absolute",
-    top: '50%',
-    left: '50%',
-    // transform:translate('-50%','-50%')
-    transform: [
-      { translateX: -50 }, // Replace 50 with half the image width
-      { translateY: -50 }  // Replace 50 with half the image height
-    ],
-    width: 200,
-    height: 200,
-    //marginLeft: -50, // negative half of width
-    //marginTop: -50, // negative half of height
-  },
-  logoWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 250,
-    height: 250,
+    width: width * 1,  // Takes up 70% of the screen width
+    height: width * 1, // Keeps the logo perfectly square
+    resizeMode: 'contain'
   }
-
 })

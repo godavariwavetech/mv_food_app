@@ -438,14 +438,9 @@ export default function Register({ navigation, route }) {
         confirmText="OK"
         cancelText={null}
       />
-      {loading && (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#FC6011" />
-        </View>
-      )}
-    </Pressable>
-  );
-}
+      </Pressable>
+      );
+      }
 
 const styles = StyleSheet.create({
   topSection: {

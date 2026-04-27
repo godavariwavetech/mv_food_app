@@ -138,6 +138,8 @@ export const getSubCategories = createAsyncThunk(
     }
    
     const response = await api.post(endpoints.GET_SUB_CATEGORIES, data);
+
+    console.log(response,">>>>>>>>>>>>>>>>RESPONSEEE FOR SUB");
    
     if (response) {
       if (response.data) {

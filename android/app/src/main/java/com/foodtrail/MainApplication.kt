@@ -1,4 +1,4 @@
-package com.varadhifoods
+package com.freshgrab
 
 import android.app.Application
 import com.facebook.react.PackageList
