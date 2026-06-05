@@ -358,6 +358,8 @@ export default function Register({ navigation, route }) {
       try {
         const response = await dispatch(verifyCustomerMobile({ customer_mobile_number: phoneNumber }));
 
+        console.log(response,">>>>>>>>>>>>>>RESPONSEEEEEEEE LOGIN");
+
         if (response.payload && !response.error) {
           navigation.navigate(route.params?.isFromCart ? "OTPVerification1" : "OTPVerification", {
             phoneNumber: phoneNumber,
@@ -374,7 +376,6 @@ export default function Register({ navigation, route }) {
   };
 
   useEffect(() => {
-    dispatch(setInitial())
     if (route.params?.phone) {
       setPhoneNumber(route.params.phone);
     }

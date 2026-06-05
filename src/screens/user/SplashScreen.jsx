@@ -7,21 +7,23 @@ const { width } = Dimensions.get('window');
 
 const SplashScreen = ({ navigation }) => {
   const { token } = useSelector((state) => state.Auth);
-  const { rehydrated } = useSelector(state => state.Auth._persist);
+  const rehydrated = useSelector(state => state._persist?.rehydrated);
   const dispatch = useDispatch()
 
   useEffect(() => {
-    dispatch(setInitial())
     if (rehydrated) {
-      // Increased the timeout slightly from 500 to 1500 
-      // so the user actually has time to see the new logo
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (!token) {
           navigation.replace('Onboarding');
+        } else {
+          // If token exists, AppNavigation will handle switching to MainNavigation
+          // but if we are still here, we might want to manually trigger or just wait.
+          // AppNavigation is better for this.
         }
       }, 1500);
+      return () => clearTimeout(timer);
     }
-  }, [token, rehydrated]);
+  }, [token, rehydrated, navigation]);
 
   return (
     <SafeAreaView style={styles.container}>

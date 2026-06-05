@@ -201,22 +201,26 @@ export const deleteAccount = createAsyncThunk(
 );
 
 export const AuthSlice = createSlice({
-  name: 'authlice',
+  name: 'Auth',
   initialState,
   reducers: {
     actionLogout: state => {
       state.token = null;
       state.customerId = null;
       state.profile = null;
+      state.isLogged = false;
+      state.shouldNavigate = false;
     },
     actionLogin: state => {
       state.token = 'sample token';
+      state.isLogged = true;
+      state.shouldNavigate = true;
     },
     setMobile: (state, action) => {
       state.mobileNumber = action.payload;
     },
     setInitial: state => {
-      (state.loading = {
+      state.loading = {
         login: false,
         verifyMobile: false,
         verifyOTP: false,
@@ -224,7 +228,8 @@ export const AuthSlice = createSlice({
         categories: false,
         deleteAccount: false,
         updateProfile: false,
-      }), (state.message = null);
+      };
+      state.message = null;
     },
     setLocation: (state, action) => {
       state.location = action.payload;
@@ -339,6 +344,7 @@ export const AuthSlice = createSlice({
     builder.addCase(addCustomer.fulfilled, (state, action) => {
       state.loading.categories = false;
       state.message = null;
+      console.log(action.payload,">>>>>>>>>>>>>>>>action.payload");
       state.customerId = action.payload.data.customer_id;
     });
     builder.addCase(addCustomer.rejected, (state, action) => {
@@ -353,9 +359,10 @@ export const AuthSlice = createSlice({
     builder.addCase(getProfile.fulfilled, (state, action) => {
       state.loading.categories = false;
       state.message = null;
-      if (action.payload?.data?.[0]) {
+      console.log(action.payload,">>>>>>>>>>>>>>>>>>action.payload");
+      if (action.payload?.data[0]) {
         state.profile = action.payload.data[0];
-        state.customerId = action.payload.data[0].customer_id;
+        state.customerId = action.payload.data[0].id;
       }
     });
     builder.addCase(getProfile.rejected, (state, action) => {

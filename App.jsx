@@ -121,7 +121,7 @@ const App = () => {
 
   return (
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistorStore}>
+      {/* <PersistGate loading={null} persistor={persistorStore}> */}
         <SafeAreaProvider>
           <NavigationContainer>
             {/* <SafeAreaView style={{ flex: 1 }}>  */}
@@ -139,7 +139,7 @@ const App = () => {
             {/* </SafeAreaView> */}
           </NavigationContainer>
         </SafeAreaProvider>
-      </PersistGate>
+      {/* </PersistGate> */}
     </Provider>
   );
 };

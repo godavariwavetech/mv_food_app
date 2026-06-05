@@ -1,4 +1,4 @@
-import {configureStore} from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import {
   persistStore,
   persistReducer,
@@ -11,41 +11,38 @@ import {
 } from 'redux-persist';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import  AuthSlice from './reducers/auth';
-import userDahboard from './reducers/userDashboard';
-import Dashboard from './reducers/daddy'
-import couponsReducer from './reducers/coupons'; 
+import AuthReducer from './reducers/auth';
+import userDashboardReducer from './reducers/userDashboard';
+import DashboardReducer from './reducers/daddy';
+import couponsReducer from './reducers/coupons';
 import addressReducer from './reducers/addressSlice';
-import search from './reducers/search';
-// Import the coupons reducer
-// import { AuthSlice } from './reducers/auth';
-// import Auth from './reducers/auth';
-const persistConfig = {
-  key: 'root',
-  storage: AsyncStorage,
-};
-const persistedAuth = persistReducer(persistConfig, AuthSlice);
+import searchReducer from './reducers/search';
 
-const dashboardPersistConfig = {
-  key: 'dashboardCart',
+const rootPersistConfig = {
+  key: 'root_v6',
   storage: AsyncStorage,
-  whitelist: ['cartItems', 'cartRestaurant','totalPrice']
+  // Whitelist Auth and Dashboard to persist them
+  whitelist: ['Auth', 'Dashboard'],
 };
+
+const rootReducer = combineReducers({
+  Auth: AuthReducer,
+  Dashboard: DashboardReducer,
+  userDahboard: userDashboardReducer,
+  coupons: couponsReducer,
+  address: addressReducer,
+  search: searchReducer,
+});
+
+const persistedReducer = persistReducer(rootPersistConfig, rootReducer);
 
 export const store = configureStore({
-  reducer: {
-    Auth: persistedAuth,
-    userDahboard,
-    Dashboard: persistReducer(dashboardPersistConfig, Dashboard),
-    coupons: couponsReducer,
-    address: addressReducer,
-    search
-  },
-  middleware: getDefaultMiddleware =>
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      // serializableCheck: {
-      //   ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      // },
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+      },
     }),
 });
 

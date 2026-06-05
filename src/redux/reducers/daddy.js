@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../utils/api';
 import { endpoints } from '../../config/config';
-import { resetCache } from '../../../metro.config';
 
 const initialState = {
   message: null,

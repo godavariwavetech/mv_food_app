@@ -268,6 +268,8 @@ const ProfileScreen = () => {
     });
   }
 
+  console.log(profile,">>>>>>>>>>>>>>>>>>profile");
+
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
@@ -275,7 +277,7 @@ const ProfileScreen = () => {
       {/* 1. TOP HEADER SECTION (White Background) */}
       <View style={[styles.profileHeader, { marginTop: insets.top + 20 }]}>
         <Image 
-          source={require("../daddy/tabassets/dummy-profile.png")} 
+          source={profile?.profile_image ? { uri: profile.profile_image } : require("../daddy/tabassets/dummy-profile.png")} 
           style={styles.profileImage}
         />
         <Text style={styles.profileName} numberOfLines={1}>

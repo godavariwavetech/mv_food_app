@@ -22,6 +22,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getProfile, updateProfile } from '../../redux/reducers/auth';
 import CustomModal from '../../components/CustomModal';
 import { launchImageLibrary } from 'react-native-image-picker';
+import DatePicker from 'react-native-date-picker';
+import moment from 'moment';
 
 const { width, height } = Dimensions.get('window');
 
@@ -67,7 +69,7 @@ export default function MyAccountScreen({ navigation }) {
   console.log(customerId,">>>>>>>>>>>>>>>>>customerId",profile);
   
   const [name, setName] = useState('Alex');
-  const [gender, setGender] = useState('male');
+  const [dob, setDob] = useState(new Date());
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('alex@gmail.com');
   
@@ -75,9 +77,7 @@ export default function MyAccountScreen({ navigation }) {
   const [imagesData, setImagesData] = useState(null);
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [isGenderModalOpen, setIsGenderModalOpen] = useState(false);
-
-  const genderOptions = ['Male', 'Female', 'Other'];
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   useEffect(() => {
     dispatch(getProfile());
@@ -86,7 +86,7 @@ export default function MyAccountScreen({ navigation }) {
   useEffect(() => {
     if (profile) {
       setName(profile.customer_name || '');
-      setGender(profile.customer_gender || '');
+      setDob(profile.customer_dob ? new Date(profile.customer_dob) : new Date());
       setMobile(profile.customer_mobile_number || '');
       setEmail(profile.customer_email || '');
     }
@@ -99,13 +99,14 @@ export default function MyAccountScreen({ navigation }) {
     }
 
     const profileData = {
-      user_id: profile?.id,
       customer_name: name,
-      customer_gender: gender,
+      customer_dob: moment(dob).format('YYYY-MM-DD'),
       customer_mobile_number: mobile,
       customer_email: email,
-      imagesData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAIAAACRXR/mAAAAVklEQVR4nOzOMRHAIAAAsV6vFioMt8jDAMtPMCQK8v1zPPd5Twf2tAqtQqvQKrQKrUKr0Cq0Cq1Cq9AqtAqtQqvQKrQKrUKr0Cq0Cq1Cq9AqVgAAAP//KykBhbeiw1UAAAAASUVORK5CYII=", // Base64 string
-      profile_image: profile?.customer_image || '', // Assuming backend needs existing image path or similar if not changing
+      // Sending prefixed base64 in profile_image as requested
+      profile_image: imagesData ? `data:image/png;base64,${imagesData}` : profile?.profile_image || '', 
+      // Sending raw base64 in imagesData as per original pattern
+      imagesData: imagesData, 
     };
 
     console.log(profileData,">>>>>>>>>>>>>>PROFIE DTAAA");
@@ -115,6 +116,10 @@ export default function MyAccountScreen({ navigation }) {
     if (updateProfile.fulfilled.match(result)) {
       setShowSuccessModal(true);
       dispatch(getProfile());
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        navigation.goBack();
+      }, 1500);
     } else {
       Alert.alert('Update Failed', message || 'Something went wrong while updating your profile.');
     }
@@ -124,8 +129,9 @@ export default function MyAccountScreen({ navigation }) {
     const options = {
       mediaType: 'photo',
       includeBase64: true,
-      maxHeight: 1000,
-      maxWidth: 1000,
+      maxHeight: 1200, // Increased for "full image" resolution
+      maxWidth: 1200,  // Increased for "full image" resolution
+      quality: 0.5,     // Lowered quality to compress file size effectively
     };
 
     launchImageLibrary(options, (response) => {
@@ -135,16 +141,19 @@ export default function MyAccountScreen({ navigation }) {
         console.log('ImagePicker Error: ', response.errorMessage);
         Alert.alert('Error', 'Failed to open gallery. Please ensure permissions are granted.');
       } else if (response.assets && response.assets.length > 0) {
-        const source = { uri: response.assets[0].uri };
+        const asset = response.assets[0];
+        
+        // Log file size for debugging
+        if (asset.fileSize) {
+          const sizeMB = (asset.fileSize / (1024 * 1024)).toFixed(2);
+          console.log(`Picked image size: ${sizeMB} MB`);
+        }
+
+        const source = { uri: asset.uri };
         setProfileImage(source);
-        setImagesData(`data:image/png;base64,${response.assets[0].base64}`);
+        setImagesData(asset.base64);
       }
     });
-  };
-
-  const selectGender = (val) => {
-    setGender(val);
-    setIsGenderModalOpen(false);
   };
 
   return (
@@ -176,7 +185,7 @@ export default function MyAccountScreen({ navigation }) {
         <View style={styles.profileCard}>
           <TouchableOpacity style={styles.profileImageContainer} onPress={handlePickImage} activeOpacity={0.8}>
             <Image 
-              source={profileImage || require("../daddy/tabassets/dummy-profile.png")} 
+              source={profileImage || (profile?.profile_image ? { uri: profile.profile_image } : require("../daddy/tabassets/dummy-profile.png"))} 
               style={styles.profileImage}
             />
             <View style={styles.cameraIconContainer}>
@@ -193,7 +202,11 @@ export default function MyAccountScreen({ navigation }) {
 
           <View style={styles.formContainer}>
             <CustomInput label="Name" value={name} onChangeText={setName} />
-            <CustomInput label="Gender" value={gender} onPress={() => setIsGenderModalOpen(true)} />
+            <CustomInput 
+              label="Date of Birth" 
+              value={moment(dob).format('DD-MM-YYYY')} 
+              onPress={() => setIsDatePickerOpen(true)} 
+            />
             <CustomInput 
               label="Mobile Number" 
               value={mobile} 
@@ -222,35 +235,19 @@ export default function MyAccountScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Gender Selection Modal */}
-      <Modal
-        visible={isGenderModalOpen}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsGenderModalOpen(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setIsGenderModalOpen(false)}
-        >
-          <View style={styles.genderModalContainer}>
-            <Text style={styles.modalTitle}>Select Gender</Text>
-            {genderOptions.map((item) => (
-              <TouchableOpacity 
-                key={item} 
-                style={styles.genderOption} 
-                onPress={() => selectGender(item)}
-              >
-                <Text style={[styles.genderOptionText, gender === item && styles.selectedGenderText]}>
-                  {item}
-                </Text>
-                {gender === item && <Icon name="check" size={20} color="#FC6011" />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      <DatePicker
+        modal
+        open={isDatePickerOpen}
+        date={dob}
+        mode="date"
+        onConfirm={(date) => {
+          setIsDatePickerOpen(false)
+          setDob(date)
+        }}
+        onCancel={() => {
+          setIsDatePickerOpen(false)
+        }}
+      />
 
       <CustomModal
         visible={showSuccessModal}
@@ -332,12 +329,13 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFFFFF',
     backgroundColor: '#FFF',
-    elevation: 4,
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     position: 'relative',
+    zIndex: 10,
   },
   profileImage: {
     width: '100%',

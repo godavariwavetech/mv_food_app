@@ -41,7 +41,7 @@ import {
   checkAddressExistence,
   getRestaurantsHome,
 } from '../../redux/reducers/daddy';
-import { setLocation, setLocationId, setLocationName, setOrderOfferAmount } from '../../redux/reducers/auth';
+import { getProfile, setLocation, setLocationId, setLocationName, setOrderOfferAmount } from '../../redux/reducers/auth';
 import { indiviadualShop } from '../../redux/reducers/addressSlice';
 
 // --- Components ---
@@ -153,7 +153,7 @@ export default function UserHome({ navigation }) {
     homeRestaurnats 
   } = useSelector(state => state.Dashboard, shallowEqual);
   
-  const { locationName } = useSelector(state => state.Auth, shallowEqual);
+  const { locationName,profile,customerId } = useSelector(state => state.Auth, shallowEqual);
   const authLocation = useSelector(state => state.Auth.location, shallowEqual);
   const { isNetworkConnected } = useSelector(state => state.address, shallowEqual);
 
@@ -165,6 +165,8 @@ export default function UserHome({ navigation }) {
   const [initialNetLoad, setInitialNetLoad] = useState(false);
   const [errorOccured, setErrorOccured] = useState(false);
   const [mounted, setMounted] = useState(true);
+
+  console.log(profile,">>>>>>>>>>>>>>>>>>>>>>>>.profileprofile",customerId);
 
   // --- REFS ---
   const bannerScrollRef = useRef(null);
@@ -197,6 +199,7 @@ export default function UserHome({ navigation }) {
         hasInitiallyLoaded.current = true;
       }
     }
+
   }, [sortedCategories, dispatch]);
 
   const activeCategoryData = useMemo(() => 
@@ -312,6 +315,7 @@ export default function UserHome({ navigation }) {
     } catch (error) {
       setErrorOccured(true);
     }
+     dispatch(getProfile());
   }, [authLocation, activeCategoryIndex, dispatch]);
 
   useEffect(() => {
@@ -419,12 +423,15 @@ export default function UserHome({ navigation }) {
               </Text>
             </TouchableOpacity>
             <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
+              {/* <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
                 <View style={styles.notificationDot} />
                 <Text style={styles.bellIcon}>🔔</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-                <Image source={{ uri: PROFILE_URL }} style={styles.profilePic} />
+                <Image 
+                  source={profile?.profile_image ? { uri: profile.profile_image } : require("../daddy/tabassets/dummy-profile.png")} 
+                  style={styles.profilePic} 
+                />
               </TouchableOpacity>
             </View>
           </View>
