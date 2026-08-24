@@ -10,7 +10,8 @@ import {
   Modal,
   ActivityIndicator,
   SafeAreaView,
-  Alert
+  Alert,
+  TextInput,
 } from 'react-native';
 import {
   responsiveHeight,
@@ -40,6 +41,7 @@ import RazorpayCheckout from 'react-native-razorpay';
 import MinimumOrderModal from '../../components/MinimumOrderModal';
 import { getActualDistance } from '../../services/googleDistanceService';
 
+const TIP_PRESETS = [20, 30, 50];
 
 const CheckoutScreen = ({ navigation, route }) => {
   const { cartItems, totalPrice } = useSelector(state => state.Dashboard);
@@ -56,7 +58,14 @@ const CheckoutScreen = ({ navigation, route }) => {
   } = useSelector(state => state.Auth);
   const dispatch = useDispatch();
 
-  const handlingCharges = chargesList?.[0]?.handling_charges || 0;
+  const handlingCharges = Number(chargesList?.[0]?.handling_charges || 0);
+  const donationCharges = Number(chargesList?.[0]?.donation_charges || 0);
+  const minOrderCharge = Number(chargesList?.[0]?.min_order_charge || 0);
+  const isRainSurchargeActive =
+    Number(chargesList?.[0]?.rain_surge_charge_active_status || 0) === 1;
+  const rainSurcharge = isRainSurchargeActive
+    ? Number(chargesList?.[0]?.rain_surge_charge || 0)
+    : 0;
   const [clearCartConfirmVisible, setClearCartConfirmVisible] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -74,6 +83,10 @@ const CheckoutScreen = ({ navigation, route }) => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showMinimumOrderModal, setShowMinimumOrderModal] = useState(false);
   const [amountLoading, setAmountLoading] = useState(true);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [customTip, setCustomTip] = useState('');
+  const [orderNote, setOrderNote] = useState('');
+  const [deliveryNote, setDeliveryNote] = useState('');
 
   // --- FREE DELIVERY LOGIC START ---
   const maxFreeDeliveryLimit = Number(reaturantDetails?.max_free_delivery_cost || 0);
@@ -166,6 +179,9 @@ const CheckoutScreen = ({ navigation, route }) => {
                 <AntDesign name="plus" size={16} color={commonStyles.btn2Color} />
               </TouchableOpacity>
             </View>
+            {item.measurement_type ? (
+              <Text style={styles.quantityMeasurement}>{item.measurement_type}</Text>
+            ) : null}
             <Text style={styles.itemTotalPrice}>₹ {eachPrice}</Text>
           </View>
         </View>
@@ -247,13 +263,17 @@ const CheckoutScreen = ({ navigation, route }) => {
         total_saving_amount: totalSavings,
         coupon_amount: couponDiscount,
         delivery_charges: delivery.totalCharge,
+        delivery_boy_tip: tipAmount,
+        min_order_charge: minOrderCharge,
+        rain_surcharge: rainSurcharge,
         grand_total: grandTotal,
         location_id: locationId,
         location_name: locationName,
         payment_type: selectedPaymentMethod,
         payment_id: selectedPaymentMethod,
         razorpay_order_id: null,
-        order_instructions: 'test order',
+        order_instructions: orderNote.trim(),
+        delivery_instructions: deliveryNote.trim(),
         coupon_type: appliedCoupon?.coupon_type || "0",
         coupon_id: appliedCoupon?.id || "0",
         delivery_address: selectedAddress
@@ -268,10 +288,10 @@ const CheckoutScreen = ({ navigation, route }) => {
         user_player_id: null,
         order_type: 0,
         delivery_charges_gst: delivery.gstAmount,
-        handling_charges: chargesList[0].handling_charges,
+        handling_charges: handlingCharges,
         packing_charges: 0,
         packing_charges_gst: 0,
-        donation_charges: chargesList[0].donation_charges,
+        donation_charges: donationCharges,
         sub_order_array: cartItems.map(item => ({
           item_name: item.item_name,
           item_image: item.item_image,
@@ -283,6 +303,7 @@ const CheckoutScreen = ({ navigation, route }) => {
           actualitem_price: item.actual_price,
           item_price: item.selling_price,
           sub_item_count: item.quantity,
+          measurement_type: item.measurement_type || '',
           item_total_amount: item.selling_price * item.quantity,
           filter_name: item.filter_one,
           item_description: item.item_description,
@@ -411,8 +432,21 @@ const CheckoutScreen = ({ navigation, route }) => {
     return totalSellingPrice
       - couponDiscount
       + Number(deliveryCharges.totalCharge)
-      + Number(handlingCharges || 0);
-  }, [totalSellingPrice, couponDiscount, deliveryCharges.totalCharge, handlingCharges]);
+      + Number(handlingCharges || 0)
+      + Number(donationCharges || 0)
+      + Number(minOrderCharge || 0)
+      + Number(rainSurcharge || 0)
+      + Number(tipAmount || 0);
+  }, [
+    totalSellingPrice,
+    couponDiscount,
+    deliveryCharges.totalCharge,
+    handlingCharges,
+    donationCharges,
+    minOrderCharge,
+    rainSurcharge,
+    tipAmount,
+  ]);
 
   useEffect(() => {
     setDistance(calculatedDistance);
@@ -624,6 +658,136 @@ const CheckoutScreen = ({ navigation, route }) => {
             <MaterialIcons name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
 
+          {/* Delivery Tip */}
+          <View style={styles.tipCard}>
+            <View style={styles.tipHeader}>
+              <MaterialCommunityIcons
+                name="hand-heart-outline"
+                size={22}
+                color={commonStyles.btn2Color}
+              />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.tipTitle}>Tip your delivery partner</Text>
+                <Text style={styles.tipSubtitle}>
+                  100% of the tip goes to your delivery partner
+                </Text>
+              </View>
+            </View>
+            <View style={styles.tipChipsRow}>
+              {TIP_PRESETS.map(amount => (
+                <TouchableOpacity
+                  key={amount}
+                  style={[
+                    styles.tipChip,
+                    tipAmount === amount && styles.tipChipSelected,
+                  ]}
+                  onPress={() => {
+                    setCustomTip('');
+                    setTipAmount(prev => (prev === amount ? 0 : amount));
+                  }}>
+                  <Text
+                    style={[
+                      styles.tipChipText,
+                      tipAmount === amount && styles.tipChipTextSelected,
+                    ]}>
+                    ₹{amount}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <View
+                style={[
+                  styles.tipChip,
+                  styles.tipCustomChip,
+                  customTip !== '' && styles.tipChipSelected,
+                ]}>
+                <Text
+                  style={[
+                    styles.tipChipText,
+                    customTip !== '' && styles.tipChipTextSelected,
+                  ]}>
+                  ₹
+                </Text>
+                <TextInput
+                  style={styles.tipCustomInput}
+                  placeholder="Other"
+                  placeholderTextColor="#999"
+                  keyboardType="number-pad"
+                  value={customTip}
+                  onChangeText={text => {
+                    const numeric = text.replace(/[^0-9]/g, '');
+                    setCustomTip(numeric);
+                    setTipAmount(numeric ? Number(numeric) : 0);
+                  }}
+                  maxLength={5}
+                />
+              </View>
+            </View>
+            {tipAmount > 0 && (
+              <TouchableOpacity
+                style={styles.tipRemoveButton}
+                onPress={() => {
+                  setTipAmount(0);
+                  setCustomTip('');
+                }}>
+                <Text style={styles.tipRemoveText}>Remove tip</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Order Instructions */}
+          <View style={styles.noteCard}>
+            <View style={styles.tipHeader}>
+              <MaterialIcons
+                name="edit-note"
+                size={22}
+                color={commonStyles.btn2Color}
+              />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.tipTitle}>Order instructions</Text>
+                <Text style={styles.tipSubtitle}>
+                  E.g. less spicy, no onions, extra napkins
+                </Text>
+              </View>
+            </View>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="Add cooking instructions for the restaurant"
+              placeholderTextColor="#999"
+              value={orderNote}
+              onChangeText={setOrderNote}
+              multiline
+              maxLength={200}
+            />
+            <Text style={styles.noteCounter}>{orderNote.length}/200</Text>
+          </View>
+
+          {/* Delivery Instructions */}
+          <View style={styles.noteCard}>
+            <View style={styles.tipHeader}>
+              <MaterialCommunityIcons
+                name="moped-outline"
+                size={22}
+                color={commonStyles.btn2Color}
+              />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.tipTitle}>Delivery instructions</Text>
+                <Text style={styles.tipSubtitle}>
+                  E.g. ring the bell, leave at the door, call on arrival
+                </Text>
+              </View>
+            </View>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="Add instructions for the delivery partner"
+              placeholderTextColor="#999"
+              value={deliveryNote}
+              onChangeText={setDeliveryNote}
+              multiline
+              maxLength={200}
+            />
+            <Text style={styles.noteCounter}>{deliveryNote.length}/200</Text>
+          </View>
+
           {/* Billing */}
           <Text style={styles.sectionTitle}>Billing</Text>
           <View style={styles.billingCard}>
@@ -704,11 +868,43 @@ const CheckoutScreen = ({ navigation, route }) => {
               </View>
             </View>
 
+            {/* Delivery Tip */}
+            {tipAmount > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Delivery Tip</Text>
+                <Text style={styles.billValue}>₹ {Number(tipAmount).toFixed(2)}</Text>
+              </View>
+            )}
+
             {/* Handling Charges */}
             {handlingCharges > 0 && (
               <View style={styles.billRow}>
                 <Text style={styles.billLabel}>Handling Charges</Text>
                 <Text style={styles.billValue}>₹ {handlingCharges.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {/* Donation Charges */}
+            {donationCharges > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Donation</Text>
+                <Text style={styles.billValue}>₹ {donationCharges.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {/* Minimum Order Charge */}
+            {minOrderCharge > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Minimum Order Charge</Text>
+                <Text style={styles.billValue}>₹ {minOrderCharge.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {/* Rain Surcharge */}
+            {rainSurcharge > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Rain Surcharge</Text>
+                <Text style={styles.billValue}>₹ {rainSurcharge.toFixed(2)}</Text>
               </View>
             )}
 
@@ -975,6 +1171,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     color: commonStyles.btn2Color,
   },
+  quantityMeasurement: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#888',
+    textAlign: 'right',
+    marginTop: 2,
+  },
   itemTotalPrice: {
     color: '#3D3D3D',
     fontSize: 14,
@@ -1063,6 +1266,103 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#000',
+  },
+  tipCard: {
+    width: responsiveWidth(90),
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: responsiveHeight(2),
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tipTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  tipSubtitle: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+  },
+  tipChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  tipChip: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 10,
+    marginBottom: 8,
+  },
+  tipChipSelected: {
+    borderColor: commonStyles.btn2Color,
+    backgroundColor: '#F0FBF4',
+  },
+  tipChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#525252',
+  },
+  tipChipTextSelected: {
+    color: commonStyles.btn2Color,
+  },
+  tipCustomChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  tipCustomInput: {
+    minWidth: responsiveWidth(14),
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  tipRemoveButton: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  tipRemoveText: {
+    color: '#FF4D4F',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  noteCard: {
+    width: responsiveWidth(90),
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: responsiveHeight(2),
+  },
+  noteInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#000',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  noteCounter: {
+    fontSize: 11,
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 4,
   },
   billingCard: {
     backgroundColor: '#fff',

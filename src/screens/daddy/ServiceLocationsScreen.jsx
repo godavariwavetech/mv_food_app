@@ -33,8 +33,11 @@ const getLocations = async()=>{
       const response = await dispatch(getServicesList({latitude: route.params?.latitude, longitude: route.params?.longitude}));
      
       if(response?.payload?.data){
-        setServiceLocations(response.payload.data);
-        setFilteredLocations(response.payload.data);
+        const activeLocations = response.payload.data.filter(
+          location => location.location_status === 0
+        );
+        setServiceLocations(activeLocations);
+        setFilteredLocations(activeLocations);
       }
     } catch (error) {
       console.error('Error fetching locations:', error);

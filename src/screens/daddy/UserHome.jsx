@@ -54,6 +54,7 @@ import StatusBarManager from '../../components/StatusBarManager';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import CategoryCard from '../../components/CategoryCard';
 import SubCategoryCard from '../../components/SubCategoryCard';
+import MarqueeText from '../../components/MarqueeText';
 
 const screenWidth = Dimensions.get('window').width;
 const itemWidth = screenWidth / 6;
@@ -75,10 +76,10 @@ const RestaurantItem = React.memo(({ item, calculateDeliveryTime, navigation, is
   >
     <View style={styles.restaurantContent}>
       <View style={styles.restaurantImageContainer}>
-        <Image 
-          source={{ uri: item?.shop_image }} 
-          style={styles.restaurantImage} 
-          resizeMethod="resize" 
+        <Image
+          source={{ uri: item?.shop_image }}
+          style={styles.restaurantImage}
+          resizeMethod="resize"
         />
         {isUnavailable && (
           <View style={styles.unavailableOverlay}>
@@ -102,7 +103,7 @@ const RestaurantItem = React.memo(({ item, calculateDeliveryTime, navigation, is
         <Text style={styles.addressText}>{item.shop_address || 'Tilak Road • 3.0 km'}</Text>
         {item.special_offer_name && (
           <View style={styles.offerTag}>
-            <Text style={styles.offerText}>{item.special_offer_name}</Text>
+            <MarqueeText text={item.special_offer_name} textStyle={styles.offerText} always fitWidth />
           </View>
         )}
       </View>
@@ -459,7 +460,7 @@ export default function UserHome({ navigation }) {
     return () => unsubscribe();
   }, [isNetworkConnected, activeCategoryIndex, dispatch]);
 
-  const popularRestaurants = homeRestaurnats && homeRestaurnats.filter(restaurant => Number(restaurant.shop_rating) >= 4.5);
+  const displayRestaurants = homeRestaurnats || [];
 
   // --- RENDER HEADER FUNCTION ---
   const renderHeader = useCallback(() => {
@@ -516,9 +517,15 @@ export default function UserHome({ navigation }) {
             ref={flatListRef}
             data={banners}
             horizontal
+            pagingEnabled
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingTop: 0, paddingBottom: 30 }}
             keyExtractor={(item, index) => `banner-${item.id || index}`}
+            getItemLayout={(_, index) => ({
+              length: responsiveWidth(100),
+              offset: responsiveWidth(100) * index,
+              index,
+            })}
             renderItem={({ item }) => (
               <TouchableOpacity onPress={() => {}} style={styles.bannerContainer}>
                 <Image
@@ -678,7 +685,7 @@ export default function UserHome({ navigation }) {
           </Animated.View>
 
           <Animated.FlatList
-            data={popularRestaurants}
+            data={displayRestaurants}
             keyExtractor={(item, index) => `restaurant-${item.shop_id || item.id || index}`}
             ListHeaderComponent={renderHeader}
             renderItem={renderRestaurantItem}
@@ -709,7 +716,7 @@ export default function UserHome({ navigation }) {
             ListEmptyComponent={() => (
               <View style={{ alignItems: 'center', justifyContent: 'center', height: responsiveHeight(10), width: responsiveWidth(100) }}>
                 <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>
-                  No popular {activeCategoryIndex === 1 ? "restaurants" : "shops"} available
+                  No {activeCategoryIndex === 1 ? "restaurants" : "shops"} available
                 </Text>
               </View>
             )}
@@ -831,9 +838,9 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   bannerContainer: {
-    width: responsiveWidth(85),
+    width: responsiveWidth(100),
     height: 120,
-    marginHorizontal: responsiveWidth(4),
+    paddingHorizontal: responsiveWidth(4),
   },
   bannerImage: {
     width: '100%',
@@ -941,16 +948,21 @@ const styles = StyleSheet.create({
   },
   offerTag: {
     backgroundColor: '#DAF4E3',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
     marginTop: 6,
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
+    shadowColor: '#08B341',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+    elevation: 6,
   },
   offerText: {
-    fontSize: 10,
+    fontSize: 13,
     color: '#08B341',
-    fontWeight: '600',
+    fontWeight: '800',
   },
   unavailableCard: {
     opacity: 0.6,

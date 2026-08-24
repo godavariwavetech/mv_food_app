@@ -22,22 +22,30 @@ import {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { checkAddressExistence, setAddressList, updateUserAddress } from '../../redux/reducers/daddy';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import Geolocation from 'react-native-geolocation-service';
 import CustomModal from '../../components/CustomModal';
-import { setUserDetails } from '../../redux/reducers/addressSlice';
+import { setSelectedAddress, setUserDetails } from '../../redux/reducers/addressSlice';
 import commonStyles from '../../commonstyles/CommonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'react-native';
 
 const AddAddressScreen = ({ navigation, route }) => {
   const dispatch = useDispatch();
+  const { selectedAddress } = useSelector(state => state.address);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState('Home');
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
+  useEffect(() => {
+    if (!contact) return;
+    const digitsOnly = contact.replace(/[^0-9]/g, '');
+    if (digitsOnly !== contact) {
+      setContact(digitsOnly);
+    }
+  }, [contact]);
   const [doorNo, setDoorNo] = useState('');
   const [pincode, setPincode] = useState('');
   const [landmark, setLandmark] = useState('');
@@ -331,7 +339,7 @@ const AddAddressScreen = ({ navigation, route }) => {
   const validateInputs = useCallback(() => {
     let errors = {
       name: !name,
-      contact: !/^[6-9]\d{9}$/.test(contact),
+      contact: !contact,
       doorNo: !doorNo,
       pincode: !pincode,
       landmark: !landmark,
@@ -389,19 +397,41 @@ const AddAddressScreen = ({ navigation, route }) => {
           state,
           full_address: address,
         };
-        if (route.params?.address) {
-          dispatch(
-            setAddressList({
-              ...addressData,
-              id: route.params.address.id,
-            }),
-          );
+        const saveResult = route.params?.address
+          ? await dispatch(
+              setAddressList({
+                ...addressData,
+                id: route.params.address.id,
+              }),
+            )
+          : await dispatch(setAddressList(addressData));
+
+        if (setAddressList.fulfilled.match(saveResult)) {
+          if (route.params?.address && selectedAddress?.id === route.params.address.id) {
+            dispatch(setSelectedAddress({
+              ...selectedAddress,
+              address_type: selectedType,
+              full_address: address,
+              customer_latitude: markerPosition.latitude.toString(),
+              customer_longitude: markerPosition.longitude.toString(),
+              customer_name: name,
+              customer_mobile_number: contact,
+              pincode,
+              landmark,
+              city,
+              state,
+              location_id: response.payload.data[0].id,
+            }));
+          }
+          navigation.goBack();
         } else {
-          await dispatch(
-            setAddressList(addressData),
+          showCustomModal(
+            'Error',
+            saveResult?.payload ||
+              saveResult?.error?.message ||
+              'Failed to save address. Please try again.',
           );
         }
-        navigation.goBack();
       } else {
         setAreaAvailable(false)
       }
@@ -422,6 +452,7 @@ const AddAddressScreen = ({ navigation, route }) => {
     address,
     route.params?.address,
     navigation,
+    showCustomModal,
   ]);
 
   useEffect(() => {
@@ -456,7 +487,7 @@ const AddAddressScreen = ({ navigation, route }) => {
       // Only get current location if we're adding a new address
       requestLocationPermission();
     }
-  }, [route.params]);
+  }, [route.params?.address]);
 
   const handleSearch = useCallback(text => {
     setSearchQuery(text);
@@ -780,7 +811,6 @@ const AddAddressScreen = ({ navigation, route }) => {
                         onChangeText={setContact}
                         keyboardType="phone-pad"
                         placeholderTextColor="#666"
-                        maxLength={10}
                       />
                       <TouchableOpacity
                         style={styles.clearButton}
@@ -1148,7 +1178,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#666',
     backgroundColor: '#fff',
-    width: responsiveWidth(30),
+    width: responsiveWidth(21.5),
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: responsiveWidth(1),

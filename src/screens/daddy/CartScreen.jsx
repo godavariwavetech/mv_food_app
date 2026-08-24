@@ -112,6 +112,9 @@ const CartScreen = ({ navigation, route }) => {
           <View style={styles.itemDetails}>
             <HeaderPick2 />
             <Text style={styles.foodName}>{item.item_name}</Text>
+            {item.measurement_type ? (
+              <Text style={styles.itemVariant}>{item.measurement_type}</Text>
+            ) : null}
             <View style={styles.priceContainer}>
               <Text style={styles.actualPrice}>₹{item.actual_price}</Text>
               <Text style={styles.sellingPrice}>₹{item.selling_price}</Text>
@@ -438,6 +441,11 @@ const styles = StyleSheet.create({
     color: '#000',
     fontWeight: '500',
     width: '60%',
+  },
+  itemVariant: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
   },
   foodPrice: {
     fontSize: 16,

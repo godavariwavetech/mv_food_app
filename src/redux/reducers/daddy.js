@@ -333,7 +333,7 @@ export const getAddressList = createAsyncThunk(
 export const setAddressList = createAsyncThunk(
   "setAddressList",
   async (
-    { addressType, address, customer_latitude, customer_longitude, customer_name, customer_mobile_number, location_id },
+    { id, addressType, address, customer_latitude, customer_longitude, customer_name, customer_mobile_number, location_id, pincode, landmark, city, state },
     { getState, rejectWithValue, fulfillWithValue }
   ) => {
     const { customerId } = getState().Auth;
@@ -345,7 +345,14 @@ export const setAddressList = createAsyncThunk(
       "location_id": location_id,
       "customer_id": customerId,
       "customer_name": customer_name,
-      "customer_mobile_number": customer_mobile_number
+      "customer_mobile_number": customer_mobile_number,
+      "pincode": pincode,
+      "landmark": landmark,
+      "city": city,
+      "state": state,
+    }
+    if (id) {
+      data.id = id;
     }
     const response = await api.post(endpoints.SET_ADDRESS_LIST, data)
     if (response) {
@@ -760,7 +767,9 @@ export const Dashboard = createSlice({
     });
     builder.addCase(getServices.fulfilled, (state, action) => {
       state.loading = false;
-      state.availableAreas = action.payload.data;
+      state.availableAreas = (action.payload.data || []).filter(
+        area => area.location_status === 0
+      );
     });
     builder.addCase(getServices.rejected, (state) => {
       state.loading = false;

@@ -29,7 +29,7 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, getItemsList, removeFromCart, setCartRestaurant } from '../../redux/reducers/daddy';
-import { globalSearch, setRestaurnatDetails } from '../../redux/reducers/auth';
+import { clearNavigationFlag, globalSearch, setRestaurnatDetails } from '../../redux/reducers/auth';
 import StarRating from '../../components/StarRating';
 import commonStyles from '../../commonstyles/CommonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -48,6 +48,8 @@ const RestaurantScreen = ({ navigation, route }) => {
   const [draggableMenuVisible, setDraggableMenuVisible] = useState(false);
   const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [showVariantModal, setShowVariantModal] = useState(false);
+  const [variantModalItem, setVariantModalItem] = useState(null);
   const timeoutRef = useRef();
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   const scaleAnims = useRef(new Map()).current;
@@ -208,12 +210,37 @@ const RestaurantScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleAddToCart = (item) => {
+  const buildVariantCartItem = (item, variant) => ({
+    id: variant.id,
+    item_name: item.item_name,
+    item_image: item.item_image,
+    item_description: item.item_description,
+    category_id: item.category_id,
+    category_name: item.category_name,
+    sub_category_id: item.sub_category_id,
+    sub_category_name: item.sub_category_name,
+    filter_one: item.filter_one,
+    shop_id: item.shop_id,
+    admin_percentage: item.admin_percentage,
+    measurement_type: variant.measurement_type,
+    actual_price: variant.actual_price,
+    selling_price: variant.selling_price,
+    discount_percentage: variant.discount_percentage,
+    discount_amount: variant.discount_amount,
+    active_status: variant.active_status,
+  });
+
+  const openVariantModal = (item) => {
+    setVariantModalItem(item);
+    setShowVariantModal(true);
+  };
+
+  const handleAddVariantToCart = (variantItem) => {
     if (cartItems.length === 0 || cartRestaurant == route.params.shopId) {
-      addItem(item);
+      dispatch(addToCart(variantItem));
       dispatch(setRestaurnatDetails(route.params.item))
     } else {
-      setSelectedItem(item);
+      setSelectedItem(variantItem);
       setShowReplaceModal(true);
     }
   };
@@ -248,11 +275,6 @@ const RestaurantScreen = ({ navigation, route }) => {
   }
 
 
-
-  const addItem = (item) => {
-    // dispatch(setCartRestaurant())
-    dispatch(addToCart(item))
-  }
 
   const decreaseItem = (item) => {
     dispatch(removeFromCart(item))
@@ -392,8 +414,25 @@ const RestaurantScreen = ({ navigation, route }) => {
 
 
   const renderItem = ({ item }) => {
-    const isHighlighted = item.id === highlightedItemId;
-    const scaleAnim = scaleAnims.get(item.id) || new Animated.Value(1);
+    const activeQuantities = (item.quantities || []).filter(q => q.active_status !== "1");
+    const isItemUnavailable = (item.quantities || []).length > 0 && activeQuantities.length === 0;
+    const hasSingleVariant = activeQuantities.length === 1;
+    const primaryVariant = hasSingleVariant ? activeQuantities[0] : null;
+    const minPrice = activeQuantities.length > 0
+      ? Math.min(...activeQuantities.map(q => Number(q.selling_price)))
+      : null;
+
+    const itemKey = item.quantities?.[0]?.id ?? item.item_name;
+    const isHighlighted = itemKey === highlightedItemId;
+    const scaleAnim = scaleAnims.get(itemKey) || new Animated.Value(1);
+
+    const itemVariantIds = (item.quantities || []).map(q => q.id);
+    const cartQtyForItem = cartItems
+      .filter(ci => itemVariantIds.includes(ci.id))
+      .reduce((sum, ci) => sum + Number(ci.quantity), 0);
+    const singleCartLine = hasSingleVariant
+      ? cartItems.find(ci => ci.id === primaryVariant.id)
+      : null;
 
     return (
       <Animated.View
@@ -403,8 +442,8 @@ const RestaurantScreen = ({ navigation, route }) => {
           { transform: [{ scale: scaleAnim }] }
         ]}
         onLayout={() => {
-          if (isHighlighted && !renderedItems.has(item.id)) {
-            setRenderedItems(prev => new Set(prev).add(item.id));
+          if (isHighlighted && !renderedItems.has(itemKey)) {
+            setRenderedItems(prev => new Set(prev).add(itemKey));
             scaleAnim.stopAnimation();
             requestAnimationFrame(() => {
               Animated.sequence([
@@ -427,10 +466,10 @@ const RestaurantScreen = ({ navigation, route }) => {
       >
 
         <View
-          style={[styles.card, item.active_status === "1" && styles.unavailableCard]}
+          style={[styles.card, isItemUnavailable && styles.unavailableCard]}
         >
           {/* Overlay when unavailable */}
-          {item.active_status === "1" && (
+          {isItemUnavailable && (
             <View style={styles.unavailableOverlay}>
               <Text style={styles.unavailableText}>Currently Unavailable</Text>
             </View>
@@ -458,22 +497,30 @@ const RestaurantScreen = ({ navigation, route }) => {
 
             <View style={styles.itemFooter}>
               <View>
-                {item.actual_price !== item.selling_price && (
-                  <Text
-                    style={[
-                      styles.price,
-                      {
-                        textDecorationLine: "line-through",
-                        color: "#888",
-                        fontSize: 10,
-                        textAlign: "left"
-                      }
-                    ]}
-                  >
-                    ₹{item.actual_price}
-                  </Text>
+                {hasSingleVariant ? (
+                  <>
+                    {primaryVariant.actual_price !== primaryVariant.selling_price && (
+                      <Text
+                        style={[
+                          styles.price,
+                          {
+                            textDecorationLine: "line-through",
+                            color: "#888",
+                            fontSize: 10,
+                            textAlign: "left"
+                          }
+                        ]}
+                      >
+                        ₹{primaryVariant.actual_price}
+                      </Text>
+                    )}
+                    <Text style={styles.price}>₹{primaryVariant.selling_price}</Text>
+                  </>
+                ) : (
+                  minPrice !== null && (
+                    <Text style={styles.price}>From ₹{minPrice}</Text>
+                  )
                 )}
-                <Text style={styles.price}>₹{item.selling_price}</Text>
               </View>
 
 
@@ -487,27 +534,36 @@ const RestaurantScreen = ({ navigation, route }) => {
               source={{ uri: item.item_image }}
               style={[
                 styles.horizontalImage,
-                item.active_status === "1" && styles.unavailableImage
+                isItemUnavailable && styles.unavailableImage
               ]}
             />
-            {cartItems.findIndex(value => value.id === item.id) !== -1 ? (
-              <View style={styles.counterContainer}>
-                <TouchableOpacity onPress={() => decreaseItem(item)}>
-                  <AntDesign name="minus" size={20} color={commonStyles.btn2Color} />
+            {hasSingleVariant ? (
+              singleCartLine ? (
+                <View style={styles.counterContainer}>
+                  <TouchableOpacity onPress={() => decreaseItem(singleCartLine)}>
+                    <AntDesign name="minus" size={20} color={commonStyles.btn2Color} />
+                  </TouchableOpacity>
+                  <Text style={styles.counterText}>{singleCartLine.quantity}</Text>
+                  <TouchableOpacity onPress={() => handleAddVariantToCart(buildVariantCartItem(item, primaryVariant))}>
+                    <AntDesign name="plus" size={20} color={commonStyles.btn2Color} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => handleAddVariantToCart(buildVariantCartItem(item, primaryVariant))}
+                >
+                  <Text style={styles.addButtonText}>ADD</Text>
                 </TouchableOpacity>
-                <Text style={styles.counterText}>
-                  {cartItems.find(value => value.id === item.id).quantity}
-                </Text>
-                <TouchableOpacity onPress={() => handleAddToCart(item)}>
-                  <AntDesign name="plus" size={20} color={commonStyles.btn2Color} />
-                </TouchableOpacity>
-              </View>
+              )
             ) : (
               <TouchableOpacity
                 style={styles.addButton}
-                onPress={() => handleAddToCart(item)}
+                onPress={() => openVariantModal(item)}
               >
-                <Text style={styles.addButtonText}>ADD</Text>
+                <Text style={styles.addButtonText}>
+                  {cartQtyForItem > 0 ? `${cartQtyForItem} ADDED` : 'ADD'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -662,7 +718,7 @@ const RestaurantScreen = ({ navigation, route }) => {
               <FlatList
                 ref={flatListRef}
                 data={filteredData}
-                keyExtractor={(item, index) => `${item.id}_${index}`}
+                keyExtractor={(item, index) => `${item.quantities?.[0]?.id ?? item.item_name}_${index}`}
                 style={styles.itemList}
                 contentContainerStyle={{
                   paddingBottom: Platform.OS === 'ios' ? 160 : 150,
@@ -741,6 +797,62 @@ const RestaurantScreen = ({ navigation, route }) => {
                 <Text style={styles.confirmButtonText}>Replace</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showVariantModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowVariantModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.variantModalContent}>
+            <View style={styles.variantModalHeader}>
+              <Text style={styles.variantModalTitle}>{variantModalItem?.item_name}</Text>
+              <TouchableOpacity onPress={() => setShowVariantModal(false)}>
+                <MaterialIcons name="close" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.variantModalSubtitle}>Select an option</Text>
+            <ScrollView style={styles.variantList}>
+              {(variantModalItem?.quantities || [])
+                .filter(variant => variant.active_status !== "1")
+                .map(variant => {
+                  const cartLine = cartItems.find(ci => ci.id === variant.id);
+                  const qty = cartLine ? cartLine.quantity : 0;
+                  return (
+                    <View key={variant.id} style={styles.variantRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.variantName}>{variant.measurement_type || 'Regular'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          {variant.actual_price !== variant.selling_price && (
+                            <Text style={styles.variantStrikePrice}>₹{variant.actual_price}</Text>
+                          )}
+                          <Text style={styles.variantPrice}>₹{variant.selling_price}</Text>
+                        </View>
+                      </View>
+                      {qty === 0 ? (
+                        <TouchableOpacity
+                          style={styles.variantAddButton}
+                          onPress={() => handleAddVariantToCart(buildVariantCartItem(variantModalItem, variant))}>
+                          <Text style={styles.variantAddButtonText}>ADD</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={styles.counterContainer}>
+                          <TouchableOpacity onPress={() => decreaseItem(cartLine)}>
+                            <AntDesign name="minus" size={18} color={commonStyles.btn2Color} />
+                          </TouchableOpacity>
+                          <Text style={styles.counterText}>{qty}</Text>
+                          <TouchableOpacity onPress={() => handleAddVariantToCart(buildVariantCartItem(variantModalItem, variant))}>
+                            <AntDesign name="plus" size={18} color={commonStyles.btn2Color} />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1166,6 +1278,72 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  variantModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  variantModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  variantModalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#000',
+    flex: 1,
+    marginRight: 10,
+  },
+  variantModalSubtitle: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  variantList: {
+    maxHeight: responsiveHeight(40),
+  },
+  variantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  variantName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  variantStrikePrice: {
+    fontSize: 12,
+    color: '#888',
+    textDecorationLine: 'line-through',
+  },
+  variantPrice: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000',
+  },
+  variantAddButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: commonStyles.btn2Color,
+  },
+  variantAddButtonText: {
+    color: commonStyles.btn2Color,
+    textAlign: 'center',
+    fontWeight: '700',
+    fontSize: 14,
   },
   unavailableCard: {
     opacity: 0.6,
