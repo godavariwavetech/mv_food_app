@@ -42,7 +42,7 @@ const initialState = {
   products: [],
   total: 0,
   checkoutStatus: null,
-  homeRestaurnats: null
+  homeRestaurnats: null,
 };
 
 export const checkAddressExistence = createAsyncThunk(
@@ -535,6 +535,45 @@ export const Dashboard = createSlice({
     clearCart: (state, action) => {
       state.cartItems = [];
     },
+
+    // Syncs the persisted cart against freshly fetched restaurant/item data
+    // (called when the user taps Place Order) so a stale cart can't be used
+    // to place an order at an old price, a removed offer, or a closed shop.
+    // Caller is responsible for diffing old vs. new values to inform the user.
+    reconcileCartWithLiveData: (state, action) => {
+      const { restaurantActive, variantsById } = action.payload;
+
+      if (!restaurantActive) {
+        state.cartItems = [];
+        state.cartRestaurant = null;
+        state.totalPrice = 0;
+        return;
+      }
+
+      const nextCartItems = state.cartItems
+        .filter(item => {
+          const live = variantsById[item.id];
+          return live && live.active_status !== '1';
+        })
+        .map(item => {
+          const live = variantsById[item.id];
+          return {
+            ...item,
+            actual_price: live.actual_price,
+            selling_price: live.selling_price,
+            discount_percentage: live.discount_percentage,
+            discount_amount: live.discount_amount,
+            active_status: live.active_status,
+          };
+        });
+
+      state.cartItems = nextCartItems;
+      state.totalPrice = nextCartItems.reduce(
+        (total, item) => total + Number(item.selling_price) * Number(item.quantity),
+        0
+      );
+      state.cartRestaurant = nextCartItems.length > 0 ? state.cartRestaurant : null;
+    },
     setsubCategory: (state, action) => {
       state.activeSubCategory = action.payload
     },
@@ -795,6 +834,7 @@ export const {
   removeFromCart,
   setCartRestaurant,
   clearCart,
+  reconcileCartWithLiveData,
   setsubCategory,
   updateUserAddress,
   setServiceLocations,

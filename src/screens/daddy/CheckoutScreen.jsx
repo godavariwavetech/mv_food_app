@@ -29,7 +29,11 @@ import {
   generateOrderId,
   updateOrderStatus,
   clearCart,
+  getItemsList,
+  reconcileCartWithLiveData,
 } from '../../redux/reducers/daddy';
+import { getSingleShopDetails } from '../../redux/reducers/search';
+import { setRestaurnatDetails } from '../../redux/reducers/auth';
 import Entypo from 'react-native-vector-icons/Entypo';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { getChargesList } from '../../redux/reducers/addressSlice';
@@ -87,6 +91,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   const [customTip, setCustomTip] = useState('');
   const [orderNote, setOrderNote] = useState('');
   const [deliveryNote, setDeliveryNote] = useState('');
+  const [validatingCart, setValidatingCart] = useState(false);
 
   // --- FREE DELIVERY LOGIC START ---
   const maxFreeDeliveryLimit = Number(reaturantDetails?.max_free_delivery_cost || 0);
@@ -113,6 +118,97 @@ const CheckoutScreen = ({ navigation, route }) => {
       });
     }
   }, [cartItems.length]);
+
+  // Re-validate the (possibly stale, persisted-from-a-previous-session) cart
+  // against live restaurant/item data right when the user taps Place Order:
+  // the restaurant may have gone inactive, or item prices/offers may have
+  // changed since the items were added to the cart. Returns true only if
+  // the cart matched live data and it's safe to proceed with the order.
+  const validateCartBeforeOrder = async () => {
+    const shopId = cartItems[0]?.shop_id;
+    if (!shopId) return true;
+
+    const shopResponse = await dispatch(getSingleShopDetails({ shopId }));
+    const freshShop = shopResponse?.payload?.data?.[0];
+    const restaurantActive = !!freshShop && freshShop.shop_active_status !== '1';
+
+    if (freshShop) {
+      dispatch(setRestaurnatDetails(freshShop));
+    }
+
+    if (!restaurantActive) {
+      return new Promise(resolve => {
+        Alert.alert(
+          'Restaurant unavailable',
+          'This restaurant is currently unavailable. Your cart has been cleared.',
+          [{
+            text: 'OK',
+            onPress: () => {
+              dispatch(reconcileCartWithLiveData({ restaurantActive: false, variantsById: {} }));
+              resolve(false);
+            },
+          }],
+          { cancelable: false },
+        );
+      });
+    }
+
+    const itemsResponse = await dispatch(getItemsList({
+      shopId,
+      shopItem: freshShop?.shop_items_tb_nm,
+    }));
+    const freshItems = itemsResponse?.payload?.data || [];
+    const variantsById = {};
+    freshItems.forEach(item => {
+      (item.quantities || []).forEach(variant => {
+        variantsById[variant.id] = variant;
+      });
+    });
+
+    const removedItems = [];
+    const changedItems = [];
+    cartItems.forEach(item => {
+      const live = variantsById[item.id];
+      if (!live || live.active_status === '1') {
+        removedItems.push(item.item_name);
+        return;
+      }
+      const priceChanged =
+        String(item.selling_price) !== String(live.selling_price) ||
+        String(item.actual_price) !== String(live.actual_price) ||
+        String(item.discount_percentage) !== String(live.discount_percentage) ||
+        String(item.discount_amount) !== String(live.discount_amount);
+      if (priceChanged) {
+        changedItems.push(item.item_name);
+      }
+    });
+
+    if (removedItems.length || changedItems.length) {
+      const parts = [];
+      if (removedItems.length) {
+        parts.push(`Removed (no longer available): ${removedItems.join(', ')}`);
+      }
+      if (changedItems.length) {
+        parts.push(`Price/offer updated: ${changedItems.join(', ')}`);
+      }
+      return new Promise(resolve => {
+        Alert.alert(
+          'Your cart was updated',
+          parts.join('\n'),
+          [{
+            text: 'OK',
+            onPress: () => {
+              dispatch(reconcileCartWithLiveData({ restaurantActive: true, variantsById }));
+              resolve(false);
+            },
+          }],
+          { cancelable: false },
+        );
+      });
+    }
+
+    return true;
+  };
 
 
   const caliculateTotalPrice = useCallback(() => {
@@ -235,6 +331,24 @@ const CheckoutScreen = ({ navigation, route }) => {
   }, [reaturantDetails]);
 
   const handlePlaceOrder = async () => {
+    if (validatingCart || isProcessingPayment) {
+      return;
+    }
+
+    setValidatingCart(true);
+    let cartIsFresh = false;
+    try {
+      cartIsFresh = await validateCartBeforeOrder();
+    } catch (error) {
+      console.error('Cart validation error:', error);
+      Alert.alert('Unable to verify cart', 'Please check your connection and try again.');
+    } finally {
+      setValidatingCart(false);
+    }
+    if (!cartIsFresh) {
+      return;
+    }
+
     const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
 
     if (minimumOrderAmount > 0 && totalSellingPrice < minimumOrderAmount) {
@@ -994,11 +1108,11 @@ const CheckoutScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[
               styles.placeOrderButton,
-              (!selectedPaymentMethod || isProcessingPayment) && { opacity: 0.6 }
+              (!selectedPaymentMethod || isProcessingPayment || validatingCart) && { opacity: 0.6 }
             ]}
             onPress={handlePlaceOrder}
-            disabled={isProcessingPayment || amountLoading}>
-            {(isProcessingPayment || amountLoading) ? (
+            disabled={isProcessingPayment || amountLoading || validatingCart}>
+            {(isProcessingPayment || amountLoading || validatingCart) ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <View style={styles.placeOrderContent}>
