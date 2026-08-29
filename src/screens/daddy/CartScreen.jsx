@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,8 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import CartInactive from './tabassets/CartInactive';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { globalSearch } from '../../redux/reducers/addressSlice';
+import { globalSearch, clearGlobalSearch } from '../../redux/reducers/addressSlice';
+import { useFocusEffect } from '@react-navigation/native';
 import commonStyles from '../../commonstyles/CommonStyles';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import StatusBarManager from '../../components/StatusBarManager';
@@ -40,6 +41,15 @@ const CartScreen = ({ navigation, route }) => {
   const { globalSearchResults } = useSelector(state => state.address);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setSearchQuery('');
+        dispatch(clearGlobalSearch());
+      };
+    }, [dispatch])
+  );
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -171,7 +181,7 @@ const CartScreen = ({ navigation, route }) => {
             <CartInactive color="#fff" />
             <Text style={styles.headerTitle}>Your Cart</Text>
           </View>
-          {filteredCartItems.length > 0 && <View style={styles.searchContainer}>
+          {cartItems.length > 0 && <View style={styles.searchContainer}>
             <View style={styles.inputWrapper}>
               <TextInput
                 placeholder="Search items in cart..."

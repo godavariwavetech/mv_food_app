@@ -119,6 +119,9 @@ const addressSlice = createSlice({
         state.onloadComponents = false;
       }
     },
+    clearGlobalSearch: (state) => {
+      state.globalSearchResults = null;
+    },
   },
   extraReducers: (builder) => {
 
@@ -168,5 +171,5 @@ const addressSlice = createSlice({
   },
 });
 
-export const { setSelectedAddress, clearSelectedAddress, setUserDetails, setIsNetworkConnected } = addressSlice.actions;
+export const { setSelectedAddress, clearSelectedAddress, setUserDetails, setIsNetworkConnected, clearGlobalSearch } = addressSlice.actions;
 export default addressSlice.reducer;
