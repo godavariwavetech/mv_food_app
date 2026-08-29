@@ -42,7 +42,6 @@ import { removeCoupon } from '../../redux/reducers/coupons';
 import commonStyles from '../../commonstyles/CommonStyles';
 import StatusBarManager from '../../components/StatusBarManager';
 import RazorpayCheckout from 'react-native-razorpay';
-import MinimumOrderModal from '../../components/MinimumOrderModal';
 import { getActualDistance } from '../../services/googleDistanceService';
 
 const TIP_PRESETS = [20, 30, 50];
@@ -56,7 +55,6 @@ const CheckoutScreen = ({ navigation, route }) => {
   const {
     customerId,
     reaturantDetails,
-    orderOfferAmount,
     locationId,
     locationName,
   } = useSelector(state => state.Auth);
@@ -65,6 +63,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   const handlingCharges = Number(chargesList?.[0]?.handling_charges || 0);
   const donationCharges = Number(chargesList?.[0]?.donation_charges || 0);
   const minOrderCharge = Number(chargesList?.[0]?.min_order_charge || 0);
+  const extraCharges = Number(chargesList?.[0]?.extra_charge || 0);
   const isRainSurchargeActive =
     Number(chargesList?.[0]?.rain_surge_charge_active_status || 0) === 1;
   const rainSurcharge = isRainSurchargeActive
@@ -85,7 +84,6 @@ const CheckoutScreen = ({ navigation, route }) => {
     totalCharge: 0,
   });
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [showMinimumOrderModal, setShowMinimumOrderModal] = useState(false);
   const [amountLoading, setAmountLoading] = useState(true);
   const [tipAmount, setTipAmount] = useState(0);
   const [customTip, setCustomTip] = useState('');
@@ -295,7 +293,6 @@ const CheckoutScreen = ({ navigation, route }) => {
   const calculateDeliveryCharge = useCallback((
     distance,
     cartPrice,
-    minOrderPrice,
     gstRate = 18,
   ) => {
     // Check if the restaurant has a max_free_delivery_cost set
@@ -316,8 +313,11 @@ const CheckoutScreen = ({ navigation, route }) => {
       deliveryCharge = deliveryCharge + (Number(distance) - Number(reaturantDetails?.minimum_km)) * (reaturantDetails?.per_km_chargers || 10);
     }
 
-    if (cartPrice < minOrderPrice) {
-      deliveryCharge += 10;
+    // Below-minimum-order extra charge is folded into the delivery charge
+    // so it shows as a single "Delivery Charges" amount to the customer.
+    const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
+    if (minimumOrderAmount > 0 && cartPrice < minimumOrderAmount) {
+      deliveryCharge += extraCharges;
     }
 
     let gstAmount = 0;
@@ -328,7 +328,7 @@ const CheckoutScreen = ({ navigation, route }) => {
       gstAmount: gstAmount,
       totalCharge: totalDeliveryCharge.toFixed(2),
     };
-  }, [reaturantDetails]);
+  }, [reaturantDetails, extraCharges]);
 
   const handlePlaceOrder = async () => {
     if (validatingCart || isProcessingPayment) {
@@ -349,12 +349,6 @@ const CheckoutScreen = ({ navigation, route }) => {
       return;
     }
 
-    const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
-
-    if (minimumOrderAmount > 0 && totalSellingPrice < minimumOrderAmount) {
-      setShowMinimumOrderModal(true);
-      return;
-    }
     if (!selectedPaymentMethod) {
       Alert.alert('Select Payment', 'Please choose a payment method to continue.');
       return;
@@ -397,7 +391,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         order_longitude: selectedAddress?.customer_longitude || '0',
         slot_timings: 'Fast Delivery',
         order_distance: distance,
-        ext_del_charge: '0',
+        ext_del_charge: belowMinimumOrderCharge,
         shop_id: cartItems[0]?.shop_id,
         user_player_id: null,
         order_type: 0,
@@ -538,9 +532,19 @@ const CheckoutScreen = ({ navigation, route }) => {
     return calculateDeliveryCharge(
       distance,
       itemsTotalPrice,
-      orderOfferAmount,
     );
-  }, [distance, itemsTotalPrice, orderOfferAmount, calculateDeliveryCharge, reaturantDetails, chargesList]);
+  }, [distance, itemsTotalPrice, calculateDeliveryCharge, reaturantDetails, chargesList]);
+
+  // Fixed "Extra Charges" (from Charges Management) applied when the order
+  // is below the restaurant's minimum order. Folded into deliveryCharges
+  // above, kept here only to report it separately to the backend.
+  const belowMinimumOrderCharge = useMemo(() => {
+    const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
+    if (minimumOrderAmount > 0 && itemsTotalPrice < minimumOrderAmount) {
+      return extraCharges;
+    }
+    return 0;
+  }, [itemsTotalPrice, reaturantDetails, extraCharges]);
 
   const calculatedGrandTotal = useMemo(() => {
     return totalSellingPrice
@@ -1183,18 +1187,6 @@ const CheckoutScreen = ({ navigation, route }) => {
           </View>
         </Modal>
 
-        <MinimumOrderModal
-          visible={showMinimumOrderModal}
-          onClose={() => setShowMinimumOrderModal(false)}
-          onAddItems={() => {
-            setShowMinimumOrderModal(false);
-            navigation.goBack(); // Go back to restaurant screen
-          }}
-          minimumAmount={Number(reaturantDetails?.minimum_order || 0)}
-          currentAmount={totalSellingPrice}
-          restaurantName={reaturantDetails?.shop_name}
-        />
-
       </View>
     </SafeAreaView>
   );
@@ -1238,9 +1230,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-    // marginBottom: responsiveHeight(2),
+    marginTop: 0,
+    marginBottom: responsiveHeight(0.5),
     marginLeft: responsiveWidth(5),
-    marginVertical: responsiveHeight(2),
   },
   cartItem: {
     flexDirection: 'row',
@@ -1387,7 +1379,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 15,
-    marginBottom: responsiveHeight(2),
+    marginBottom: responsiveHeight(0.5),
   },
   tipHeader: {
     flexDirection: 'row',
@@ -1459,7 +1451,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 15,
-    marginBottom: responsiveHeight(2),
+    marginBottom: responsiveHeight(0.5),
   },
   noteInput: {
     borderWidth: 1,

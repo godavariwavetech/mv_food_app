@@ -30,6 +30,7 @@ export const getChargesList = createAsyncThunk(
     { getState, rejectWithValue, fulfillWithValue }
   ) => {
     const response = await api.post(endpoints.GET_CHARGES_LIST)
+    console.log('getChargesList response:', response);
     if (response) {
       if (response.data) {
         return fulfillWithValue(response.data);
