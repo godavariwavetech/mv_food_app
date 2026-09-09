@@ -580,6 +580,21 @@ const RestaurantScreen = ({ navigation, route }) => {
     };
   }, []);
 
+  const checkItemUnavailable = (item) => {
+    const quantities = item.quantities || [];
+    const activeQuantities = quantities.filter(q => q.active_status !== "1");
+    return quantities.length > 0 && activeQuantities.length === 0;
+  };
+
+  const sortedFilteredData = useMemo(() => {
+    return [...filteredData].sort((a, b) => {
+      const aUnavailable = checkItemUnavailable(a);
+      const bUnavailable = checkItemUnavailable(b);
+      if (aUnavailable === bUnavailable) return 0;
+      return aUnavailable ? 1 : -1;
+    });
+  }, [filteredData]);
+
   // Memoized cart calculations for better performance
   const cartCalculations = useMemo(() => {
     const itemCount = cartItems?.reduce((sum, item) => sum + Number(item.quantity), 0) || 0;
@@ -704,7 +719,7 @@ const RestaurantScreen = ({ navigation, route }) => {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={commonStyles.btn2Color} />
           </View>
-        ) : filteredData?.length === 0 ? (
+        ) : sortedFilteredData?.length === 0 ? (
           <View style={styles.noItemsContainer}>
             <MaterialCommunityIcons name="food-off" size={50} color="#A3A3A3" />
             <Text style={styles.noItemsText}>No items found</Text>
@@ -717,7 +732,7 @@ const RestaurantScreen = ({ navigation, route }) => {
             <View style={styles.itemListContainer}>
               <FlatList
                 ref={flatListRef}
-                data={filteredData}
+                data={sortedFilteredData}
                 keyExtractor={(item, index) => `${item.quantities?.[0]?.id ?? item.item_name}_${index}`}
                 style={styles.itemList}
                 contentContainerStyle={{

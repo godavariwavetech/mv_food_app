@@ -388,7 +388,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          {orderDetails?.customer_otp && (
+          {/* {orderDetails?.customer_otp && (
             <View style={styles.otpSection}>
               <Text style={styles.sectionTitle}>Delivery OTP</Text>
               <View style={styles.otpBox}>
@@ -396,7 +396,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 <Text style={styles.otpHint}>Share this OTP with the delivery agent</Text>
               </View>
             </View>
-          )}
+          )} */}
 
 
           {/* Delivery Agent */}
