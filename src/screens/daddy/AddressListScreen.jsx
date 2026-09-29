@@ -41,7 +41,7 @@ const AddressListScreen = ({ navigation, route }) => {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [toggleValue, setToggleValue] = useState(false)
   const [refreshing, setRefreshing] = useState(false);
-  const { customerId, token,locationId,reaturantDetails } = useSelector(state => state.Auth);
+  const { customerId, token,reaturantDetails } = useSelector(state => state.Auth);
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -225,7 +225,7 @@ const AddressListScreen = ({ navigation, route }) => {
         </View>
       ) : (
         <FlatList
-          data={isFromCart ? addressList.filter(address => address.location_id === locationId) : addressList}
+          data={addressList}
           renderItem={renderAddress}
           keyExtractor={item => item?.id?.toString()}
           contentContainerStyle={[

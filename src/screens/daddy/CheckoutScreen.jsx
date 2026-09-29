@@ -10,7 +10,8 @@ import {
   Modal,
   ActivityIndicator,
   SafeAreaView,
-  Alert
+  Alert,
+  TextInput,
 } from 'react-native';
 import {
   responsiveHeight,
@@ -28,7 +29,11 @@ import {
   generateOrderId,
   updateOrderStatus,
   clearCart,
+  getItemsList,
+  reconcileCartWithLiveData,
 } from '../../redux/reducers/daddy';
+import { getSingleShopDetails } from '../../redux/reducers/search';
+import { setRestaurnatDetails } from '../../redux/reducers/auth';
 import Entypo from 'react-native-vector-icons/Entypo';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { getChargesList } from '../../redux/reducers/addressSlice';
@@ -37,9 +42,9 @@ import { removeCoupon } from '../../redux/reducers/coupons';
 import commonStyles from '../../commonstyles/CommonStyles';
 import StatusBarManager from '../../components/StatusBarManager';
 import RazorpayCheckout from 'react-native-razorpay';
-import MinimumOrderModal from '../../components/MinimumOrderModal';
 import { getActualDistance } from '../../services/googleDistanceService';
 
+const TIP_PRESETS = [20, 30, 50];
 
 const CheckoutScreen = ({ navigation, route }) => {
   const { cartItems, totalPrice } = useSelector(state => state.Dashboard);
@@ -50,13 +55,20 @@ const CheckoutScreen = ({ navigation, route }) => {
   const {
     customerId,
     reaturantDetails,
-    orderOfferAmount,
     locationId,
     locationName,
   } = useSelector(state => state.Auth);
   const dispatch = useDispatch();
 
-  const handlingCharges = chargesList?.[0]?.handling_charges || 0;
+  const handlingCharges = Number(chargesList?.[0]?.handling_charges || 0);
+  const donationCharges = Number(chargesList?.[0]?.donation_charges || 0);
+  const minOrderCharge = Number(chargesList?.[0]?.min_order_charge || 0);
+  const extraCharges = Number(chargesList?.[0]?.extra_charge || 0);
+  const isRainSurchargeActive =
+    Number(chargesList?.[0]?.rain_surge_charge_active_status || 0) === 1;
+  const rainSurcharge = isRainSurchargeActive
+    ? Number(chargesList?.[0]?.rain_surge_charge || 0)
+    : 0;
   const [clearCartConfirmVisible, setClearCartConfirmVisible] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -72,8 +84,12 @@ const CheckoutScreen = ({ navigation, route }) => {
     totalCharge: 0,
   });
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [showMinimumOrderModal, setShowMinimumOrderModal] = useState(false);
   const [amountLoading, setAmountLoading] = useState(true);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [customTip, setCustomTip] = useState('');
+  const [orderNote, setOrderNote] = useState('');
+  const [deliveryNote, setDeliveryNote] = useState('');
+  const [validatingCart, setValidatingCart] = useState(false);
 
   // --- FREE DELIVERY LOGIC START ---
   const maxFreeDeliveryLimit = Number(reaturantDetails?.max_free_delivery_cost || 0);
@@ -100,6 +116,97 @@ const CheckoutScreen = ({ navigation, route }) => {
       });
     }
   }, [cartItems.length]);
+
+  // Re-validate the (possibly stale, persisted-from-a-previous-session) cart
+  // against live restaurant/item data right when the user taps Place Order:
+  // the restaurant may have gone inactive, or item prices/offers may have
+  // changed since the items were added to the cart. Returns true only if
+  // the cart matched live data and it's safe to proceed with the order.
+  const validateCartBeforeOrder = async () => {
+    const shopId = cartItems[0]?.shop_id;
+    if (!shopId) return true;
+
+    const shopResponse = await dispatch(getSingleShopDetails({ shopId }));
+    const freshShop = shopResponse?.payload?.data?.[0];
+    const restaurantActive = !!freshShop && freshShop.shop_active_status !== '1';
+
+    if (freshShop) {
+      dispatch(setRestaurnatDetails(freshShop));
+    }
+
+    if (!restaurantActive) {
+      return new Promise(resolve => {
+        Alert.alert(
+          'Restaurant unavailable',
+          'This restaurant is currently unavailable. Your cart has been cleared.',
+          [{
+            text: 'OK',
+            onPress: () => {
+              dispatch(reconcileCartWithLiveData({ restaurantActive: false, variantsById: {} }));
+              resolve(false);
+            },
+          }],
+          { cancelable: false },
+        );
+      });
+    }
+
+    const itemsResponse = await dispatch(getItemsList({
+      shopId,
+      shopItem: freshShop?.shop_items_tb_nm,
+    }));
+    const freshItems = itemsResponse?.payload?.data || [];
+    const variantsById = {};
+    freshItems.forEach(item => {
+      (item.quantities || []).forEach(variant => {
+        variantsById[variant.id] = variant;
+      });
+    });
+
+    const removedItems = [];
+    const changedItems = [];
+    cartItems.forEach(item => {
+      const live = variantsById[item.id];
+      if (!live || live.active_status === '1') {
+        removedItems.push(item.item_name);
+        return;
+      }
+      const priceChanged =
+        String(item.selling_price) !== String(live.selling_price) ||
+        String(item.actual_price) !== String(live.actual_price) ||
+        String(item.discount_percentage) !== String(live.discount_percentage) ||
+        String(item.discount_amount) !== String(live.discount_amount);
+      if (priceChanged) {
+        changedItems.push(item.item_name);
+      }
+    });
+
+    if (removedItems.length || changedItems.length) {
+      const parts = [];
+      if (removedItems.length) {
+        parts.push(`Removed (no longer available): ${removedItems.join(', ')}`);
+      }
+      if (changedItems.length) {
+        parts.push(`Price/offer updated: ${changedItems.join(', ')}`);
+      }
+      return new Promise(resolve => {
+        Alert.alert(
+          'Your cart was updated',
+          parts.join('\n'),
+          [{
+            text: 'OK',
+            onPress: () => {
+              dispatch(reconcileCartWithLiveData({ restaurantActive: true, variantsById }));
+              resolve(false);
+            },
+          }],
+          { cancelable: false },
+        );
+      });
+    }
+
+    return true;
+  };
 
 
   const caliculateTotalPrice = useCallback(() => {
@@ -166,6 +273,9 @@ const CheckoutScreen = ({ navigation, route }) => {
                 <AntDesign name="plus" size={16} color={commonStyles.btn2Color} />
               </TouchableOpacity>
             </View>
+            {item.measurement_type ? (
+              <Text style={styles.quantityMeasurement}>{item.measurement_type}</Text>
+            ) : null}
             <Text style={styles.itemTotalPrice}>₹ {eachPrice}</Text>
           </View>
         </View>
@@ -183,7 +293,6 @@ const CheckoutScreen = ({ navigation, route }) => {
   const calculateDeliveryCharge = useCallback((
     distance,
     cartPrice,
-    minOrderPrice,
     gstRate = 18,
   ) => {
     // Check if the restaurant has a max_free_delivery_cost set
@@ -204,8 +313,11 @@ const CheckoutScreen = ({ navigation, route }) => {
       deliveryCharge = deliveryCharge + (Number(distance) - Number(reaturantDetails?.minimum_km)) * (reaturantDetails?.per_km_chargers || 10);
     }
 
-    if (cartPrice < minOrderPrice) {
-      deliveryCharge += 10;
+    // Below-minimum-order extra charge is folded into the delivery charge
+    // so it shows as a single "Delivery Charges" amount to the customer.
+    const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
+    if (minimumOrderAmount > 0 && cartPrice < minimumOrderAmount) {
+      deliveryCharge += extraCharges;
     }
 
     let gstAmount = 0;
@@ -216,15 +328,27 @@ const CheckoutScreen = ({ navigation, route }) => {
       gstAmount: gstAmount,
       totalCharge: totalDeliveryCharge.toFixed(2),
     };
-  }, [reaturantDetails]);
+  }, [reaturantDetails, extraCharges]);
 
   const handlePlaceOrder = async () => {
-    const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
-
-    if (minimumOrderAmount > 0 && totalSellingPrice < minimumOrderAmount) {
-      setShowMinimumOrderModal(true);
+    if (validatingCart || isProcessingPayment) {
       return;
     }
+
+    setValidatingCart(true);
+    let cartIsFresh = false;
+    try {
+      cartIsFresh = await validateCartBeforeOrder();
+    } catch (error) {
+      console.error('Cart validation error:', error);
+      Alert.alert('Unable to verify cart', 'Please check your connection and try again.');
+    } finally {
+      setValidatingCart(false);
+    }
+    if (!cartIsFresh) {
+      return;
+    }
+
     if (!selectedPaymentMethod) {
       Alert.alert('Select Payment', 'Please choose a payment method to continue.');
       return;
@@ -247,13 +371,17 @@ const CheckoutScreen = ({ navigation, route }) => {
         total_saving_amount: totalSavings,
         coupon_amount: couponDiscount,
         delivery_charges: delivery.totalCharge,
+        delivery_boy_tip: tipAmount,
+        min_order_charge: minOrderCharge,
+        rain_surcharge: rainSurcharge,
         grand_total: grandTotal,
         location_id: locationId,
         location_name: locationName,
         payment_type: selectedPaymentMethod,
         payment_id: selectedPaymentMethod,
         razorpay_order_id: null,
-        order_instructions: 'test order',
+        order_instructions: orderNote.trim(),
+        delivery_instructions: deliveryNote.trim(),
         coupon_type: appliedCoupon?.coupon_type || "0",
         coupon_id: appliedCoupon?.id || "0",
         delivery_address: selectedAddress
@@ -263,15 +391,15 @@ const CheckoutScreen = ({ navigation, route }) => {
         order_longitude: selectedAddress?.customer_longitude || '0',
         slot_timings: 'Fast Delivery',
         order_distance: distance,
-        ext_del_charge: '0',
+        ext_del_charge: belowMinimumOrderCharge,
         shop_id: cartItems[0]?.shop_id,
         user_player_id: null,
         order_type: 0,
         delivery_charges_gst: delivery.gstAmount,
-        handling_charges: chargesList[0].handling_charges,
+        handling_charges: handlingCharges,
         packing_charges: 0,
         packing_charges_gst: 0,
-        donation_charges: chargesList[0].donation_charges,
+        donation_charges: donationCharges,
         sub_order_array: cartItems.map(item => ({
           item_name: item.item_name,
           item_image: item.item_image,
@@ -283,6 +411,7 @@ const CheckoutScreen = ({ navigation, route }) => {
           actualitem_price: item.actual_price,
           item_price: item.selling_price,
           sub_item_count: item.quantity,
+          measurement_type: item.measurement_type || '',
           item_total_amount: item.selling_price * item.quantity,
           filter_name: item.filter_one,
           item_description: item.item_description,
@@ -403,16 +532,39 @@ const CheckoutScreen = ({ navigation, route }) => {
     return calculateDeliveryCharge(
       distance,
       itemsTotalPrice,
-      orderOfferAmount,
     );
-  }, [distance, itemsTotalPrice, orderOfferAmount, calculateDeliveryCharge, reaturantDetails, chargesList]);
+  }, [distance, itemsTotalPrice, calculateDeliveryCharge, reaturantDetails, chargesList]);
+
+  // Fixed "Extra Charges" (from Charges Management) applied when the order
+  // is below the restaurant's minimum order. Folded into deliveryCharges
+  // above, kept here only to report it separately to the backend.
+  const belowMinimumOrderCharge = useMemo(() => {
+    const minimumOrderAmount = Number(reaturantDetails?.minimum_order || 0);
+    if (minimumOrderAmount > 0 && itemsTotalPrice < minimumOrderAmount) {
+      return extraCharges;
+    }
+    return 0;
+  }, [itemsTotalPrice, reaturantDetails, extraCharges]);
 
   const calculatedGrandTotal = useMemo(() => {
     return totalSellingPrice
       - couponDiscount
       + Number(deliveryCharges.totalCharge)
-      + Number(handlingCharges || 0);
-  }, [totalSellingPrice, couponDiscount, deliveryCharges.totalCharge, handlingCharges]);
+      + Number(handlingCharges || 0)
+      + Number(donationCharges || 0)
+      + Number(minOrderCharge || 0)
+      + Number(rainSurcharge || 0)
+      + Number(tipAmount || 0);
+  }, [
+    totalSellingPrice,
+    couponDiscount,
+    deliveryCharges.totalCharge,
+    handlingCharges,
+    donationCharges,
+    minOrderCharge,
+    rainSurcharge,
+    tipAmount,
+  ]);
 
   useEffect(() => {
     setDistance(calculatedDistance);
@@ -624,6 +776,136 @@ const CheckoutScreen = ({ navigation, route }) => {
             <MaterialIcons name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
 
+          {/* Delivery Tip */}
+          <View style={styles.tipCard}>
+            <View style={styles.tipHeader}>
+              <MaterialCommunityIcons
+                name="hand-heart-outline"
+                size={22}
+                color={commonStyles.btn2Color}
+              />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.tipTitle}>Tip your delivery partner</Text>
+                <Text style={styles.tipSubtitle}>
+                  100% of the tip goes to your delivery partner
+                </Text>
+              </View>
+            </View>
+            <View style={styles.tipChipsRow}>
+              {TIP_PRESETS.map(amount => (
+                <TouchableOpacity
+                  key={amount}
+                  style={[
+                    styles.tipChip,
+                    tipAmount === amount && styles.tipChipSelected,
+                  ]}
+                  onPress={() => {
+                    setCustomTip('');
+                    setTipAmount(prev => (prev === amount ? 0 : amount));
+                  }}>
+                  <Text
+                    style={[
+                      styles.tipChipText,
+                      tipAmount === amount && styles.tipChipTextSelected,
+                    ]}>
+                    ₹{amount}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <View
+                style={[
+                  styles.tipChip,
+                  styles.tipCustomChip,
+                  customTip !== '' && styles.tipChipSelected,
+                ]}>
+                <Text
+                  style={[
+                    styles.tipChipText,
+                    customTip !== '' && styles.tipChipTextSelected,
+                  ]}>
+                  ₹
+                </Text>
+                <TextInput
+                  style={styles.tipCustomInput}
+                  placeholder="Other"
+                  placeholderTextColor="#999"
+                  keyboardType="number-pad"
+                  value={customTip}
+                  onChangeText={text => {
+                    const numeric = text.replace(/[^0-9]/g, '');
+                    setCustomTip(numeric);
+                    setTipAmount(numeric ? Number(numeric) : 0);
+                  }}
+                  maxLength={5}
+                />
+              </View>
+            </View>
+            {tipAmount > 0 && (
+              <TouchableOpacity
+                style={styles.tipRemoveButton}
+                onPress={() => {
+                  setTipAmount(0);
+                  setCustomTip('');
+                }}>
+                <Text style={styles.tipRemoveText}>Remove tip</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Order Instructions */}
+          <View style={styles.noteCard}>
+            <View style={styles.tipHeader}>
+              <MaterialIcons
+                name="edit-note"
+                size={22}
+                color={commonStyles.btn2Color}
+              />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.tipTitle}>Order instructions</Text>
+                <Text style={styles.tipSubtitle}>
+                  E.g. less spicy, no onions, extra napkins
+                </Text>
+              </View>
+            </View>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="Add cooking instructions for the restaurant"
+              placeholderTextColor="#999"
+              value={orderNote}
+              onChangeText={setOrderNote}
+              multiline
+              maxLength={200}
+            />
+            <Text style={styles.noteCounter}>{orderNote.length}/200</Text>
+          </View>
+
+          {/* Delivery Instructions */}
+          <View style={styles.noteCard}>
+            <View style={styles.tipHeader}>
+              <MaterialCommunityIcons
+                name="moped-outline"
+                size={22}
+                color={commonStyles.btn2Color}
+              />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.tipTitle}>Delivery instructions</Text>
+                <Text style={styles.tipSubtitle}>
+                  E.g. ring the bell, leave at the door, call on arrival
+                </Text>
+              </View>
+            </View>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="Add instructions for the delivery partner"
+              placeholderTextColor="#999"
+              value={deliveryNote}
+              onChangeText={setDeliveryNote}
+              multiline
+              maxLength={200}
+            />
+            <Text style={styles.noteCounter}>{deliveryNote.length}/200</Text>
+          </View>
+
           {/* Billing */}
           <Text style={styles.sectionTitle}>Billing</Text>
           <View style={styles.billingCard}>
@@ -704,11 +986,43 @@ const CheckoutScreen = ({ navigation, route }) => {
               </View>
             </View>
 
+            {/* Delivery Tip */}
+            {tipAmount > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Delivery Tip</Text>
+                <Text style={styles.billValue}>₹ {Number(tipAmount).toFixed(2)}</Text>
+              </View>
+            )}
+
             {/* Handling Charges */}
             {handlingCharges > 0 && (
               <View style={styles.billRow}>
                 <Text style={styles.billLabel}>Handling Charges</Text>
                 <Text style={styles.billValue}>₹ {handlingCharges.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {/* Donation Charges */}
+            {donationCharges > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Donation</Text>
+                <Text style={styles.billValue}>₹ {donationCharges.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {/* Minimum Order Charge */}
+            {minOrderCharge > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Minimum Order Charge</Text>
+                <Text style={styles.billValue}>₹ {minOrderCharge.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {/* Rain Surcharge */}
+            {rainSurcharge > 0 && (
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Rain Surcharge</Text>
+                <Text style={styles.billValue}>₹ {rainSurcharge.toFixed(2)}</Text>
               </View>
             )}
 
@@ -798,11 +1112,11 @@ const CheckoutScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[
               styles.placeOrderButton,
-              (!selectedPaymentMethod || isProcessingPayment) && { opacity: 0.6 }
+              (!selectedPaymentMethod || isProcessingPayment || validatingCart) && { opacity: 0.6 }
             ]}
             onPress={handlePlaceOrder}
-            disabled={isProcessingPayment || amountLoading}>
-            {(isProcessingPayment || amountLoading) ? (
+            disabled={isProcessingPayment || amountLoading || validatingCart}>
+            {(isProcessingPayment || amountLoading || validatingCart) ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <View style={styles.placeOrderContent}>
@@ -873,18 +1187,6 @@ const CheckoutScreen = ({ navigation, route }) => {
           </View>
         </Modal>
 
-        <MinimumOrderModal
-          visible={showMinimumOrderModal}
-          onClose={() => setShowMinimumOrderModal(false)}
-          onAddItems={() => {
-            setShowMinimumOrderModal(false);
-            navigation.goBack(); // Go back to restaurant screen
-          }}
-          minimumAmount={Number(reaturantDetails?.minimum_order || 0)}
-          currentAmount={totalSellingPrice}
-          restaurantName={reaturantDetails?.shop_name}
-        />
-
       </View>
     </SafeAreaView>
   );
@@ -928,9 +1230,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-    // marginBottom: responsiveHeight(2),
+    marginTop: 0,
+    marginBottom: responsiveHeight(0.5),
     marginLeft: responsiveWidth(5),
-    marginVertical: responsiveHeight(2),
   },
   cartItem: {
     flexDirection: 'row',
@@ -974,6 +1276,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginHorizontal: 5,
     color: commonStyles.btn2Color,
+  },
+  quantityMeasurement: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#888',
+    textAlign: 'right',
+    marginTop: 2,
   },
   itemTotalPrice: {
     color: '#3D3D3D',
@@ -1063,6 +1372,103 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#000',
+  },
+  tipCard: {
+    width: responsiveWidth(90),
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: responsiveHeight(0.5),
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tipTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  tipSubtitle: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+  },
+  tipChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  tipChip: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 10,
+    marginBottom: 8,
+  },
+  tipChipSelected: {
+    borderColor: commonStyles.btn2Color,
+    backgroundColor: '#F0FBF4',
+  },
+  tipChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#525252',
+  },
+  tipChipTextSelected: {
+    color: commonStyles.btn2Color,
+  },
+  tipCustomChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  tipCustomInput: {
+    minWidth: responsiveWidth(14),
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  tipRemoveButton: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  tipRemoveText: {
+    color: '#FF4D4F',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  noteCard: {
+    width: responsiveWidth(90),
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: responsiveHeight(0.5),
+  },
+  noteInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#000',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  noteCounter: {
+    fontSize: 11,
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 4,
   },
   billingCard: {
     backgroundColor: '#fff',

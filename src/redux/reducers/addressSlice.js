@@ -30,6 +30,7 @@ export const getChargesList = createAsyncThunk(
     { getState, rejectWithValue, fulfillWithValue }
   ) => {
     const response = await api.post(endpoints.GET_CHARGES_LIST)
+    console.log('getChargesList response:', response);
     if (response) {
       if (response.data) {
         return fulfillWithValue(response.data);
@@ -118,6 +119,9 @@ const addressSlice = createSlice({
         state.onloadComponents = false;
       }
     },
+    clearGlobalSearch: (state) => {
+      state.globalSearchResults = null;
+    },
   },
   extraReducers: (builder) => {
 
@@ -167,5 +171,5 @@ const addressSlice = createSlice({
   },
 });
 
-export const { setSelectedAddress, clearSelectedAddress, setUserDetails, setIsNetworkConnected } = addressSlice.actions;
+export const { setSelectedAddress, clearSelectedAddress, setUserDetails, setIsNetworkConnected, clearGlobalSearch } = addressSlice.actions;
 export default addressSlice.reducer;

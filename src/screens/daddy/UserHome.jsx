@@ -1,35 +1,29 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
+  TextInput,
   Image,
   TouchableOpacity,
-  Dimensions,
-  SafeAreaView,
   StatusBar,
-  TextInput,
+  FlatList,
+  StyleSheet,
   Platform,
   RefreshControl,
-  Animated,
-  FlatList
+  Dimensions,
+  Animated
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, RadialGradient, Stop, Rect } from 'react-native-svg';
-
-// --- API & Redux Imports ---
-import { useDispatch, useSelector, shallowEqual } from 'react-redux';
-import { useFocusEffect, useIsFocused } from '@react-navigation/native';
-import Geolocation from 'react-native-geolocation-service';
-import NetInfo from '@react-native-community/netinfo';
-import Permissions, { PERMISSIONS, RESULTS, check, request } from 'react-native-permissions';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-
-// --- Redux Actions ---
+import LinearGradient from 'react-native-linear-gradient';
+import {
+  responsiveFontSize,
+  responsiveHeight,
+  responsiveWidth,
+} from 'react-native-responsive-dimensions';
+import Clock from './tabassets/Clock';
+import { Shadow } from 'react-native-shadow-2';
+import ShopSection from './builder/ShopSection';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   getBanners,
   getCategories,
@@ -41,538 +35,1004 @@ import {
   checkAddressExistence,
   getRestaurantsHome,
 } from '../../redux/reducers/daddy';
-import { getProfile, setLocation, setLocationId, setLocationName, setOrderOfferAmount } from '../../redux/reducers/auth';
-import { indiviadualShop } from '../../redux/reducers/addressSlice';
-
-// --- Components ---
-import Skeleton from './Skeleton';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import Geolocation from 'react-native-geolocation-service';
+import { setLocation, setLocationId, setLocationName, setOrderOfferAmount } from '../../redux/reducers/auth';
 import ServiceUnavailableScreen from './ServiceUnavailableScreen';
+import NetInfo from '@react-native-community/netinfo';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Skeleton from './Skeleton';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import Permissions, { PERMISSIONS, RESULTS, check, request } from 'react-native-permissions';
+import SimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons';
+import StarIcon from './svg/StarIcon';
+import commonStyles from '../../commonstyles/CommonStyles';
 import { colors } from '../../config/theme';
+import { indiviadualShop } from '../../redux/reducers/addressSlice';
+import StatusBarManager from '../../components/StatusBarManager';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import CategoryCard from '../../components/CategoryCard';
+import SubCategoryCard from '../../components/SubCategoryCard';
+import MarqueeText from '../../components/MarqueeText';
 
-const { width } = Dimensions.get('window');
-const SVG_ASPECT_RATIO = 241 / 393;
-const SVG_HEIGHT = width * SVG_ASPECT_RATIO;
-const TAB_CUTOUT_HEIGHT = 66.5 * (width / 393); 
-const CONTENT_WIDTH = width - 32; 
+const screenWidth = Dimensions.get('window').width;
+const itemWidth = screenWidth / 6;
+const STICKY_HEADER_SCROLL_DISTANCE = 120;
 
-// Static Assets
-const PROFILE_URL = 'https://i.pravatar.cc/150?img=11';
-
-// ==========================================
-// MEMOIZED SVG COMPONENTS
-// ==========================================
-const CategoryRadialBackground = React.memo(({ isVeg }) => (
-  <Svg width="84" height="84" viewBox="0 0 84 84" style={styles.absoluteCategoryBg}>
-    <Defs>
-      <RadialGradient id="catGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-        <Stop offset="0%" stopColor={isVeg ? "#EDFFEA" : "#FFF4EA"} />
-        <Stop offset="83.65%" stopColor={isVeg ? "#EBFFE8" : "#FFF2E8"} />
-        <Stop offset="100%" stopColor={isVeg ? "#E0FFDC" : "#FFEBDC"} />
-      </RadialGradient>
-    </Defs>
-    <Rect width="84" height="84" rx="16" fill="url(#catGrad)" />
-  </Svg>
+// Memoized Restaurant Item Component
+const RestaurantItem = React.memo(({ item, calculateDeliveryTime, navigation, isUnavailable }) => (
+  <TouchableOpacity
+    style={[styles.restaurantCard, isUnavailable && styles.unavailableCard]}
+    onPress={() => {
+      if (!isUnavailable) {
+        navigation.navigate('RestaurantScreen', {
+          shopId: item.shop_id,
+          shopItem: item.shop_items_tb_nm,
+          item,
+        });
+      }
+    }}
+  >
+    <View style={styles.restaurantContent}>
+      <View style={styles.restaurantImageContainer}>
+        <Image
+          source={{ uri: item?.shop_image }}
+          style={styles.restaurantImage}
+          resizeMethod="resize"
+        />
+        {isUnavailable && (
+          <View style={styles.unavailableOverlay}>
+            <Text style={[styles.unavailableText, { color: 'red' }]}>Currently Unavailable</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.restaurantTextContainer}>
+        <Text style={styles.restaurantName}>{item.shop_name}</Text>
+        <View style={styles.ratingRow}>
+          <StarIcon />
+          <Text style={styles.ratingText}>{item.shop_rating}</Text>
+          <Text style={styles.dot}>•</Text>
+          <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
+            <Clock />
+            <Text style={{ fontSize: 11, fontWeight: '400' }}>
+              {calculateDeliveryTime(item.distance)}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.addressText}>{item.shop_address || 'Tilak Road • 3.0 km'}</Text>
+        {item.special_offer_name && (
+          <View style={styles.offerTag}>
+            <MarqueeText text={item.special_offer_name} textStyle={styles.offerText} always fitWidth />
+          </View>
+        )}
+      </View>
+    </View>
+  </TouchableOpacity>
 ));
 
-const VegActiveBackground = React.memo(() => (
-  <View style={styles.svgWrapper}>
-    <Svg width="100%" height="100%" viewBox="0 0 393 241" fill="none" style={styles.absoluteSvg}>
-      <Path d="M0 67H189.603C194.045 67 197.954 64.0703 199.201 59.8073L212.615 13.9468C214.859 6.2734 221.896 1 229.891 1H346.645C354.998 1 362.254 6.74707 364.166 14.8786L374.613 59.2897C375.675 63.8072 379.706 67 384.347 67H393V239.5H0V67Z" fill="url(#snacks_inactive_fill)"/>
-      <Path d="M229.892 0.5C221.675 0.5 214.442 5.92009 212.135 13.8066L198.721 59.667C197.536 63.7167 193.823 66.4998 189.604 66.5H-0.5V240H393.5V66.5H384.347C379.938 66.4999 376.109 63.4663 375.1 59.1748L364.653 14.7637C362.687 6.40648 355.23 0.5 346.645 0.5H229.892Z" stroke="url(#snacks_inactive_stroke)" strokeOpacity="0.4"/>
-      <Defs>
-        <SvgLinearGradient id="snacks_inactive_fill" x1="196.5" y1="1" x2="198" y2="62.5" gradientUnits="userSpaceOnUse">
-          <Stop stopColor="#C3FEBC"/>
-          <Stop offset="0.201923" stopColor="#CFFFC9" stopOpacity="0.850962"/>
-          <Stop offset="1" stopColor="#CFFFC9" stopOpacity="0"/>
-        </SvgLinearGradient>
-        <SvgLinearGradient id="snacks_inactive_stroke" x1="334.75" y1="-9.11883" x2="145.75" y2="231.108" gradientUnits="userSpaceOnUse">
-          <Stop stopColor="#8BC783"/>
-          <Stop offset="0.6875" stopColor="white" stopOpacity="0"/>
-        </SvgLinearGradient>
-      </Defs>
-    </Svg>
-    <Svg width="100%" height="100%" viewBox="0 0 393 241" fill="none" style={styles.absoluteSvg}>
-      <Path d="M163.108 0.5C171.325 0.5 178.558 5.92009 180.865 13.8066L194.279 59.667C195.464 63.7167 199.177 66.4998 203.396 66.5H393.5V240H-0.5V66.5H8.65332C13.0619 66.4999 16.891 63.4663 17.9004 59.1748L28.3467 14.7637C30.3126 6.40648 37.7701 0.5 46.3555 0.5H163.108Z" fill="url(#veg_active_fill)" fillOpacity="0.4" stroke="url(#veg_active_stroke)"/>
-      <Defs>
-        <SvgLinearGradient id="veg_active_fill" x1="196.5" y1="2.5" x2="196.5" y2="239.5" gradientUnits="userSpaceOnUse">
-          <Stop offset="0.0001" stopColor="#66E954"/>
-          <Stop offset="0.9999" stopColor="#74D767" stopOpacity="0.56"/>
-        </SvgLinearGradient>
-        <SvgLinearGradient id="veg_active_stroke" x1="-3.63527e-07" y1="115.99" x2="393" y2="126.01" gradientUnits="userSpaceOnUse">
-          <Stop stopColor="#107D00"/>
-          <Stop offset="1" stopColor="#C5FFBD"/>
-        </SvgLinearGradient>
-      </Defs>
-    </Svg>
-  </View>
-));
-
-const SnacksActiveBackground = React.memo(() => (
-  <View style={styles.svgWrapper}>
-    <Svg width="100%" height="100%" viewBox="0 0 393 241" fill="none" style={styles.absoluteSvg}>
-      <Path d="M163.108 0.5C171.325 0.5 178.558 5.92009 180.865 13.8066L194.279 59.667C195.464 63.7167 199.177 66.4998 203.396 66.5H393.5V240H-0.5V66.5H8.65332C13.0619 66.4999 16.891 63.4663 17.9004 59.1748L28.3467 14.7637C30.3126 6.40648 37.7701 0.5 46.3555 0.5H163.108Z" stroke="url(#veg_inactive_stroke_new)" strokeOpacity="0.3"/>
-      <Defs>
-        <SvgLinearGradient id="veg_inactive_stroke_new" x1="58.2502" y1="-9.11883" x2="247.25" y2="231.108" gradientUnits="userSpaceOnUse">
-          <Stop stopColor="#FC6011"/>
-          <Stop offset="0.6875" stopColor="white" stopOpacity="0"/>
-        </SvgLinearGradient>
-      </Defs>
-    </Svg>
-    <Svg width="100%" height="100%" viewBox="0 0 393 241" fill="none" style={[styles.absoluteSvg, { transform: [{ scaleX: -1 }] }]}>
-      <Path d="M163.108 0.5C171.325 0.5 178.558 5.92009 180.865 13.8066L194.279 59.667C195.464 63.7167 199.177 66.4998 203.396 66.5H393.5V240H-0.5V66.5H8.65332C13.0619 66.4999 16.891 63.4663 17.9004 59.1748L28.3467 14.7637C30.3126 6.40648 37.7701 0.5 46.3555 0.5H163.108Z" fill="url(#snacks_active_fill_new)" stroke="url(#snacks_active_stroke_new)"/>
-      <Defs>
-        <SvgLinearGradient id="snacks_active_fill_new" x1="196.5" y1="0" x2="196.5" y2="238.5" gradientUnits="userSpaceOnUse">
-          <Stop offset="0.0064" stopColor="rgba(251, 155, 106, 0.4)"/>
-          <Stop offset="0.9999" stopColor="rgba(255, 220, 145, 0)"/>
-        </SvgLinearGradient>
-        <SvgLinearGradient id="snacks_active_stroke_new" x1="-3.63527e-07" y1="115.99" x2="393" y2="126.01" gradientUnits="userSpaceOnUse">
-          <Stop stopColor="#FC6011"/>
-          <Stop offset="1" stopColor="rgba(255, 220, 145, 0)"/>
-        </SvgLinearGradient>
-      </Defs>
-    </Svg>
-  </View>
-));
-
-// ==========================================
-// MAIN COMPONENT
-// ==========================================
 export default function UserHome({ navigation }) {
-  const dispatch = useDispatch();
-  const isFocused = useIsFocused();
-
-  // --- REDUX STATE (Optimized with shallowEqual) ---
-  const { 
-    categories, 
-    subCategories, 
-    banners, 
-    activeCategoryIndex, 
-    loading, 
-    userAddress, 
-    serviceAvailable, 
-    homeRestaurnats 
-  } = useSelector(state => state.Dashboard, shallowEqual);
+  const { categories, subCategories, banners, restaurants, activeCategoryIndex, loading, addressList, userAddress, serviceAvailable, homeRestaurnats } = useSelector(state => state.Dashboard);
+  const { locationName } = useSelector(state => state.Auth);
+  const { isNetworkConnected } = useSelector(state => state.address);
   
-  const { locationName,profile,customerId } = useSelector(state => state.Auth, shallowEqual);
-  const authLocation = useSelector(state => state.Auth.location, shallowEqual);
-  const { isNetworkConnected } = useSelector(state => state.address, shallowEqual);
-
-  // --- LOCAL STATE ---
-  const [activeBanner, setActiveBanner] = useState(0); 
+  const flatListRef = useRef(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState(userAddress || "");
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [initialNetLoad, setInitialNetLoad] = useState(false);
-  const [errorOccured, setErrorOccured] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const dispatch = useDispatch();
+  const authLocation = useSelector(state => state.Auth.location);
   const [mounted, setMounted] = useState(true);
-
-  console.log(profile,">>>>>>>>>>>>>>>>>>>>>>>>.profileprofile",customerId);
-
-  // --- REFS ---
-  const bannerScrollRef = useRef(null);
-  const activeBannerRef = useRef(activeBanner);
+  const isFocused = useIsFocused();
+  const [initialNetLoad, setInitialNetLoad] = useState(false);
+  const [serviceCheckFailed, setServiceCheckFailed] = useState(false);
+  const [errorOccured, setErrorOccured] = useState(false);
   const networkStatusRef = useRef(isNetworkConnected);
+  const numColumns = 6;
+  const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [selectedCategoryName, setSelectedCategoryName] = useState('Food');
+
   const hasInitiallyLoaded = useRef(false);
+  const scrollPositionRef = useRef(0);
 
-  // ==========================================
-  // DYNAMIC CATEGORY LOGIC
-  // ==========================================
-  const sortedCategories = useMemo(() => {
-    if (!categories) return [];
-    return [...categories].sort((a, b) => {
-      const aName = a.category_name.toLowerCase();
-      const bName = b.category_name.toLowerCase();
-      if (aName.includes('veg')) return -1;
-      if (bName.includes('veg')) return 1;
-      return 0;
-    });
-  }, [categories]);
+  const stickyHeaderOpacity = scrollY.interpolate({
+    inputRange: [0, STICKY_HEADER_SCROLL_DISTANCE - 20, STICKY_HEADER_SCROLL_DISTANCE],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
 
-  useEffect(() => {
-    if (sortedCategories.length > 0 && !hasInitiallyLoaded.current) {
-      const vegCategory = sortedCategories.find(c => c.category_name.toLowerCase().includes('veg'));
-      if (vegCategory) {
-        dispatch(setActiveCategoryIndex(vegCategory.id));
-        dispatch(getSubCategories({ categoryId: vegCategory.id }));
-        dispatch(getRestaurantsHome({ categoryId: vegCategory.id }));
-        dispatch(setOrderOfferAmount(vegCategory.order_offer_amount));
-        hasInitiallyLoaded.current = true;
-      }
-    }
-
-  }, [sortedCategories, dispatch]);
-
-  const activeCategoryData = useMemo(() => 
-    sortedCategories.find(c => c.id === activeCategoryIndex),
-    [sortedCategories, activeCategoryIndex]
-  );
-  
-  const isLeftTabActive = sortedCategories.length > 0 && activeCategoryIndex === sortedCategories[0].id;
-  const isVegTheme = activeCategoryData?.category_name.toLowerCase().includes('veg') ?? true;
-
-  const activeColor = isVegTheme ? '#107D00' : '#D46327';
-  const inactiveColor = isVegTheme ? '#65A35D' : '#E8A27A'; 
-  const headerGradientColors = isVegTheme 
-    ? ['#CEFFC7', '#D4FFCE', 'rgba(206, 255, 199, 0)'] 
-    : ['rgba(251, 155, 106, 0.3)', 'rgba(255, 220, 145, 0.2)', 'rgba(255, 220, 145, 0)'];
-
-  const popularRestaurants = useMemo(() => 
-    homeRestaurnats ? homeRestaurnats.filter(r => Number(r.shop_rating) >= 4.5) : [],
-    [homeRestaurnats]
-  );
-
-  const isLoading = (loading.addressCheck || isLoadingLocation || loading.categories || loading.banners);
-
-  // ==========================================
-  // FUNCTIONS & HOOKS
-  // ==========================================
-  useEffect(() => { networkStatusRef.current = isNetworkConnected; }, [isNetworkConnected]);
-  useEffect(() => { activeBannerRef.current = activeBanner; }, [activeBanner]);
-
-  const handleScroll = useCallback((event) => {
-    const scrollPosition = event.nativeEvent.contentOffset.x;
-    const currentIndex = Math.round(scrollPosition / CONTENT_WIDTH);
-    if (currentIndex !== activeBannerRef.current) {
-      setActiveBanner(currentIndex);
-    }
-  }, []);
+  const stickyHeaderTranslateY = scrollY.interpolate({
+    inputRange: [0, STICKY_HEADER_SCROLL_DISTANCE],
+    outputRange: [-100, 0],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
-    if (!banners || banners.length <= 1) return;
-    const interval = setInterval(() => {
-      let nextIndex = activeBannerRef.current + 1;
-      if (nextIndex >= banners.length) nextIndex = 0; 
-      bannerScrollRef.current?.scrollTo({ x: nextIndex * CONTENT_WIDTH, animated: true });
-      setActiveBanner(nextIndex);
-    }, 4000); 
-    return () => clearInterval(interval);
-  }, [banners]);
+    networkStatusRef.current = isNetworkConnected;
+  }, [isNetworkConnected]);
+
+  const isLoading = (
+    loading.addressCheck ||
+    isLoadingLocation ||
+    loading.categories ||
+    loading.banners
+  );
 
   const getAddressFromCoordinates = async (latitude, longitude) => {
     try {
-      const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyApeRJe3NFzGsTey20Xu8XEFrIxphxs4VM`);
+      setErrorOccured(false);
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyApeRJe3NFzGsTey20Xu8XEFrIxphxs4VM`,
+      );
       const data = await response.json();
-      return data.results?.[0]?.formatted_address || 'Address not found';
+      if (data.results && data.results.length > 0) {
+        return data.results[0].formatted_address;
+      }
+      return 'Address not found';
     } catch (error) {
+      console.error('Error getting address:', error);
+      setErrorOccured(true);
       return 'Error getting address';
     }
   };
 
   const getCurrentLocation = useCallback(() => {
     setIsLoadingLocation(true);
+    Geolocation.setRNConfiguration({
+      enableHighAccuracy: false,
+      timeout: 2000,
+      maximumAge: 1000,
+    });
     Geolocation.getCurrentPosition(
       async position => {
         const { latitude, longitude } = position.coords;
         const address = await getAddressFromCoordinates(latitude, longitude);
-        dispatch(setLocation({ latitude, longitude }));
+        await dispatch(setLocation({ latitude, longitude }));
         const currentLocationAddress = {
           address_type: userAddress?.address_type || 'Home',
           full_address: address,
           customer_latitude: latitude.toString(),
           customer_longitude: longitude.toString(),
+          name: userAddress?.name || '',
+          contact: userAddress?.contact || '',
         };
+        if (!isNetworkConnected) return;
         dispatch(updateUserAddress(currentLocationAddress));
         setSelectedAddress(currentLocationAddress);
         setIsLoadingLocation(false);
-        checkServiceAvailability({ latitude, longitude });
+          checkServiceAvailability({ latitude, longitude })
       },
-      () => {
+      error => {
+        console.error('Error getting location:', error);
         setIsLoadingLocation(false);
-        navigation.replace('ServicesAvailable', { permissionDenied: true });
+        networkStatusRef.current && navigation.replace('ServicesAvailable', { permissionDenied: true });
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 5000 }
+      {
+        enableHighAccuracy: false,
+        timeout: 20000,
+        maximumAge: 1000,
+      }
     );
-  }, [dispatch, userAddress, navigation]);
+  }, [dispatch, userAddress]);
 
   const requestLocationPermission = useCallback(async () => {
     try {
-      const permission = Platform.OS === 'ios' ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+      let permission;
+      if (Platform.OS === 'ios') {
+        permission = PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
+      } else if (Platform.OS === 'android') {
+        permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+      }
+      if (!permission) return;
+      
       const status = await check(permission);
-      if (status === RESULTS.GRANTED) getCurrentLocation();
-      else {
+      if (status === RESULTS.GRANTED) {
+        getCurrentLocation();
+      } else {
         const reqStatus = await request(permission);
-        if (reqStatus === RESULTS.GRANTED) getCurrentLocation();
-        else navigation.replace('ServicesAvailable', { permissionDenied: true });
+        if (reqStatus === RESULTS.GRANTED) {
+          getCurrentLocation();
+        } else {
+          networkStatusRef.current && navigation.replace('ServicesAvailable', { permissionDenied: true });
+        }
       }
     } catch (err) {
-      navigation.replace('ServicesAvailable', { permissionDenied: true });
+      networkStatusRef.current && navigation.replace('ServicesAvailable', { permissionDenied: true });
     }
-  }, [getCurrentLocation, navigation]);
+  }, [getCurrentLocation, navigation, isNetworkConnected]);
 
-  const checkServiceAvailability = useCallback(async (paramAuth) => {
-    const loc = paramAuth || authLocation;
-    if (!loc) return;
+  const getCategoreis = async () => {
     try {
-      const response = await dispatch(checkAddressExistence({ latitude: loc.latitude, longitude: loc.longitude })).unwrap();
-      if (response.data?.length > 0) {
-        dispatch(setLocationName(response.data[0].location_name));
-        dispatch(setLocationId(response.data[0].id));
-        dispatch(getCategories());
-        dispatch(getBanners());
-        dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
+      setErrorOccured(false);
+      dispatch(getCategories());
+      dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
+      dispatch(getBanners());
+      if (!restaurants || restaurants.length === 0) {
         dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex }));
       }
     } catch (error) {
       setErrorOccured(true);
     }
-     dispatch(getProfile());
-  }, [authLocation, activeCategoryIndex, dispatch]);
+  };
 
   useEffect(() => {
-    if (!hasInitiallyLoaded.current) {
+    const initializeLocation = async () => {
       if (authLocation) {
-        setSelectedAddress({ full_address: 'Loading address...', ...authLocation });
-        checkServiceAvailability(authLocation);
+        const address = await getAddressFromCoordinates(authLocation.latitude, authLocation.longitude);
+        const currentAddress = {
+          address_type: locationName,
+          full_address: address,
+          customer_latitude: authLocation.latitude.toString(),
+          customer_longitude: authLocation.longitude.toString(),
+        };
+        if (!isNetworkConnected) return;
+        setSelectedAddress(currentAddress);
       } else if (userAddress) {
         setSelectedAddress(userAddress);
-        checkServiceAvailability(userAddress);
       } else {
         requestLocationPermission();
       }
+    };
+    
+    if (!hasInitiallyLoaded.current) {
+      initializeLocation();
+      hasInitiallyLoaded.current = true;
     }
-  }, [authLocation, userAddress, checkServiceAvailability, requestLocationPermission]);
+  }, []); 
 
-  useFocusEffect(useCallback(() => { dispatch(getAddressList()); }, [dispatch]));
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(getAddressList());
+    }, [dispatch])
+  );
+
+  useEffect(() => {
+    if (categories && categories.length > 0 && !selectedCategoryName) {
+      const firstCategory = categories.find(cat => cat.id === activeCategoryIndex);
+      if (firstCategory) {
+        setSelectedCategoryName(firstCategory.category_name);
+      }
+    }
+  }, [categories, activeCategoryIndex]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkOnFocus = async () => {
+        if (authLocation && !hasInitiallyLoaded.current) {
+          await checkServiceAvailability();
+        }
+      };
+      checkOnFocus();
+    }, [authLocation])
+  );
+
+  const handleSubCategories = category => {
+    dispatch(setActiveCategoryIndex(category.id));
+    dispatch(getSubCategories({ categoryId: category.id }));
+    dispatch(getRestaurantsHome({ categoryId: category.id }));
+    dispatch(setOrderOfferAmount(category.order_offer_amount));
+    setSelectedCategoryName(category.category_name);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      let intervalId;
+      if (isFocused && banners?.length > 0) {
+        intervalId = setInterval(() => {
+          const newIndex = currentIndex < banners.length - 1 ? currentIndex + 1 : 0;
+          flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
+          setCurrentIndex(newIndex);
+        }, 3000);
+      }
+      return () => {
+        clearInterval(intervalId);
+      };
+    }, [currentIndex, banners, isFocused])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    dispatch(getCategories());
-    dispatch(getBanners());
-    dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
-    dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex }));
+    getCategoreis();
     setRefreshing(false);
-  }, [activeCategoryIndex, dispatch]);
+    dispatch(setActiveCategoryIndex(1));
+  }, []);
 
-  const calculateDeliveryTime = (distance) => distance < 3 ? '15-20 mins' : distance < 5 ? '20-30 mins' : '30-45 mins';
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    navigation.navigate('CategoriesScreen');
+  };
 
-  const renderCategoryItem = useCallback(({ item, index }) => (
-    <TouchableOpacity 
-      style={[styles.categoryItemContainer, { marginRight: 12 }]}
-      onPress={() => { dispatch(setsubCategory(item)); navigation.navigate('CategorieItems'); }}
-    >
-      <View style={styles.categoryImageWrapper}>
-        <CategoryRadialBackground isVeg={isVegTheme} />
-        <Image source={{ uri: item.sub_category_image }} style={styles.categoryImageOverlay} />
-      </View>
-      <Text style={styles.categoryText} numberOfLines={2}>{item.sub_category_name}</Text>
-    </TouchableOpacity>
-  ), [isVegTheme, dispatch, navigation]);
+  const checkServiceAvailability = async (paramAuth) => {
+    const abortController = new AbortController();
+    const checkAvailability = async () => {
+      if(paramAuth){
+        try {
+          setErrorOccured(false);
+          const response = await dispatch(checkAddressExistence({
+            latitude: paramAuth.latitude,
+            longitude: paramAuth.longitude
+          })).unwrap();
+          
+          if (mounted) {
+            await dispatch(setLocationName(response.data[0].location_name));
+            await dispatch(setLocationId(response.data[0].id));
+            
+            if (response.data.length > 0) {
+              const result = await dispatch(getCategories());
+              dispatch(setOrderOfferAmount(result.payload?.data[0]?.order_offer_amount));
+              dispatch(getBanners());
+              if (!restaurants || restaurants.length === 0) {
+                dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex }));
+              }
+              dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
+            }
+          }
+        } catch (error) {
+          setErrorOccured(true);
+        }
+        return;
+      }
 
-  const renderRestaurantItem = useCallback(({ item, index }) => {
-    const isUnavailable = item.shop_active_status === "1";
+      if (!authLocation || !mounted) return;
+      
+      try {
+        setErrorOccured(false);
+        const response = await dispatch(checkAddressExistence({
+          latitude: authLocation.latitude,
+          longitude: authLocation.longitude
+        })).unwrap();
+        
+        if (mounted) {
+          await dispatch(setLocationName(response.data[0].location_name));
+          await dispatch(setLocationId(response.data[0].id));
+          
+          if (response.data.length > 0) {
+            const result = await dispatch(getCategories());
+            dispatch(setOrderOfferAmount(result.payload?.data[0]?.order_offer_amount));
+            dispatch(getBanners());
+            if (!restaurants || restaurants.length === 0) {
+              dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex }));
+            }
+            dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
+          }
+        }
+      } catch (error) {
+        setErrorOccured(true);
+      }
+    };
+    
+    checkAvailability();
+    
+    return () => {
+      abortController.abort();
+      setMounted(false);
+    };
+  };
+
+  useEffect(() => {
+    if (authLocation && !hasInitiallyLoaded.current) {
+      checkServiceAvailability();
+    }
+  }, [authLocation, serviceAvailable]);
+
+  const calculateDeliveryTime = (distance) => {
+    if (distance < 3) {
+      return '15-20 mins';
+    } else if (distance < 5) {
+      return '20-30 mins';
+    } else {
+      return '30-45 mins';
+    }
+  };
+
+  const handleBannerPress = async (banner) => {
+    const resp = await dispatch(indiviadualShop({ shopId: banner?.shop_id }));
+    if (!resp.payload.data[0] || resp.payload.data[0] <= 0) return;
+    
+    if (banner?.shop_id && banner?.shop_id !== 0) {
+      navigation.navigate('BannerRestaurantScreen', {
+        shopId: banner?.shop_id,
+        shopItem: banner?.item_id,
+        highlightItemId: 0
+      });
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(async state => {
+      if (state.isConnected && !isNetworkConnected) {
+        setInitialNetLoad(true);
+        await checkServiceAvailability();
+        await Promise.all([
+          dispatch(getCategories()),
+          dispatch(getBanners()),
+          dispatch(getRestaurantsHome({ categoryId: activeCategoryIndex })),
+        ]);
+        dispatch(getSubCategories({ categoryId: activeCategoryIndex }));
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setInitialNetLoad(false);
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [isNetworkConnected, activeCategoryIndex, dispatch]);
+
+  const displayRestaurants = homeRestaurnats || [];
+
+  // --- RENDER HEADER FUNCTION ---
+  const renderHeader = useCallback(() => {
+    // 1. Slice data to only show 2 rows (4 columns * 2 rows = 8 items)
+    const displayedSubCategories = subCategories ? subCategories.slice(0, 8) : [];
+
     return (
-      <View key={`restaurant-${item.shop_id || index}`}>
-        <TouchableOpacity 
-          style={[styles.storeCard, isUnavailable && { opacity: 0.5 }]}
-          onPress={() => { if(!isUnavailable) navigation.navigate('RestaurantScreen', { shopId: item.shop_id, shopItem: item.shop_items_tb_nm, item })}}
+      <View>
+        <LinearGradient
+          colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.headerGradient}
         >
-          <Image source={{ uri: item?.shop_image }} style={styles.storeImage} />
-          <View style={styles.storeContentArea}>
-            <View style={styles.storeInfoColumn}>
-              <View style={styles.storeNameWrap}>
-                <Text style={styles.storeName} numberOfLines={1}>{item.shop_name}</Text>
-                <Text style={styles.storeType} numberOfLines={1}>{item.shop_address || 'Supermarket'}</Text>
+          <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("SelectServiceFromLocation", { selectedAddress })}
+              style={styles.locationContainer}
+            >
+              <Icon name="location-on" size={24} color="#fff" />
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.locationTitle}>
+                    {locationName ? locationName : 'Select Location'}
+                  </Text>
+                  <Icon name="keyboard-arrow-down" size={20} color="#fff" style={{ marginLeft: 4 }} />
+                </View>
               </View>
-              <Text style={styles.deliveryTime}>• Delivery in {calculateDeliveryTime(item.distance)}</Text>
-              <View style={styles.ratingBadge}>
-                <Text style={styles.ratingText}>{item.shop_rating}</Text>
-                <Text style={styles.starIcon}>★</Text>
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
-        {index !== popularRestaurants.length - 1 && <View style={styles.dashedSeparator} />}
-      </View>
-    );
-  }, [popularRestaurants.length, navigation]);
-
-  // ==========================================
-  // RENDER
-  // ==========================================
-  if (isNetworkConnected === null || isLoading || initialNetLoad) {
-    return (
-      <View style={styles.mainWrapper}>
-        <StatusBar backgroundColor="#088B35" translucent barStyle="light-content" />
-        <Skeleton />
-      </View>
-    );
-  }
-
-  if (serviceAvailable === false) return <ServiceUnavailableScreen />;
-
-  return (
-    <View style={styles.mainWrapper}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      <LinearGradient colors={headerGradientColors} style={styles.rectangle10} />
-
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView 
-          style={styles.scrollView} 
-          showsVerticalScrollIndicator={false}
-          removeClippedSubviews={Platform.OS === 'android'}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#088B35']} />}
-        >
-          <View style={styles.headerContainer}>
-            <TouchableOpacity onPress={() => navigation.navigate("SelectServiceFromLocation", { selectedAddress })} style={styles.locationWrapper}>
-              <View style={styles.homeLabelRow}>
-                <Text style={[styles.homeLabel, { color: activeColor }]}>{locationName || 'Location'}</Text>
-                <Icon name="keyboard-arrow-down" size={20} color={activeColor} style={{ marginLeft: 4 }} />
-              </View>
-              <Text style={[styles.addressText, { color: activeColor }]} numberOfLines={1}>
-                {selectedAddress?.full_address || 'Select your location'}
-              </Text>
             </TouchableOpacity>
-            <View style={styles.headerIcons}>
-              {/* <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
-                <View style={styles.notificationDot} />
-                <Text style={styles.bellIcon}>🔔</Text>
-              </TouchableOpacity> */}
-              <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-                <Image 
-                  source={profile?.profile_image ? { uri: profile.profile_image } : require("../daddy/tabassets/dummy-profile.png")} 
-                  style={styles.profilePic} 
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Profile')}
+              style={styles.profileButton}
+            >
+              <Image
+                source={require('../daddy/tabassets/dummy-profile.png')}
+                style={styles.profileAvatar}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <Icon name="search" size={24} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search"
+              placeholderTextColor="#999"
+              value={searchQuery}
+              onChangeText={handleSearch}
+              onFocus={() => navigation.navigate('CategoriesScreen')}
+            />
+          </View>
+
+          <FlatList
+            ref={flatListRef}
+            data={banners}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingTop: 0, paddingBottom: 30 }}
+            keyExtractor={(item, index) => `banner-${item.id || index}`}
+            getItemLayout={(_, index) => ({
+              length: responsiveWidth(100),
+              offset: responsiveWidth(100) * index,
+              index,
+            })}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => {}} style={styles.bannerContainer}>
+                <Image
+                  source={{ uri: item.banner_image }}
+                  style={styles.bannerImage}
+                  resizeMode="stretch"
                 />
               </TouchableOpacity>
-            </View>
+            )}
+          />
+        </LinearGradient>
+
+        <View style={styles.contentContainer}>
+          <View style={styles.categoryHeaderContainer}>
+            <Text style={styles.categoryHeaderTitle}>Category</Text>
+            <View style={styles.categoryHeaderLine} />
           </View>
 
-          <View style={styles.tabsAndContentContainer}>
-            {isLeftTabActive ? <VegActiveBackground /> : <SnacksActiveBackground />}
-            
-            <View style={styles.tabsRow}>
-              {sortedCategories.slice(0, 2).map((cat) => {
-                const isActive = activeCategoryIndex === cat.id;
-                return (
-                  <TouchableOpacity 
-                    key={cat.id}
-                    style={styles.tabButton} 
-                    onPress={() => {
-                      dispatch(setActiveCategoryIndex(cat.id));
-                      dispatch(getSubCategories({ categoryId: cat.id }));
-                      dispatch(getRestaurantsHome({ categoryId: cat.id }));
-                      dispatch(setOrderOfferAmount(cat.order_offer_amount));
-                    }}
-                  >
-                    <Image source={{ uri: cat.category_image }} style={styles.tabIcon} />
-                    <Text style={[styles.tabText, { color: isActive ? activeColor : inactiveColor, fontWeight: isActive ? '700' : '500' }]}>
-                      {cat.category_name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <View style={styles.mainContent}>
-              <View style={styles.carouselWrapper}>
-                {banners && banners.length > 0 ? (
-                  <ScrollView
-                    ref={bannerScrollRef}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={32}
-                  >
-                    {banners.map((item, index) => (
-                      <TouchableOpacity key={index} style={styles.bannerItem} onPress={() => handleBannerPress(item)}>
-                        <Image source={{ uri: item.banner_image }} style={styles.bannerImage} />
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                ) : null}
-              </View>
-
-              {subCategories?.length > 0 && (
-                <View style={styles.categoriesSection}>
-                  <Text style={styles.categoriesTitle}>Categories</Text>
-                  <FlatList
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    data={subCategories}
-                    renderItem={renderCategoryItem}
-                    keyExtractor={(item, index) => `subcat-${item.id || index}`}
-                    initialNumToRender={5}
-                    windowSize={5}
-                  />
-                </View>
+          {categories && (
+            <FlatList
+              data={categories}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `category-${item.id || index}`}
+              contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 15 }}
+              renderItem={({ item }) => (
+                <CategoryCard
+                  title={item.category_name}
+                  imageSource={{ uri: item.category_image }}
+                  isSelected={item.id === activeCategoryIndex}
+                  onPress={() => handleSubCategories(item)}
+                />
               )}
+            />
+          )}
 
-              <View style={styles.picksSectionContainer}>
-                <View style={styles.picksHeaderRow}>
-                  <Text style={styles.picksSectionTitle}>Fresh Picks Near You</Text>
-                  <View style={styles.picksSectionLine} />
-                </View>
-                {popularRestaurants.length > 0 ? (
-                  <FlatList
-                    scrollEnabled={false}
-                    data={popularRestaurants}
-                    renderItem={renderRestaurantItem}
-                    keyExtractor={(item) => `rest-${item.shop_id}`}
-                    initialNumToRender={3}
+          <View style={styles.categoryHeaderContainer}>
+            <Text style={styles.categoryHeaderTitle}>{selectedCategoryName} Items</Text>
+            <View style={styles.categoryHeaderLine} />
+          </View>
+
+          {/* 2. SubCategories Grid with Limit and View More Button */}
+          {subCategories && (
+            <View style={styles.subCategoriesContainer}>
+              <FlatList
+                data={displayedSubCategories} // Use sliced data here
+                numColumns={4}
+                scrollEnabled={false}
+                keyExtractor={(item, index) => `subcategory-${item.id || index}`}
+                columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 15 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 10 }}
+                renderItem={({ item }) => (
+                  <SubCategoryCard
+                    title={item.sub_category_name}
+                    imageSource={{ uri: item.sub_category_image }}
+                    onPress={() => {
+                      dispatch(setsubCategory(item));
+                      navigation.navigate('CategorieItems');
+                    }}
                   />
-                ) : (
-                  <View style={{ height: 100, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text>No fresh picks available</Text>
+                )}
+                ListEmptyComponent={() => (
+                  <View style={{ width: responsiveWidth(100), height: responsiveHeight(5), alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>No items found</Text>
                   </View>
                 )}
-              </View>
-              <View style={styles.bottomSpacer} />
+              />
+
+              {/* View More Button - Navigates to 'Categories' Tab */}
+              {subCategories.length > 8 && (
+                <TouchableOpacity 
+                  style={styles.viewMoreContainer}
+                  onPress={() => navigation.navigate('Categories')} // Ensure this matches your Tab route name
+                >
+                  <Text style={styles.viewMoreText}>View More</Text>
+                  <Icon name="keyboard-arrow-right" size={20} color="#088B35" />
+                </TouchableOpacity>
+              )}
             </View>
+          )}
+
+          <View style={[commonStyles.row, { paddingHorizontal: 16, marginTop: 3, marginBottom: 10 }]}>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#2B2B2B' }}>
+              Popular {activeCategoryIndex === 1 ? "Restaurants" : "Shops"}
+            </Text>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </View>
+    );
+  }, [banners, categories, subCategories, activeCategoryIndex, locationName, selectedCategoryName, searchQuery, selectedAddress, insets.top, navigation]);
+
+  const renderRestaurantItem = useCallback(({ item }) => {
+    const isUnavailable = item.shop_active_status === "1";
+    return (
+      <View style={{ paddingHorizontal: 10, marginBottom: 16 }}>
+        <RestaurantItem 
+          item={item} 
+          isUnavailable={isUnavailable} 
+          calculateDeliveryTime={calculateDeliveryTime}
+          navigation={navigation}
+        />
+      </View>
+    );
+  }, [navigation]);
+
+  return (
+    <View style={styles.mainContainer}>
+      <StatusBar backgroundColor="#088B35" translucent barStyle="light-content" />
+      {isNetworkConnected === null ? (
+        <Skeleton />
+      ) : !isNetworkConnected && !categories ? (
+        <View style={styles.offlineContainer}>
+          <MaterialCommunityIcons name="wifi-off" size={40} color={colors.gray} />
+          <Text style={styles.offlineText}>No internet connection available</Text>
+          <Text style={styles.offlineSubText}>Please check your network settings</Text>
+        </View>
+      ) : serviceCheckFailed && !isLoading ? (
+        <View style={styles.errorContainer}>
+          <MaterialIcons name="error-outline" size={40} color={colors.red} />
+          <Text style={styles.errorText}>Network Error</Text>
+          <Text style={styles.errorSubText}>Failed to connect to the server</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => checkServiceAvailability()}>
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      ) : isLoading || initialNetLoad ? (
+        <Skeleton />
+      ) : serviceAvailable ? (
+        <View style={styles.container}>
+          <Animated.View
+            style={[
+              styles.stickySearchBar,
+              { paddingTop: insets.top },
+              { opacity: stickyHeaderOpacity },
+              { transform: [{ translateY: stickyHeaderTranslateY }] }
+            ]}
+            pointerEvents={scrollY._value >= STICKY_HEADER_SCROLL_DISTANCE ? 'auto' : 'none'}
+          >
+            <LinearGradient
+              colors={['#088B35', '#08B341', '#8AD9A4', '#8AD9A4']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.stickyGradient}
+            >
+              <View style={styles.stickySearchContainer}>
+                <Icon name="search" size={24} color="#999" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search"
+                  placeholderTextColor="#999"
+                  value={searchQuery}
+                  onChangeText={handleSearch}
+                  onFocus={() => navigation.navigate('CategoriesScreen')}
+                />
+              </View>
+            </LinearGradient>
+          </Animated.View>
+
+          <Animated.FlatList
+            data={displayRestaurants}
+            keyExtractor={(item, index) => `restaurant-${item.shop_id || item.id || index}`}
+            ListHeaderComponent={renderHeader}
+            renderItem={renderRestaurantItem}
+            
+            removeClippedSubviews={true}
+            initialNumToRender={5}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            
+            showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { 
+                useNativeDriver: true,
+                listener: (event) => {
+                  scrollPositionRef.current = event.nativeEvent.contentOffset.y;
+                }
+              }
+            )}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#088B35']}
+              />
+            }
+            ListEmptyComponent={() => (
+              <View style={{ alignItems: 'center', justifyContent: 'center', height: responsiveHeight(10), width: responsiveWidth(100) }}>
+                <Text style={{ fontSize: 14, fontWeight: '400', color: '#656565' }}>
+                  No {activeCategoryIndex === 1 ? "restaurants" : "shops"} available
+                </Text>
+              </View>
+            )}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          />
+        </View>
+      ) : serviceAvailable === false ? (
+        <ServiceUnavailableScreen />
+      ) : !categories && !errorOccured ? (
+        <Skeleton />
+      ) : (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Something went wrong</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              checkServiceAvailability();
+              getCategoreis();
+            }}
+          >
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mainWrapper: { flex: 1, backgroundColor: '#FFFFFF' },
-  safeArea: { flex: 1 },
-  scrollView: { flex: 1 },
-  rectangle10: { position: 'absolute', width: width, height: 270, top: 0, left: 0, zIndex: 0 },
-  headerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 40, marginBottom: 20, zIndex: 2 },
-  locationWrapper: { flex: 1, marginRight: 20 },
-  homeLabelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  homeLabel: { fontSize: 18, fontFamily: 'SF Pro Display', fontWeight: '800' },
-  addressText: { fontSize: 12, fontFamily: 'SF Pro Display', fontWeight: '500' },
-  headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  iconButton: { width: 36, height: 36, backgroundColor: '#FFFFFF', borderRadius: 18, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
-  notificationDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, backgroundColor: '#E7432D', borderRadius: 4, zIndex: 2 },
-  bellIcon: { fontSize: 16 },
-  profilePic: { width: 36, height: 36, borderRadius: 18 },
-  tabsAndContentContainer: { position: 'relative', width: width, minHeight: 500 },
-  svgWrapper: { position: 'absolute', top: 0, left: 0, width: width, height: SVG_HEIGHT, zIndex: 1 },
-  absoluteSvg: { position: 'absolute', top: 0, left: 0 },
-  tabsRow: { flexDirection: 'row', width: width, height: TAB_CUTOUT_HEIGHT, zIndex: 2 },
-  tabButton: { flex: 1, height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4 },
-  tabIcon: { width: 24, height: 24, resizeMode: 'contain', marginBottom: 2 },
-  tabText: { fontSize: 11, fontFamily: 'SF Pro Display', textAlign: 'center' },
-  mainContent: { paddingTop: 10, zIndex: 2 },
-  carouselWrapper: { width: CONTENT_WIDTH, height: 140, alignSelf: 'center', marginTop: 16, marginBottom: 16, borderRadius: 16, elevation: 3, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 5, shadowOffset: { width: 0, height: 3 }, backgroundColor: '#FFF' },
-  bannerItem: { width: CONTENT_WIDTH, height: 140, borderRadius: 16, overflow: 'hidden' },
-  bannerImage: { width: '100%', height: '100%', resizeMode: 'stretch' },
-  categoriesSection: { width: CONTENT_WIDTH, alignSelf: 'center', flexDirection: 'column', alignItems: 'flex-start', gap: 12, marginBottom: 30 },
-  categoriesTitle: { fontFamily: 'SF Pro Display', fontStyle: 'normal', fontWeight: '700', fontSize: 20, lineHeight: 24, color: '#000000' },
-  categoryItemContainer: { flexDirection: 'column', alignItems: 'center', width: 84 },
-  categoryImageWrapper: { width: 84, height: 84, borderRadius: 16, position: 'relative', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  absoluteCategoryBg: { position: 'absolute', left: 0, top: 0 },
-  categoryImageOverlay: { width: 50, height: 50, resizeMode: 'contain', zIndex: 2 },
-  categoryText: { width: 84, fontFamily: 'SF Pro Display', fontStyle: 'normal', fontWeight: '400', fontSize: 12, lineHeight: 14, textAlign: 'center', color: '#000000' },
-  picksSectionContainer: { width: CONTENT_WIDTH, alignSelf: 'center', flexDirection: 'column', gap: 8, marginBottom: 24 },
-  picksHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
-  picksSectionTitle: { fontFamily: 'Poppins', fontWeight: '700', fontSize: 16, lineHeight: 24, color: '#000000' },
-  picksSectionLine: { flex: 1, height: 1, backgroundColor: '#D0D0D0' },
-  storeCard: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 12, alignItems: 'center', gap: 12, height: 116 },
-  storeImage: { width: 140, height: 116, borderRadius: 16, backgroundColor: '#f0f0f0' },
-  storeContentArea: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', height: 111 },
-  storeInfoColumn: { flex: 1, flexDirection: 'column', justifyContent: 'center', paddingVertical: 10, gap: 8 },
-  storeNameWrap: { flexDirection: 'column', gap: 4 },
-  storeName: { fontFamily: 'Gilroy-Bold', fontWeight: '400', fontSize: 16, lineHeight: 20, color: '#000000' },
-  storeType: { fontFamily: 'Gilroy-Medium', fontSize: 12, lineHeight: 15, color: '#676767' },
-  deliveryTime: { fontFamily: 'Gilroy-SemiBold', fontSize: 14, lineHeight: 17, color: '#07772F' },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#07772F', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 4, gap: 4 },
-  ratingText: { fontFamily: 'Gilroy-Bold', fontSize: 12, lineHeight: 14, color: '#FFFFFF' },
-  starIcon: { fontSize: 10, color: '#FFFFFF', marginTop: -1 },
-  dashedSeparator: { width: '100%', height: 1, borderWidth: 1, borderColor: '#D8D8D8', borderStyle: 'dashed', marginVertical: 4 },
-  bottomSpacer: { height: 100 },
+  mainContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingBottom: Platform.OS === 'ios' ? 85 : 60,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  stickySearchBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: "#088B35"
+  },
+  stickyGradient: {
+    paddingVertical: 8,
+  },
+  stickySearchContainer: {
+    marginHorizontal: responsiveWidth(4),
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 50,
+    paddingHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerGradient: {
+    paddingBottom: 0,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: responsiveWidth(4),
+    paddingBottom: 12,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  locationTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  profileButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  profileAvatar: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  searchContainer: {
+    marginHorizontal: responsiveWidth(4),
+    marginTop: 8,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 50,
+    paddingHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  searchInput: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: '#000',
+    flex: 1,
+    marginLeft: 10,
+  },
+  bannerContainer: {
+    width: responsiveWidth(100),
+    height: 120,
+    paddingHorizontal: responsiveWidth(4),
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    marginTop: -20,
+    paddingTop: 15,
+  },
+  categoryHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    marginBottom: 5,
+  },
+  categoryHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginRight: 10,
+  },
+  categoryHeaderLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#CCCCCC',
+  },
+  subCategoriesContainer: {
+    backgroundColor: '#fff',
+    marginVertical: 10,
+    paddingHorizontal:10
+  },
+  viewMoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  viewMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#088B35',
+    marginRight: 4,
+  },
+  restaurantCard: {
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    padding: 10,
+  },
+  restaurantContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    position: 'relative',
+  },
+  restaurantImageContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginRight: 12,
+  },
+  restaurantImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  restaurantTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  restaurantName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  ratingText: {
+    fontSize: 12,
+    marginLeft: 4,
+    color: '#000',
+  },
+  dot: {
+    marginHorizontal: 4,
+    fontSize: 12,
+    color: '#888',
+  },
+  addressText: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 2,
+  },
+  offerTag: {
+    backgroundColor: '#DAF4E3',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginTop: 6,
+    alignSelf: 'stretch',
+    shadowColor: '#08B341',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  offerText: {
+    fontSize: 13,
+    color: '#08B341',
+    fontWeight: '800',
+  },
+  unavailableCard: {
+    opacity: 0.6,
+    backgroundColor: '#f0f0f0',
+  },
+  unavailableOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    borderRadius: 15,
+  },
+  unavailableText: {
+    color: '#D9534F',
+    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  offlineContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  offlineText: {
+    fontSize: 18,
+    color: '#333',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  offlineSubText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 5,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  errorText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: 'grey',
+    marginBottom: 20,
+  },
+  errorSubText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 5,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#065E2C',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  retryText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

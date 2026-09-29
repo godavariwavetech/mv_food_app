@@ -29,106 +29,16 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, getItemsList, removeFromCart, setCartRestaurant } from '../../redux/reducers/daddy';
-import { setRestaurnatDetails } from '../../redux/reducers/auth';
-import { globalSearch } from '../../redux/reducers/addressSlice';
+import { clearNavigationFlag, globalSearch, setRestaurnatDetails } from '../../redux/reducers/auth';
 import StarRating from '../../components/StarRating';
 import commonStyles from '../../commonstyles/CommonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import StatusBarManager from '../../components/StatusBarManager';
-
-// =====================================
-// FIGMA ITEM CARD COMPONENT
-// =====================================
-const MenuItemCard = ({ item, cartItem, onAdd, onIncrement, onDecrement }) => {
-  // Extract item data
-  const itemName = item?.item_name || 'Veg Samosa';
-  const itemPrice = item?.selling_price || '99';
-  const isVeg = item?.filter_one === 'Veg';
-  
-  // Defaulting rating/reviews to match Figma if API doesn't provide them
-  const rating = item?.rating || '4.7';
-  const reviewCount = item?.review_count || '547';
-  
-  const imageUrl = item?.item_image || 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=300&q=80';
-  
-  const quantity = cartItem?.quantity || 0;
-  const isUnavailable = item?.active_status === "1";
-
-  return (
-    <View style={[styles.cardContainer, isUnavailable && styles.unavailableCard]}>
-      {/* Overlay when unavailable */}
-      {isUnavailable && (
-        <View style={styles.unavailableOverlay}>
-          <Text style={styles.unavailableText}>Unavailable</Text>
-        </View>
-      )}
-
-      {/* Image Block (159x136) */}
-      <Image 
-        source={{ uri: imageUrl }} 
-        style={styles.itemImage} 
-        resizeMode="cover" 
-      />
-
-      {/* Content Area */}
-      <View style={styles.contentArea}>
-        
-        {/* Title & Veg/Non-Veg Icon */}
-        <View style={styles.titleRow}>
-          <Text style={styles.itemTitle} numberOfLines={1}>{itemName}</Text>
-          
-          <View style={[styles.vegIconBorder, { borderColor: isVeg ? '#0EAF50' : '#CD2A2A' }]}>
-            <View style={[styles.vegIconDot, { backgroundColor: isVeg ? '#0EAF50' : '#CD2A2A' }]} />
-          </View>
-        </View>
-
-        {/* Rating Row */}
-        <View style={styles.ratingRow}>
-          <AntDesign name="star" size={14} color="#D0A50F" />
-          <Text style={styles.ratingScore}>{rating}</Text>
-          <Text style={styles.reviewCount}>( {reviewCount} )</Text>
-        </View>
-
-        {/* Bottom Row: Price & Cart Button */}
-        <View style={styles.bottomRow}>
-          
-          {/* Price */}
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceSymbol}>₹</Text>
-            <Text style={styles.priceText}>{itemPrice}</Text>
-          </View>
-
-          {/* Cart Controls (67x25 Stepper) */}
-          {quantity > 0 ? (
-            <View style={styles.stepperContainer}>
-              <TouchableOpacity onPress={onDecrement} style={styles.stepperBtn} activeOpacity={0.7}>
-                <Text style={styles.stepperBtnText}>-</Text>
-              </TouchableOpacity>
-              
-              <Text style={styles.stepperCount}>{quantity}</Text>
-              
-              <TouchableOpacity onPress={onIncrement} style={styles.stepperBtn} activeOpacity={0.7}>
-                <Text style={styles.stepperBtnText}>+</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity onPress={onAdd} style={styles.addButton} activeOpacity={0.7} disabled={isUnavailable}>
-              <Text style={styles.addButtonText}>ADD</Text>
-            </TouchableOpacity>
-          )}
-          
-        </View>
-      </View>
-    </View>
-  );
-};
 
 
 const RestaurantScreen = ({ navigation, route }) => {
   const [translateY] = useState(new Animated.Value(100));
   const dispatch = useDispatch();
   const { restaurantItems, cartItems, cartRestaurant } = useSelector(state => state.Dashboard)
-  const { globalSearchResults } = useSelector(state => state.address);
   const [filterType, setFilterType] = useState("All");
   const [filteredData, setFilterData] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -138,6 +48,8 @@ const RestaurantScreen = ({ navigation, route }) => {
   const [draggableMenuVisible, setDraggableMenuVisible] = useState(false);
   const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [showVariantModal, setShowVariantModal] = useState(false);
+  const [variantModalItem, setVariantModalItem] = useState(null);
   const timeoutRef = useRef();
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   const scaleAnims = useRef(new Map()).current;
@@ -145,50 +57,101 @@ const RestaurantScreen = ({ navigation, route }) => {
   const [initialFilter, setSetInitialFilter] = useState(true);
   const flatListRef = useRef(null);
   const [selectedFilter, setSelectedFilter] = useState("All");
+  // state for active filters
+  // const [activeFilters, setActiveFilters] = useState([]);
+
+  // state for subcategory filter (if you want only one subcategory active at a time)
   const [activeSubCategoryFilter, setActiveSubCategoryFilter] = useState(null);
 
+  // Restore original mergedFilters
+  // const mergedFilters = [
+  //   { filter_name: 'All', id: 'all' },
+  //   ...[...new Set((restaurantItems || [])
+  //     .map(item => item.filter_one)
+  //     .filter(Boolean))]
+  //     .map(filterName => ({
+  //       filter_name: filterName,
+  //       id: filterName.toLowerCase().replace(' ', '-')
+  //     }))
+  // ]; 
+  // Collect unique values for filters
   const allFilters = [
     { filter_name: 'All', id: 'all', type: 'general' },
+
+    // filter_one (Veg/Non Veg)
     ...[...new Set((restaurantItems || []).map(item => item.filter_one).filter(Boolean))]
       .map(f => ({ filter_name: f, id: f.toLowerCase().replace(/\s+/g, '-'), type: 'filter_one' })),
+
+    // category_name
+    // ...[...new Set((restaurantItems || []).map(item => item.category_name).filter(Boolean))]
+    //   .map(c => ({ filter_name: c, id: c.toLowerCase().replace(/\s+/g, '-'), type: 'category' })),
+
+    // sub_category_name
     ...[...new Set((restaurantItems || []).map(item => item.sub_category_name).filter(Boolean))]
       .map(sc => ({ filter_name: sc, id: sc.toLowerCase().replace(/\s+/g, '-'), type: 'subcategory' })),
   ];
 
+
   const shopId = route.params
   console.log("shopId", shopId)
-
   const getItems = async () => {
+
     try {
       setIsLoading(true);
       const response = await dispatch(getItemsList({ shopId: route.params.shopId, shopItem: route.params.shopItem }))
       setFilterData(response.payload.data);
+
       route?.params?.selectedFilter && setSetInitialFilter(!initialFilter)
     } catch (error) {
       console.error('Error loading items:', error);
     } finally {
       setIsLoading(false);
     }
+
+
+
+    // const handleFilter = (selected) => {
+    //   if (selected.type === 'subcategory') {
+    //     setActiveSubCategoryFilter(selected.filter_name === 'All' ? 'All' : selected.filter_name);
+    //   } else {
+
+
+    //     setActiveFilters([selected.filter_name]);
+    //     // if (selected.filter_name === 'All') {
+    //     //   setActiveFilters(['All']);
+    //     //   return;
+    //     // }
+    //     // const newFilters = activeFilters.includes(selected.filter_name) 
+    //     //   ? activeFilters.filter(f => f !== selected.filter_name)
+    //     //   : [...activeFilters.filter(f => f !== 'All'), selected.filter_name];
+    //     // setActiveFilters(newFilters);
+    //   }
+    // };
+
+
   }
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    clearTimeout(timeoutRef.current);
-    if (query.trim()) {
-      timeoutRef.current = setTimeout(() => {
-        dispatch(globalSearch({ searchText: query }));
-      }, 500);
-    }
-  };
 
+  // useEffect(() => {
+  //   if (!restaurantItems) return;
+  //   const filtered = restaurantItems.filter(item => {
+  //     const matchesSearch = item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //       item.item_description?.toLowerCase().includes(searchQuery.toLowerCase());
+  //     const matchesFilters = activeFilters[0] === 'All' ||
+  //       item.filter_one === activeFilters[0];
+  //     const matchesMenu = filterType === 'All' ||
+  //       item.sub_category_name === filterType;
+  //     return matchesSearch && matchesFilters && matchesMenu;
+  //   });
+  //   setFilterData(filtered);
+  // }, [searchQuery, activeFilters, restaurantItems, filterType, initialFilter]);
   useEffect(() => {
     if (!restaurantItems) return;
 
     const filtered = restaurantItems.filter(item => {
       const matchesSearch =
         item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.item_description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        globalSearchResults?.some(result => result.item_name === item.item_name);
+        item.item_description?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesFilter =
         selectedFilter === "All" ||
@@ -202,10 +165,14 @@ const RestaurantScreen = ({ navigation, route }) => {
     });
 
     setFilterData(filtered);
-  }, [searchQuery, selectedFilter, activeSubCategoryFilter, restaurantItems, initialFilter, globalSearchResults]);
+  }, [searchQuery, selectedFilter, activeSubCategoryFilter, restaurantItems, initialFilter]);
+
+
+
 
   useEffect(() => {
     route.params && getItems();
+
   }, [route.params])
 
   useEffect(() => {
@@ -243,12 +210,37 @@ const RestaurantScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleAddToCart = (item) => {
+  const buildVariantCartItem = (item, variant) => ({
+    id: variant.id,
+    item_name: item.item_name,
+    item_image: item.item_image,
+    item_description: item.item_description,
+    category_id: item.category_id,
+    category_name: item.category_name,
+    sub_category_id: item.sub_category_id,
+    sub_category_name: item.sub_category_name,
+    filter_one: item.filter_one,
+    shop_id: item.shop_id,
+    admin_percentage: item.admin_percentage,
+    measurement_type: variant.measurement_type,
+    actual_price: variant.actual_price,
+    selling_price: variant.selling_price,
+    discount_percentage: variant.discount_percentage,
+    discount_amount: variant.discount_amount,
+    active_status: variant.active_status,
+  });
+
+  const openVariantModal = (item) => {
+    setVariantModalItem(item);
+    setShowVariantModal(true);
+  };
+
+  const handleAddVariantToCart = (variantItem) => {
     if (cartItems.length === 0 || cartRestaurant == route.params.shopId) {
-      addItem(item);
+      dispatch(addToCart(variantItem));
       dispatch(setRestaurnatDetails(route.params.item))
     } else {
-      setSelectedItem(item);
+      setSelectedItem(variantItem);
       setShowReplaceModal(true);
     }
   };
@@ -266,6 +258,7 @@ const RestaurantScreen = ({ navigation, route }) => {
     setSelectedItem(null);
   };
 
+
   const startAnim = () => {
     Animated.timing(translateY, {
       toValue: 0,
@@ -273,7 +266,6 @@ const RestaurantScreen = ({ navigation, route }) => {
       useNativeDriver: true,
     }).start();
   }
-  
   const stopAnim = () => {
     Animated.timing(translateY, {
       toValue: 100,
@@ -282,9 +274,7 @@ const RestaurantScreen = ({ navigation, route }) => {
     }).start();
   }
 
-  const addItem = (item) => {
-    dispatch(addToCart(item))
-  }
+
 
   const decreaseItem = (item) => {
     dispatch(removeFromCart(item))
@@ -298,6 +288,7 @@ const RestaurantScreen = ({ navigation, route }) => {
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
+
         pan.setOffset({ x: pan.x._value, y: pan.y._value });
         pan.setValue({ x: 0, y: 0 });
       },
@@ -306,6 +297,7 @@ const RestaurantScreen = ({ navigation, route }) => {
         { dx: pan.x, dy: pan.y }
       ], { useNativeDriver: false }),
       onPanResponderRelease: () => {
+
         pan.flattenOffset();
       }
     })
@@ -325,6 +317,7 @@ const RestaurantScreen = ({ navigation, route }) => {
     setDraggableMenuVisible(false);
   };
 
+
   useEffect(() => {
     return () => {
       clearTimeout(timeoutRef.current);
@@ -333,12 +326,14 @@ const RestaurantScreen = ({ navigation, route }) => {
 
   const handleFilter = (item) => {
     if (item.type === "subcategory") {
+      // toggle subcategory
       if (activeSubCategoryFilter === item.filter_name) {
-        setActiveSubCategoryFilter(null); 
+        setActiveSubCategoryFilter(null); // deselect if clicked again
       } else {
         setActiveSubCategoryFilter(item.filter_name);
       }
     } else {
+      // handle main Veg/Non Veg/All filter
       if (item.id === "all") {
         setSelectedFilter("All");
       } else {
@@ -346,6 +341,7 @@ const RestaurantScreen = ({ navigation, route }) => {
       }
     }
   };
+
 
   const renderFilters = () => (
     <View>
@@ -416,21 +412,38 @@ const RestaurantScreen = ({ navigation, route }) => {
     </View>
   );
 
+
   const renderItem = ({ item }) => {
-    const isHighlighted = item.id === highlightedItemId;
-    const scaleAnim = scaleAnims.get(item.id) || new Animated.Value(1);
-    const cartItem = cartItems.find(cartObj => cartObj.id === item.id);
+    const activeQuantities = (item.quantities || []).filter(q => q.active_status !== "1");
+    const isItemUnavailable = (item.quantities || []).length > 0 && activeQuantities.length === 0;
+    const hasSingleVariant = activeQuantities.length === 1;
+    const primaryVariant = hasSingleVariant ? activeQuantities[0] : null;
+    const minPrice = activeQuantities.length > 0
+      ? Math.min(...activeQuantities.map(q => Number(q.selling_price)))
+      : null;
+
+    const itemKey = item.quantities?.[0]?.id ?? item.item_name;
+    const isHighlighted = itemKey === highlightedItemId;
+    const scaleAnim = scaleAnims.get(itemKey) || new Animated.Value(1);
+
+    const itemVariantIds = (item.quantities || []).map(q => q.id);
+    const cartQtyForItem = cartItems
+      .filter(ci => itemVariantIds.includes(ci.id))
+      .reduce((sum, ci) => sum + Number(ci.quantity), 0);
+    const singleCartLine = hasSingleVariant
+      ? cartItems.find(ci => ci.id === primaryVariant.id)
+      : null;
 
     return (
       <Animated.View
         style={[
-          styles.itemWrapper,
+          styles.itemContainer,
           isHighlighted && styles.highlightedItem,
           { transform: [{ scale: scaleAnim }] }
         ]}
         onLayout={() => {
-          if (isHighlighted && !renderedItems.has(item.id)) {
-            setRenderedItems(prev => new Set(prev).add(item.id));
+          if (isHighlighted && !renderedItems.has(itemKey)) {
+            setRenderedItems(prev => new Set(prev).add(itemKey));
             scaleAnim.stopAnimation();
             requestAnimationFrame(() => {
               Animated.sequence([
@@ -451,13 +464,112 @@ const RestaurantScreen = ({ navigation, route }) => {
           }
         }}
       >
-        <MenuItemCard 
-          item={item}
-          cartItem={cartItem}
-          onAdd={() => handleAddToCart(item)}
-          onIncrement={() => handleAddToCart(item)}
-          onDecrement={() => decreaseItem(item)}
-        />
+
+        <View
+          style={[styles.card, isItemUnavailable && styles.unavailableCard]}
+        >
+          {/* Overlay when unavailable */}
+          {isItemUnavailable && (
+            <View style={styles.unavailableOverlay}>
+              <Text style={styles.unavailableText}>Currently Unavailable</Text>
+            </View>
+          )}
+
+
+
+          {/* Details Right */}
+          <View style={styles.itemDetails}>
+            <View style={styles.itemHeader}>
+              <HeaderPick2 color={item.filter_one === "Veg" ? "#0EAF50" : "#CD2A2A"} />
+              <Text style={styles.itemName}>{item.item_name}</Text>
+
+            </View>
+            <Text style={styles.itemdescription} numberOfLines={2}>{item.item_description}</Text>
+
+            {/* Optional Rating */}
+            {/* 
+    <View style={styles.itemRatingContainer}>
+      <Icon name="star" size={17} color="#D0A50F" />
+      <Text style={styles.itemRating}>4.7</Text>
+      <Text style={styles.itemReviewCount}>(12)</Text>
+    </View> 
+    */}
+
+            <View style={styles.itemFooter}>
+              <View>
+                {hasSingleVariant ? (
+                  <>
+                    {primaryVariant.actual_price !== primaryVariant.selling_price && (
+                      <Text
+                        style={[
+                          styles.price,
+                          {
+                            textDecorationLine: "line-through",
+                            color: "#888",
+                            fontSize: 10,
+                            textAlign: "left"
+                          }
+                        ]}
+                      >
+                        ₹{primaryVariant.actual_price}
+                      </Text>
+                    )}
+                    <Text style={styles.price}>₹{primaryVariant.selling_price}</Text>
+                  </>
+                ) : (
+                  minPrice !== null && (
+                    <Text style={styles.price}>From ₹{minPrice}</Text>
+                  )
+                )}
+              </View>
+
+
+
+
+            </View>
+
+          </View>
+          <View>
+            <Image
+              source={{ uri: item.item_image }}
+              style={[
+                styles.horizontalImage,
+                isItemUnavailable && styles.unavailableImage
+              ]}
+            />
+            {hasSingleVariant ? (
+              singleCartLine ? (
+                <View style={styles.counterContainer}>
+                  <TouchableOpacity onPress={() => decreaseItem(singleCartLine)}>
+                    <AntDesign name="minus" size={20} color={commonStyles.btn2Color} />
+                  </TouchableOpacity>
+                  <Text style={styles.counterText}>{singleCartLine.quantity}</Text>
+                  <TouchableOpacity onPress={() => handleAddVariantToCart(buildVariantCartItem(item, primaryVariant))}>
+                    <AntDesign name="plus" size={20} color={commonStyles.btn2Color} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => handleAddVariantToCart(buildVariantCartItem(item, primaryVariant))}
+                >
+                  <Text style={styles.addButtonText}>ADD</Text>
+                </TouchableOpacity>
+              )
+            ) : (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => openVariantModal(item)}
+              >
+                <Text style={styles.addButtonText}>
+                  {cartQtyForItem > 0 ? `${cartQtyForItem} ADDED` : 'ADD'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+
       </Animated.View>
     );
   };
@@ -468,6 +580,22 @@ const RestaurantScreen = ({ navigation, route }) => {
     };
   }, []);
 
+  const checkItemUnavailable = (item) => {
+    const quantities = item.quantities || [];
+    const activeQuantities = quantities.filter(q => q.active_status !== "1");
+    return quantities.length > 0 && activeQuantities.length === 0;
+  };
+
+  const sortedFilteredData = useMemo(() => {
+    return [...filteredData].sort((a, b) => {
+      const aUnavailable = checkItemUnavailable(a);
+      const bUnavailable = checkItemUnavailable(b);
+      if (aUnavailable === bUnavailable) return 0;
+      return aUnavailable ? 1 : -1;
+    });
+  }, [filteredData]);
+
+  // Memoized cart calculations for better performance
   const cartCalculations = useMemo(() => {
     const itemCount = cartItems?.reduce((sum, item) => sum + Number(item.quantity), 0) || 0;
     const totalPrice = cartItems?.reduce((sum, item) => sum + (Number(item.selling_price) * Number(item.quantity)), 0) || 0;
@@ -481,7 +609,6 @@ const RestaurantScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBarManager screenName="restaurant" />
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -511,21 +638,25 @@ const RestaurantScreen = ({ navigation, route }) => {
                     )}{' '}
                     | {route.params?.item?.distance.toFixed(1)} km
                   </Text>
-                  {route?.params?.item?.minimum_order && (
-                    <View style={styles.minimumOrderGradientContainer}>
-                      <View style={styles.minimumOrderGradient}>
-                        <MaterialCommunityIcons 
-                          name="cart-outline" 
-                          size={11} 
-                          color="#0EAF50" 
-                        />
-                        <Text style={styles.minimumOrderGradientText}>
-                          Min Order ₹{route?.params?.item?.minimum_order}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
+{route?.params?.item?.minimum_order && (
+  <View style={styles.minimumOrderGradientContainer}>
+    <View style={styles.minimumOrderGradient}>
+      <MaterialCommunityIcons 
+        name="cart-outline" 
+        size={11} 
+        color="#0EAF50" 
+      />
+      <Text style={styles.minimumOrderGradientText}>
+        Min Order ₹{route?.params?.item?.minimum_order}
+      </Text>
+    </View>
+  </View>
+)}
                 </View>
+                {/* <View style={styles.ratingContainer}>
+                  <Icon name="star" size={18} color="gold" />
+                  <Text style={styles.rating}>{route.params?.item?.shop_rating}</Text>
+                </View> */}
                 <View
                   style={{
                     backgroundColor: 'rgba(238, 235, 204, 0.20)',
@@ -541,7 +672,18 @@ const RestaurantScreen = ({ navigation, route }) => {
                 </View>
               </View>
               <View style={styles.headerIcons}>
-                {/* Reserved for header icons like Favorites/Share */}
+                {/* <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={() => handleMenuAction('favorites')}
+                >
+                  <EvilIcons name="heart" color={'#000'} size={15} />
+                </TouchableOpacity> */}
+                {/* <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={() => setMenuVisible(!menuVisible)}
+                >
+                  <Entypo name="dots-three-vertical" color="#313131" size={7} />
+                </TouchableOpacity> */}
               </View>
             </View>
 
@@ -557,7 +699,7 @@ const RestaurantScreen = ({ navigation, route }) => {
                   style={styles.searchInput}
                   placeholder="Search food items..."
                   value={searchQuery}
-                  onChangeText={handleSearch}
+                  onChangeText={setSearchQuery}
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity
@@ -577,7 +719,7 @@ const RestaurantScreen = ({ navigation, route }) => {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={commonStyles.btn2Color} />
           </View>
-        ) : filteredData?.length === 0 ? (
+        ) : sortedFilteredData?.length === 0 ? (
           <View style={styles.noItemsContainer}>
             <MaterialCommunityIcons name="food-off" size={50} color="#A3A3A3" />
             <Text style={styles.noItemsText}>No items found</Text>
@@ -587,30 +729,29 @@ const RestaurantScreen = ({ navigation, route }) => {
           </View>
         ) : (
           <View style={styles.itemListContainer}>
-            <FlatList
-              ref={flatListRef}
-              data={filteredData}
-              numColumns={2}
-              columnWrapperStyle={styles.columnWrapper}
-              keyExtractor={(item, index) => `${item.id}_${index}`}
-              style={styles.itemList}
-              contentContainerStyle={{
-                paddingHorizontal: 16, // Adjusted for perfect grid balance
-                paddingBottom: Platform.OS === 'ios' ? 160 : 150,
-              }}
-              renderItem={renderItem}
-              scrollEnabled={false}
-              nestedScrollEnabled={true}
-              onScrollToIndexFailed={({index, averageItemLength}) => {
-                flatListRef.current?.scrollToOffset({
-                  offset: index * averageItemLength,
-                  animated: true,
-                });
-                setTimeout(() => {
-                  flatListRef.current?.scrollToIndex({index, animated: true});
-                }, 100);
-              }}
-            />
+            <View style={styles.itemListContainer}>
+              <FlatList
+                ref={flatListRef}
+                data={sortedFilteredData}
+                keyExtractor={(item, index) => `${item.quantities?.[0]?.id ?? item.item_name}_${index}`}
+                style={styles.itemList}
+                contentContainerStyle={{
+                  paddingBottom: Platform.OS === 'ios' ? 160 : 150,
+                }}
+                renderItem={renderItem}
+                scrollEnabled={false}
+                nestedScrollEnabled={true}
+                onScrollToIndexFailed={({index, averageItemLength}) => {
+                  flatListRef.current?.scrollToOffset({
+                    offset: index * averageItemLength,
+                    animated: true,
+                  });
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToIndex({index, animated: true});
+                  }, 100);
+                }}
+              />
+            </View>
           </View>
         )}
       </ScrollView>
@@ -674,6 +815,62 @@ const RestaurantScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showVariantModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowVariantModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.variantModalContent}>
+            <View style={styles.variantModalHeader}>
+              <Text style={styles.variantModalTitle}>{variantModalItem?.item_name}</Text>
+              <TouchableOpacity onPress={() => setShowVariantModal(false)}>
+                <MaterialIcons name="close" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.variantModalSubtitle}>Select an option</Text>
+            <ScrollView style={styles.variantList}>
+              {(variantModalItem?.quantities || [])
+                .filter(variant => variant.active_status !== "1")
+                .map(variant => {
+                  const cartLine = cartItems.find(ci => ci.id === variant.id);
+                  const qty = cartLine ? cartLine.quantity : 0;
+                  return (
+                    <View key={variant.id} style={styles.variantRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.variantName}>{variant.measurement_type || 'Regular'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          {variant.actual_price !== variant.selling_price && (
+                            <Text style={styles.variantStrikePrice}>₹{variant.actual_price}</Text>
+                          )}
+                          <Text style={styles.variantPrice}>₹{variant.selling_price}</Text>
+                        </View>
+                      </View>
+                      {qty === 0 ? (
+                        <TouchableOpacity
+                          style={styles.variantAddButton}
+                          onPress={() => handleAddVariantToCart(buildVariantCartItem(variantModalItem, variant))}>
+                          <Text style={styles.variantAddButtonText}>ADD</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={styles.counterContainer}>
+                          <TouchableOpacity onPress={() => decreaseItem(cartLine)}>
+                            <AntDesign name="minus" size={18} color={commonStyles.btn2Color} />
+                          </TouchableOpacity>
+                          <Text style={styles.counterText}>{qty}</Text>
+                          <TouchableOpacity onPress={() => handleAddVariantToCart(buildVariantCartItem(variantModalItem, variant))}>
+                            <AntDesign name="plus" size={18} color={commonStyles.btn2Color} />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -686,6 +883,7 @@ const styles = StyleSheet.create({
   itemListContainer: {
     flex: 1,
     minHeight: 500
+
   },
   imageBackground: { width: responsiveWidth(100), height: responsiveHeight(33), },
   imageOverlay: {
@@ -700,6 +898,8 @@ const styles = StyleSheet.create({
   header: { width: responsiveWidth(80), paddingVertical: 10, paddingHorizontal: responsiveWidth(0.5), alignSelf: 'flex-start', gap: 8 },
   title: { fontSize: responsiveFontSize(2.2), fontWeight: '700', color: '#fff', width: responsiveWidth(35) },
   subtitle: { fontSize: 14, color: '#F5F5F5', fontWeight: '500' },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
+  rating: { fontSize: 12, fontWeight: '700', color: '#fff' },
   headerIcons: { flexDirection: 'row', gap: 5, alignItems: 'center', marginTop: 10 },
   iconButton: { width: 18, height: 18, backgroundColor: '#fff', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   searchContainer: {
@@ -752,202 +952,170 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   filterText: { fontSize: 16, fontWeight: '500' },
-  
-  // FLATLIST GRID CONFIG
-itemList: { flex: 1, marginTop: 10 },
-  columnWrapper: { justifyContent: 'space-between' },
-  itemWrapper: { 
-    flex: 1, 
-    maxWidth: '48%', // <-- THIS IS THE FIX: Prevents a single item from stretching across the whole screen
-    alignItems: 'center' 
-  },
-  highlightedItem: {
-    backgroundColor: 'rgba(6, 94, 44, 0.1)',
+  itemList: { paddingHorizontal: responsiveWidth(0), paddingBottom: responsiveHeight(5), flex: 1 },
+  columnWrapper: { gap: responsiveWidth(3.5), justifyContent: 'space-between' },
+  card: {
+    flexDirection: 'row',  // horizontal layout
+    backgroundColor: '#fff',
+    marginTop: 12,
+    padding: 12,
     borderRadius: 12,
-  },
-
-  // =====================================
-  // FIGMA ITEM CARD UI
-  // =====================================
-  cardContainer: {
-    width: responsiveWidth(44),
-    height: 247,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#DDDDDD',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3, 
-    marginBottom: 16,
-  },
-  unavailableCard: {
-    opacity: 0.6,
-  },
-  unavailableOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  unavailableText: {
-    color: '#CD2A2A',
-    fontWeight: '700',
-    fontSize: 14,
-    backgroundColor: '#FFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    overflow: 'hidden'
-  },
-  itemImage: {
-    width: responsiveWidth(39),
-    height: 136,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-  },
-  contentArea: {
-    width: responsiveWidth(39),
-    marginTop: 12, 
-    flexDirection: 'column',
-    gap: 8,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    elevation: 1,
     width: '100%',
+    alignItems: 'center',
+    position: 'relative',   // needed for overlay
   },
-  itemTitle: {
-    fontFamily: 'Rubik-Medium',
-    fontWeight: '500',
-    fontSize: 14,
-    lineHeight: 17,
-    color: '#000000',
+  image: {
+    width: responsiveWidth(40),
+    height: responsiveHeight(17),
+    borderRadius: 12,
+    resizeMode: 'cover'
+  },
+  horizontalImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    resizeMode: 'cover',
+    marginLeft: 12,
+  },
+  itemDetails: {
     flex: 1,
-    marginRight: 8,
-  },
-  vegIconBorder: {
-    width: 14,
-    height: 14,
-    borderWidth: 1,
-    borderRadius: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  vegIconDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  ratingScore: {
-    fontFamily: 'Rubik-Bold',
-    fontWeight: '700',
-    fontSize: 14,
-    lineHeight: 17,
-    color: '#3D3D3D',
-  },
-  reviewCount: {
-    fontFamily: 'Rubik-Regular',
-    fontWeight: '400',
-    fontSize: 12,
-    lineHeight: 14,
-    color: '#3D3D3D',
-  },
-  bottomRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginTop: 2, 
   },
-  priceContainer: {
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: "center",
+    width: '100%',
+    marginTop: 5,
+    gap: 5
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'left',
+    flex: 1,
+    color: '#000',
+  },
+  itemIcon: {
+    marginTop: 3,
+    marginLeft: 5,
+  },
+  itemRatingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-  },
-  priceSymbol: {
-    fontFamily: 'Rubik-Bold',
-    fontWeight: '700',
-    fontSize: 14,
-    color: '#FC6011',
+    justifyContent: 'flex-start',
+    width: '100%',
+    paddingHorizontal: 5,
     marginTop: 2,
   },
-  priceText: {
-    fontFamily: 'Rubik-Bold',
-    fontWeight: '700',
-    fontSize: 17,
-    lineHeight: 20,
-    color: '#FC6011',
+  itemRating: { color: '#000', fontSize: 14, fontWeight: '700', marginHorizontal: 1 },
+  itemReviewCount: { color: '#3D3D3D', fontWeight: '400', fontSize: 12 },
+  itemFooter: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 5,
+    marginTop: 5,
   },
-  stepperContainer: {
+  price: { fontSize: 17, fontWeight: '700', color: "black" },
+  itemdescription: { color: "gray" },
+  counterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 6,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: commonStyles.btn2Color,
+    marginTop: 10
+  },
+  counterText: { color: commonStyles.btn2Color, fontSize: 16, fontWeight: '700', marginHorizontal: 20 },
+  addButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "black",
+    marginTop: 10,
+  },
+  addButtonText: { color: "black", textAlign: "center", fontWeight: '700', fontSize: 14 },
+  draggableMenu: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    width: 68,
+    height: 68,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 7,
+    zIndex: 100,
+    left: 20,
+    bottom: 40,
+  },
+  menuText: { fontSize: 12, fontWeight: 700, color: commonStyles.btn2Color },
+  menuButton: {
+    backgroundColor: '#fffbe5',
+    borderRadius: 10,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center", width: '100%'
+  },
+  menuContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: -205,
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 8,
+    elevation: 5,
+    width: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    flexDirection: 'column'
+  },
+  menuHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: 67,
-    height: 25,
-    backgroundColor: '#FFF5EB',
-    borderWidth: 1,
-    borderColor: '#FC6011',
-    borderRadius: 6,
-    paddingHorizontal: 8,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  stepperBtn: {
-    justifyContent: 'center',
+  menuTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+  },
+  menuItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    padding: 12,
   },
-  stepperBtnText: {
-    fontFamily: 'Rubik-SemiBold',
-    fontWeight: '600',
+  menuItemText: {
+    marginLeft: 12,
     fontSize: 14,
-    color: '#FC6011',
+    color: '#313131',
+    fontWeight: '500',
   },
-  stepperCount: {
-    fontFamily: 'Rubik-SemiBold',
-    fontWeight: '600',
-    fontSize: 14,
-    color: '#FC6011',
+  activeMenuText: {
+    fontWeight: '700',
   },
-  addButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 67,
-    height: 25,
-    backgroundColor: '#FFF5EB',
-    borderWidth: 1,
-    borderColor: '#FC6011',
-    borderRadius: 6,
-  },
-  addButtonText: {
-    fontFamily: 'Rubik-SemiBold',
-    fontWeight: '600',
-    fontSize: 14,
-    color: '#FC6011',
-  },
-
-  // =====================================
-  // CART / MODAL / ETC STYLES
-  // =====================================
   cartSummary: (translateY) => ({
     position: "absolute",
     width: "100%",
     height: 65,
-    bottom: Platform.OS === 'ios' ? 60 : 50, 
+    bottom: Platform.OS === 'ios' ? 60 : 50, // Platform-specific bottom spacing
     backgroundColor: "#07A13B",
-    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
     marginHorizontal: 16,
@@ -955,7 +1123,10 @@ itemList: { flex: 1, marginTop: 10 },
     alignSelf: "center",
     elevation: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     zIndex: 10,
@@ -1019,6 +1190,30 @@ itemList: { flex: 1, marginTop: 10 },
     fontSize: 13,
     fontWeight: '500',
     color: '#fff',
+  },
+  menuOverlay: {
+    position: 'absolute',
+    top: responsiveHeight(15),
+    right: 20,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 10,
+    elevation: 5,
+    zIndex: 1000,
+    width: 200,
+  },
+  menuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuOptionText: {
+    marginLeft: 12,
+    fontSize: 14,
+    color: '#313131',
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
@@ -1099,27 +1294,403 @@ itemList: { flex: 1, marginTop: 10 },
     fontSize: 16,
     fontWeight: '600',
   },
-  minimumOrderGradientContainer: {
-    marginLeft: 6,
-    borderRadius: 10,
-    overflow: 'hidden',
+  variantModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
   },
-  minimumOrderGradient: {
+  variantModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  variantModalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#000',
+    flex: 1,
+    marginRight: 10,
+  },
+  variantModalSubtitle: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  variantList: {
+    maxHeight: responsiveHeight(40),
+  },
+  variantRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: '#A5D6A7',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  minimumOrderGradientText: {
-    fontSize: 11,
+  variantName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  variantStrikePrice: {
+    fontSize: 12,
+    color: '#888',
+    textDecorationLine: 'line-through',
+  },
+  variantPrice: {
+    fontSize: 15,
     fontWeight: '700',
-    color: '#0EAF50',
-    letterSpacing: 0.2,
+    color: '#000',
   },
+  variantAddButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: commonStyles.btn2Color,
+  },
+  variantAddButtonText: {
+    color: commonStyles.btn2Color,
+    textAlign: 'center',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  unavailableCard: {
+    opacity: 0.6,
+    backgroundColor: '#f0f0f0',
+  },
+  unavailableImage: {
+    opacity: 0.5,
+  },
+  unavailableOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  unavailableText: {
+    color: '#07A13B',
+    fontWeight: '700',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  highlightedItem: {
+    backgroundColor: 'rgba(6, 94, 44, 0.1)',
+    borderRadius: 8,
+  },
+miniChip: {
+  backgroundColor: '#FFF3E0',
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  borderRadius: 4,
+  marginLeft: 6,
+},
+miniChipText: {
+  fontSize: 10,
+  fontWeight: '700',
+  color: '#F57C00',
+},
+minimumOrderGradientContainer: {
+  marginLeft: 6,
+  borderRadius: 10,
+  overflow: 'hidden',
+},
+minimumOrderGradient: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#E8F5E9', // Light green background
+  paddingHorizontal: 8,
+  paddingVertical: 3,
+  gap: 4,
+  borderWidth: 1,
+  borderColor: '#A5D6A7',
+},
+minimumOrderGradientText: {
+  fontSize: 11,
+  fontWeight: '700',
+  color: '#0EAF50',
+  letterSpacing: 0.2,
+},
+
+
+
 });
 
 export default RestaurantScreen;
+
+
+// <View
+// style={[styles.card, item.active_status === "1" && styles.unavailableCard]}
+// >
+// {item.active_status === "1" && (
+//   <View style={styles.unavailableOverlay}>
+//     <Text style={styles.unavailableText}>Currently Unavailable</Text>
+//   </View>
+// )}
+
+// <Image
+//   source={{ uri: item.item_image }}
+//   style={[styles.image, item.active_status === "1" && styles.unavailableImage]}
+// />
+
+// <View style={styles.itemHeader}>
+//   <Text style={styles.itemName}>{item.item_name}</Text>
+//   <View style={styles.itemIcon}>
+//     <HeaderPick2 color={item.filter_one === "Veg" ? "#0EAF50" : "#CD2A2A"} />
+//   </View>
+// </View>
+// {/* 
+// <View style={styles.itemRatingContainer}>
+//   <Icon name="star" size={17} color="#D0A50F" />
+//   <Text style={styles.itemRating}>4.7</Text>
+//   <Text style={styles.itemReviewCount}>(12)</Text>
+// </View> */}
+
+// <View style={styles.itemFooter}>
+//   <View>
+//     <View style={{ flexDirection: 'row', justifyContent: "flex-start" }}>
+//       {item.actual_price !== item.selling_price && (
+//         <Text style={[styles.price, { textDecorationLine: 'line-through', color: '#888', fontSize: 10, textAlign: "left" }]}>₹{item.actual_price}</Text>
+//       )}
+//     </View>
+
+//     <Text style={styles.price}>₹{item.selling_price}</Text>
+//   </View>
+//   {cartItems.findIndex(value => value.id === item.id) !== -1 ? (
+//     <View style={styles.counterContainer}>
+//       <TouchableOpacity onPress={() => decreaseItem(item)}>
+//         <AntDesign name="minus" size={18} color={commonStyles.btn2Color} />
+//       </TouchableOpacity>
+//       <Text style={styles.counterText}>{cartItems.find(value => value.id === item.id).quantity}</Text>
+//       <TouchableOpacity onPress={() => handleAddToCart(item)}>
+//         <AntDesign name="plus" size={18} color={commonStyles.btn2Color} />
+//       </TouchableOpacity>
+//     </View>
+//   ) : (
+//     <TouchableOpacity
+//       style={styles.addButton}
+//       onPress={() => {
+//         handleAddToCart(item);
+//       }}
+//     >
+//       <Text style={styles.addButtonText}>ADD</Text>
+//     </TouchableOpacity>
+//   )}
+// </View>
+// </View>
+
+
+// <FlatList
+//     data={[
+//       { sub_category_name: 'All', sub_category_id: 'all' },
+//       ...restaurantItems?.reduce((acc, item) => {
+//         if (
+//           item.sub_category_name &&
+//           !acc.find(cat => cat.sub_category_name === item.sub_category_name)
+//         ) {
+//           acc.push({
+//             sub_category_name: item.sub_category_name,
+//             sub_category_id: item.sub_category_id,
+//           });
+//         }
+//         return acc;
+//       }, []),
+//     ]}
+//     keyExtractor={item => item.sub_category_id?.toString() || 'all'}
+//     horizontal
+//     showsHorizontalScrollIndicator={false}
+//     style={{ flexGrow: 0 }}   // ✅ prevents taking unnecessary height
+//     contentContainerStyle={{
+//       paddingHorizontal: 10,
+//       paddingVertical: 6,     // ✅ keep row slim
+//     }}
+//     renderItem={({ item }) => (
+//       <TouchableOpacity
+//         style={{
+//           flexDirection: 'row',
+//           alignItems: 'center',
+//           justifyContent: 'center',
+//           marginRight: 10,
+//           paddingHorizontal: 14,
+//           paddingVertical: 6, // ✅ compact tab
+//           borderRadius: 20,
+//           backgroundColor:
+//             filterType === item.sub_category_name || item.sub_category_name === 'All'
+//               ? '#0EAF50'
+//               : '#f0f0f0',
+//         }}
+//         onPress={() => handleDraggableMenuAction(item)}
+//       >
+//         <Text
+//           style={{
+//             fontSize: 14,
+//             fontWeight: '500',
+//             color:
+//               filterType === item.sub_category_name || item.sub_category_name === 'All'
+//                 ? '#fff'
+//                 : '#333',
+//             marginRight: filterType === item.sub_category_name ? 6 : 0,
+//           }}
+//         >
+//           {item.sub_category_name}
+//         </Text>
+//         {filterType === item.sub_category_name && (
+//           <MaterialIcons name="check" size={18} color="#fff" />
+//         )}
+//       </TouchableOpacity>
+//     )}
+//   />
+
+
+
+
+
+
+
+
+// const renderFilters = () => (
+//   <FlatList
+//     data={allFilters}
+//     horizontal
+//     showsHorizontalScrollIndicator={false}
+//     keyExtractor={item => item.id}
+//     contentContainerStyle={styles.filterList}
+//     renderItem={({ item }) => {
+//       // const isActive = item.type === 'subcategory'
+//       //   ? item.filter_name === activeSubCategoryFilter
+//       //   : activeFilters.includes(item.filter_name);
+//       const isActive = item.type === 'subcategory'
+//         ? item.filter_name === activeSubCategoryFilter
+//         : activeFilters.includes(item.filter_name);
+//       return (
+//         <TouchableOpacity
+//           onPress={() => handleFilter(item)}
+//           style={[
+//             styles.filterButton,
+//             {
+//               borderColor: isActive ? "#0EAF50" : '#8F8F8F',
+//               backgroundColor: isActive ? "#0EAF50" : '#fff',
+//             }
+//           ]}
+//         >
+//           {(item.type !== 'subcategory') && (
+//             item.id !== "all" && <HeaderPick2 color={
+//               item.filter_name === "Veg" ? (isActive ? "#fff" : "#0EAF50") :
+//                 item.filter_name === "Non Veg" ? "#CD2A2A" : "#065E2C"
+//             } />
+//           )}
+//           <Text style={[styles.filterText, { color: isActive ? "#fff" : '#313131' }]}>
+//             {item.filter_name}
+//           </Text>
+//         </TouchableOpacity>
+//       );
+//     }}
+//   />
+// );
+
+
+
+{/* 
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={[styles.draggableMenu, pan.getLayout()]}
+      >
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => setDraggableMenuVisible(!draggableMenuVisible)}
+        >
+          <Text style={styles.menuText}>Menu</Text>
+          <FontAwesome6 name="book-bookmark" color={commonStyles.btnColor} size={30} />
+        </TouchableOpacity>
+
+        {draggableMenuVisible && (
+          <View style={styles.menuContent}>
+
+            <FlatList
+              data={[
+                { sub_category_name: 'All', sub_category_id: 'all' },
+                ...restaurantItems
+                  ?.reduce((acc, item) => {
+                    if (item.sub_category_name && !acc.find(cat => cat.sub_category_name === item.sub_category_name)) {
+                      acc.push({
+                        sub_category_name: item.sub_category_name,
+                        sub_category_id: item.sub_category_id
+                      });
+                    }
+                    return acc;
+                  }, [])
+              ]}
+              keyExtractor={(item, index) => `${item.sub_category_id?.toString() || 'all'}_${item.sub_category_name}_${index}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => handleDraggableMenuAction(item)}
+                >
+                  <Text style={[
+                    styles.menuItemText,
+                    (filterType === item.sub_category_name || item.sub_category_name === 'All') && styles.activeMenuText
+                  ]}>
+                    {item.sub_category_name}
+                  </Text>
+                  {filterType === item.sub_category_name && (
+                    <MaterialIcons name="check" size={20} color="#0EAF50" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        )}
+      </Animated.View> */}
+
+
+
+
+
+
+
+
+
+
+
+{/* {menuVisible && (
+        <View style={styles.menuOverlay}>
+          <TouchableOpacity 
+            style={styles.menuOption}
+            onPress={() => handleMenuAction('favorites')}
+          >
+            <Icon name="favorite" size={24} color="#065E2C" />
+            <Text style={styles.menuOptionText}>Add to Favorites</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.menuOption}
+            onPress={() => handleMenuAction('share')}
+          >
+            <Icon name="share" size={24} color="#065E2C" />
+            <Text style={styles.menuOptionText}>Share Restaurant</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.menuOption}
+            onPress={() => handleMenuAction('report')}
+          >
+            <Icon name="report-problem" size={24} color="#065E2C" />
+            <Text style={styles.menuOptionText}>Report an Issue</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.menuOption}
+            onPress={() => handleMenuAction('info')}
+          >
+            <Icon name="info" size={24} color="#065E2C" />
+            <Text style={styles.menuOptionText}>Restaurant Info</Text>
+          </TouchableOpacity>
+        </View>
+      )} */}

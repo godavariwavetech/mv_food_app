@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../utils/api';
 import { endpoints } from '../../config/config';
+import { resetCache } from '../../../metro.config';
 
 const initialState = {
   message: null,
@@ -41,7 +42,7 @@ const initialState = {
   products: [],
   total: 0,
   checkoutStatus: null,
-  homeRestaurnats: null
+  homeRestaurnats: null,
 };
 
 export const checkAddressExistence = createAsyncThunk(
@@ -137,8 +138,6 @@ export const getSubCategories = createAsyncThunk(
     }
    
     const response = await api.post(endpoints.GET_SUB_CATEGORIES, data);
-
-    console.log(response,">>>>>>>>>>>>>>>>RESPONSEEE FOR SUB");
    
     if (response) {
       if (response.data) {
@@ -334,7 +333,7 @@ export const getAddressList = createAsyncThunk(
 export const setAddressList = createAsyncThunk(
   "setAddressList",
   async (
-    { addressType, address, customer_latitude, customer_longitude, customer_name, customer_mobile_number, location_id },
+    { id, addressType, address, customer_latitude, customer_longitude, customer_name, customer_mobile_number, location_id, pincode, landmark, city, state },
     { getState, rejectWithValue, fulfillWithValue }
   ) => {
     const { customerId } = getState().Auth;
@@ -346,7 +345,14 @@ export const setAddressList = createAsyncThunk(
       "location_id": location_id,
       "customer_id": customerId,
       "customer_name": customer_name,
-      "customer_mobile_number": customer_mobile_number
+      "customer_mobile_number": customer_mobile_number,
+      "pincode": pincode,
+      "landmark": landmark,
+      "city": city,
+      "state": state,
+    }
+    if (id) {
+      data.id = id;
     }
     const response = await api.post(endpoints.SET_ADDRESS_LIST, data)
     if (response) {
@@ -529,6 +535,45 @@ export const Dashboard = createSlice({
     clearCart: (state, action) => {
       state.cartItems = [];
     },
+
+    // Syncs the persisted cart against freshly fetched restaurant/item data
+    // (called when the user taps Place Order) so a stale cart can't be used
+    // to place an order at an old price, a removed offer, or a closed shop.
+    // Caller is responsible for diffing old vs. new values to inform the user.
+    reconcileCartWithLiveData: (state, action) => {
+      const { restaurantActive, variantsById } = action.payload;
+
+      if (!restaurantActive) {
+        state.cartItems = [];
+        state.cartRestaurant = null;
+        state.totalPrice = 0;
+        return;
+      }
+
+      const nextCartItems = state.cartItems
+        .filter(item => {
+          const live = variantsById[item.id];
+          return live && live.active_status !== '1';
+        })
+        .map(item => {
+          const live = variantsById[item.id];
+          return {
+            ...item,
+            actual_price: live.actual_price,
+            selling_price: live.selling_price,
+            discount_percentage: live.discount_percentage,
+            discount_amount: live.discount_amount,
+            active_status: live.active_status,
+          };
+        });
+
+      state.cartItems = nextCartItems;
+      state.totalPrice = nextCartItems.reduce(
+        (total, item) => total + Number(item.selling_price) * Number(item.quantity),
+        0
+      );
+      state.cartRestaurant = nextCartItems.length > 0 ? state.cartRestaurant : null;
+    },
     setsubCategory: (state, action) => {
       state.activeSubCategory = action.payload
     },
@@ -691,65 +736,65 @@ export const Dashboard = createSlice({
     });
 
     builder.addCase(getAddressList.pending, (state, action) => {
-      state.loading.addressCheck = true;
+      state.loading = true;
       state.message = null;
     });
     builder.addCase(getAddressList.fulfilled, (state, action) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
       state.message = null;
       state.addressList = action.payload.data
     });
     builder.addCase(getAddressList.rejected, (state, action) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
       state.message = 'Please try again!';
     });
 
     builder.addCase(setAddressList.pending, (state, action) => {
-      state.loading.addressCheck = true;
+      state.loading = true;
       state.message = null;
     });
     builder.addCase(setAddressList.fulfilled, (state, action) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
       state.message = null;
     });
     builder.addCase(setAddressList.rejected, (state, action) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
       state.message = 'Please try again!';
     });
 
     builder.addCase(placeOrder.pending, (state, action) => {
-      state.loading.addressCheck = true;
+      state.loading = true;
       state.message = null;
     });
     builder.addCase(placeOrder.fulfilled, (state, action) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
       state.message = null;
     });
     builder.addCase(placeOrder.rejected, (state, action) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
       state.message = 'Please try again!';
     });
 
     builder.addCase(checkServiceAvailability.pending, (state) => {
-      state.loading.addressCheck = true;
+      state.loading = true;
     });
     builder.addCase(checkServiceAvailability.fulfilled, (state, action) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
       state.serviceAvailable = action.payload.available;
     });
     builder.addCase(checkServiceAvailability.rejected, (state) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
     });
 
     builder.addCase(getAvailableAreas.pending, (state) => {
-      state.loading.addressCheck = true;
+      state.loading = true;
     });
     builder.addCase(getAvailableAreas.fulfilled, (state, action) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
       state.availableAreas = action.payload;
     });
     builder.addCase(getAvailableAreas.rejected, (state) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
     });
 
     builder.addCase(updateUserLocation.fulfilled, (state, action) => {
@@ -757,25 +802,27 @@ export const Dashboard = createSlice({
     });
 
     builder.addCase(getServices.pending, (state) => {
-      state.loading.addressCheck = true;
+      state.loading = true;
     });
     builder.addCase(getServices.fulfilled, (state, action) => {
-      state.loading.addressCheck = false;
-      state.availableAreas = action.payload.data;
+      state.loading = false;
+      state.availableAreas = (action.payload.data || []).filter(
+        area => area.location_status === 0
+      );
     });
     builder.addCase(getServices.rejected, (state) => {
-      state.loading.addressCheck = false;
+      state.loading = false;
     });
 
     builder.addCase(getRestaurantsHome.pending, (state) => {
-      state.loading.restaurants = true;
+      state.loading = true;
     });
     builder.addCase(getRestaurantsHome.fulfilled, (state, action) => {
-      state.loading.restaurants = false;
+      state.loading = false;
       state.homeRestaurnats = action.payload.data[0];
     });
     builder.addCase(getRestaurantsHome.rejected, (state) => {
-      state.loading.restaurants = false;
+      state.loading = false;
     });
   },
 });
@@ -787,6 +834,7 @@ export const {
   removeFromCart,
   setCartRestaurant,
   clearCart,
+  reconcileCartWithLiveData,
   setsubCategory,
   updateUserAddress,
   setServiceLocations,
