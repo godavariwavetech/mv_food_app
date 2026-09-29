@@ -22,7 +22,6 @@ import {
 } from 'react-native-responsive-dimensions';
 import Clock from './tabassets/Clock';
 import { Shadow } from 'react-native-shadow-2';
-import ShopSection from './builder/ShopSection';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   getBanners,
