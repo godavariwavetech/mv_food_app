@@ -78,13 +78,14 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.varadhifoods"
+    // namespace "com.varadhifoods"
+    namespace "com.multivendor"
     defaultConfig {
-        applicationId "com.varadhifoods"
+        applicationId "com.multivendor"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 21
-        versionName "1.2.1"
+        versionCode 22
+        versionName "1.2.2"
     }
     signingConfigs {
         debug {

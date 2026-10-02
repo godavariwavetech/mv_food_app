@@ -1,4 +1,4 @@
-package com.freshgrab
+package com.multivendor
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

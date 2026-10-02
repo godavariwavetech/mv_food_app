@@ -1,4 +1,4 @@
-package com.freshgrab
+package com.multivendor
 
 import android.app.Application
 import com.facebook.react.PackageList

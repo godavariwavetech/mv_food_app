@@ -31,7 +31,7 @@ const SplashScreen = ({ navigation }) => {
       <View style={styles.imgContainer}>
         <Image 
           // Points to your newly added logo in the assets folder
-          source={require('../../assets/logo.png')} 
+          source={require('../../assets/mvLogo.jpeg')} 
           style={styles.logo} 
         />
       </View>

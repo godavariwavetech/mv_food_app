@@ -1,4 +1,5 @@
-export const baseURL = "https://freshgrab.co.in:2601"; 
+// export const baseURL = "https://freshgrab.co.in:2601"; 
+export const baseURL = "https://ekart360.in:2020";
 
 //2630
 

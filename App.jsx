@@ -95,8 +95,8 @@ const App = () => {
   const handleUpdate = async () => {
     try {
       console.log("Opening Play Store");
-      const playStoreUrl = 'market://details?id=com.varadhifoods';
-      const fallbackUrl = 'https://play.google.com/store/apps/details?id=com.varadhifoods&pcampaignid=web_share';
+      const playStoreUrl = 'market://details?id=com.multivendor';
+      const fallbackUrl = 'https://play.google.com/store/apps/details?id=com.multivendor&pcampaignid=web_share';
       
       const supported = await Linking.canOpenURL(playStoreUrl);
       if (supported) {
