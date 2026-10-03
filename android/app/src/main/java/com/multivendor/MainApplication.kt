@@ -1,4 +1,4 @@
-package com.multivendor
+package com.multivendor.app
 
 import android.app.Application
 import com.facebook.react.PackageList

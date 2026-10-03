@@ -1,4 +1,4 @@
-package com.multivendor
+package com.multivendor.app
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

@@ -79,9 +79,9 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     // namespace "com.varadhifoods"
-    namespace "com.multivendor"
+    namespace "com.multivendor.app"
     defaultConfig {
-        applicationId "com.multivendor"
+        applicationId "com.multivendor.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 22
